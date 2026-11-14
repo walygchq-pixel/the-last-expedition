@@ -1,0 +1,2218 @@
+{
+  "id": "ship.objects",
+  "version": 1,
+  "items": [
+    {
+      "id": "fridge",
+      "roomId": "galley",
+      "x": 6,
+      "y": 4,
+      "icon": "box",
+      "nameKey": "object.fridge.name",
+      "descKey": "object.fridge.desc",
+      "actions": [
+        {
+          "id": "open",
+          "labelKey": "action.fridge.open.label",
+          "estimateKey": "action.fridge.open.estimate",
+          "effects": [
+            {
+              "type": "food",
+              "op": "freshness",
+              "value": -1
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "hunger",
+              "value": -2
+            },
+            {
+              "type": "chance",
+              "p": 0.15,
+              "effects": [
+                {
+                  "type": "crewCondition",
+                  "id": "all",
+                  "condition": "ill",
+                  "days": 1,
+                  "damage": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "service",
+          "labelKey": "action.fridge.service.label",
+          "estimateKey": "action.fridge.service.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "service",
+              "value": 4
+            },
+            {
+              "type": "flag",
+              "id": "fridgeServiced",
+              "value": true
+            }
+          ],
+          "requiresRole": "engineer"
+        }
+      ]
+    },
+    {
+      "id": "pantry",
+      "roomId": "galley",
+      "x": 13,
+      "y": 4,
+      "icon": "box",
+      "nameKey": "object.pantry.name",
+      "descKey": "object.pantry.desc",
+      "actions": [
+        {
+          "id": "stock",
+          "labelKey": "action.pantry.stock.label",
+          "estimateKey": "action.pantry.stock.estimate",
+          "effects": [
+            {
+              "type": "stat",
+              "id": "meals",
+              "value": 1
+            },
+            {
+              "type": "food",
+              "op": "freshness",
+              "value": 1
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "hunger",
+              "value": -3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stove",
+      "roomId": "galley",
+      "x": 6,
+      "y": 8,
+      "icon": "bolt",
+      "nameKey": "object.stove.name",
+      "descKey": "object.stove.desc",
+      "actions": [
+        {
+          "id": "cook",
+          "labelKey": "action.stove.cook.label",
+          "estimateKey": "action.stove.cook.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "hunger",
+              "value": -8
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "morale": 2
+            },
+            {
+              "type": "system",
+              "id": "power",
+              "op": "degrade",
+              "value": 2,
+              "cause": "object"
+            },
+            {
+              "type": "stat",
+              "id": "meals",
+              "value": 1
+            }
+          ],
+          "requiresRole": "medic_cook"
+        }
+      ]
+    },
+    {
+      "id": "waste_bins",
+      "roomId": "galley",
+      "x": 13,
+      "y": 8,
+      "icon": "box",
+      "nameKey": "object.waste_bins.name",
+      "descKey": "object.waste_bins.desc",
+      "actions": [
+        {
+          "id": "empty",
+          "labelKey": "action.waste_bins.empty.label",
+          "estimateKey": "action.waste_bins.empty.estimate",
+          "effects": [
+            {
+              "type": "food",
+              "op": "waste",
+              "value": -8
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "hygiene",
+              "value": 4
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": 2
+            },
+            {
+              "type": "consequence",
+              "code": "cons.object.waste_vent",
+              "whyKey": "cons.why.waste_vent",
+              "dueInDays": 2,
+              "dueAfterEvents": 3,
+              "cause": "object",
+              "severity": "warn",
+              "origin": "object"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "knives",
+      "roomId": "galley",
+      "x": 8,
+      "y": 4,
+      "icon": "wrench",
+      "nameKey": "object.knives.name",
+      "descKey": "object.knives.desc",
+      "actions": [
+        {
+          "id": "prepare",
+          "labelKey": "action.knives.prepare.label",
+          "estimateKey": "action.knives.prepare.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "hunger",
+              "value": -3
+            },
+            {
+              "type": "stat",
+              "id": "meals",
+              "value": 1
+            },
+            {
+              "type": "chance",
+              "p": 0.2,
+              "effects": [
+                {
+                  "type": "crewCondition",
+                  "id": "all",
+                  "condition": "ill",
+                  "days": 1,
+                  "damage": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "item": true
+    },
+    {
+      "id": "sink",
+      "roomId": "galley",
+      "x": 10,
+      "y": 4,
+      "icon": "circle",
+      "nameKey": "object.sink.name",
+      "descKey": "object.sink.desc",
+      "actions": [
+        {
+          "id": "wash",
+          "labelKey": "action.sink.wash.label",
+          "estimateKey": "action.sink.wash.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "hygiene",
+              "value": 12
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -3
+            },
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "degrade",
+              "value": 1,
+              "cause": "object"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cutting_board",
+      "roomId": "galley",
+      "x": 11,
+      "y": 4,
+      "icon": "box",
+      "nameKey": "object.cutting_board.name",
+      "descKey": "object.cutting_board.desc",
+      "actions": [
+        {
+          "id": "sanitize",
+          "labelKey": "action.cutting_board.sanitize.label",
+          "estimateKey": "action.cutting_board.sanitize.estimate",
+          "effects": [
+            {
+              "type": "food",
+              "op": "freshness",
+              "value": 1
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "morale": 1
+            },
+            {
+              "type": "flag",
+              "id": "boardClean",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "coffee_maker",
+      "roomId": "galley",
+      "x": 12,
+      "y": 4,
+      "icon": "cup",
+      "nameKey": "object.coffee_maker.name",
+      "descKey": "object.coffee_maker.desc",
+      "actions": [
+        {
+          "id": "brew",
+          "labelKey": "action.coffee_maker.brew.label",
+          "estimateKey": "action.coffee_maker.brew.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "sleep",
+              "value": 6
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -4
+            },
+            {
+              "type": "system",
+              "id": "power",
+              "op": "degrade",
+              "value": 2,
+              "cause": "object"
+            },
+            {
+              "type": "stat",
+              "id": "coffees",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ration_crates",
+      "roomId": "galley",
+      "x": 6,
+      "y": 6,
+      "icon": "box",
+      "nameKey": "object.ration_crates.name",
+      "descKey": "object.ration_crates.desc",
+      "actions": [
+        {
+          "id": "open",
+          "labelKey": "action.ration_crates.open.label",
+          "estimateKey": "action.ration_crates.open.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "hunger",
+              "value": -5
+            },
+            {
+              "type": "food",
+              "op": "freshness",
+              "value": -3
+            },
+            {
+              "type": "stat",
+              "id": "meals",
+              "value": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "water_tank",
+      "roomId": "galley",
+      "x": 13,
+      "y": 6,
+      "icon": "tank",
+      "nameKey": "object.water_tank.name",
+      "descKey": "object.water_tank.desc",
+      "actions": [
+        {
+          "id": "refill",
+          "labelKey": "action.water_tank.refill.label",
+          "estimateKey": "action.water_tank.refill.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "thirst",
+              "value": -10
+            },
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "degrade",
+              "value": 1,
+              "cause": "object"
+            },
+            {
+              "type": "resource",
+              "id": "budget",
+              "value": -1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "spice_rack",
+      "roomId": "galley",
+      "x": 7,
+      "y": 12,
+      "icon": "box",
+      "nameKey": "object.spice_rack.name",
+      "descKey": "object.spice_rack.desc",
+      "actions": [
+        {
+          "id": "season",
+          "labelKey": "action.spice_rack.season.label",
+          "estimateKey": "action.spice_rack.season.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "morale": 3
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "hunger",
+              "value": -2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grease_trap",
+      "roomId": "galley",
+      "x": 13,
+      "y": 12,
+      "icon": "wrench",
+      "nameKey": "object.grease_trap.name",
+      "descKey": "object.grease_trap.desc",
+      "actions": [
+        {
+          "id": "clean",
+          "labelKey": "action.grease_trap.clean.label",
+          "estimateKey": "action.grease_trap.clean.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "service",
+              "value": 5
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": 2
+            },
+            {
+              "type": "flag",
+              "id": "greaseTrapClean",
+              "value": true
+            }
+          ],
+          "requiresRole": "engineer"
+        }
+      ]
+    },
+    {
+      "id": "water_pump",
+      "roomId": "engineering",
+      "x": 6,
+      "y": 18,
+      "icon": "tank",
+      "nameKey": "object.water_pump.name",
+      "descKey": "object.water_pump.desc",
+      "actions": [
+        {
+          "id": "prime",
+          "labelKey": "action.water_pump.prime.label",
+          "estimateKey": "action.water_pump.prime.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "repair",
+              "value": 8
+            },
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "reliability",
+              "value": -2
+            },
+            {
+              "type": "stat",
+              "id": "repairs",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "id": "overhaul",
+          "labelKey": "action.water_pump.overhaul.label",
+          "estimateKey": "action.water_pump.overhaul.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "service",
+              "value": 12
+            },
+            {
+              "type": "resource",
+              "id": "budget",
+              "value": -6
+            },
+            {
+              "type": "consequence",
+              "code": "cons.object.pump_failure",
+              "whyKey": "cons.why.pump_failure",
+              "dueInDays": 4,
+              "dueAfterEvents": 4,
+              "cause": "object",
+              "severity": "warn",
+              "origin": "object"
+            }
+          ],
+          "requiresRole": "engineer"
+        }
+      ]
+    },
+    {
+      "id": "electrical_panel",
+      "roomId": "engineering",
+      "x": 15,
+      "y": 18,
+      "icon": "bolt",
+      "nameKey": "object.electrical_panel.name",
+      "descKey": "object.electrical_panel.desc",
+      "actions": [
+        {
+          "id": "reroute",
+          "labelKey": "action.electrical_panel.reroute.label",
+          "estimateKey": "action.electrical_panel.reroute.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "power",
+              "op": "reliability",
+              "value": -3
+            },
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "repair",
+              "value": 5
+            },
+            {
+              "type": "stat",
+              "id": "reroutes",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "id": "diagnose",
+          "labelKey": "action.electrical_panel.diagnose.label",
+          "estimateKey": "action.electrical_panel.diagnose.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "power",
+              "op": "service",
+              "value": 4
+            },
+            {
+              "type": "resource",
+              "id": "data",
+              "value": 1
+            }
+          ],
+          "requiresRole": "engineer"
+        }
+      ]
+    },
+    {
+      "id": "toolbox",
+      "roomId": "engineering",
+      "x": 8,
+      "y": 18,
+      "icon": "wrench",
+      "nameKey": "object.toolbox.name",
+      "descKey": "object.toolbox.desc",
+      "actions": [
+        {
+          "id": "use",
+          "labelKey": "action.toolbox.use.label",
+          "estimateKey": "action.toolbox.use.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "attitude",
+              "op": "repair",
+              "value": 4
+            },
+            {
+              "type": "stat",
+              "id": "repairs",
+              "value": 1
+            }
+          ]
+        }
+      ],
+      "item": true
+    },
+    {
+      "id": "spare_parts",
+      "roomId": "engineering",
+      "x": 9,
+      "y": 18,
+      "icon": "box",
+      "nameKey": "object.spare_parts.name",
+      "descKey": "object.spare_parts.desc",
+      "actions": [
+        {
+          "id": "install",
+          "labelKey": "action.spare_parts.install.label",
+          "estimateKey": "action.spare_parts.install.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "thermal",
+              "op": "repair",
+              "value": 10
+            },
+            {
+              "type": "system",
+              "id": "thermal",
+              "op": "reliability",
+              "value": 3
+            },
+            {
+              "type": "resource",
+              "id": "budget",
+              "value": -3
+            }
+          ]
+        }
+      ],
+      "item": true
+    },
+    {
+      "id": "conduits",
+      "roomId": "engineering",
+      "x": 15,
+      "y": 21,
+      "icon": "wrench",
+      "nameKey": "object.conduits.name",
+      "descKey": "object.conduits.desc",
+      "actions": [
+        {
+          "id": "patch",
+          "labelKey": "action.conduits.patch.label",
+          "estimateKey": "action.conduits.patch.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "repair",
+              "value": 7
+            },
+            {
+              "type": "system",
+              "id": "thermal",
+              "op": "repair",
+              "value": 3
+            },
+            {
+              "type": "chance",
+              "p": 0.25,
+              "effects": [
+                {
+                  "type": "system",
+                  "id": "comms",
+                  "op": "degrade",
+                  "value": 4,
+                  "cause": "object"
+                }
+              ]
+            }
+          ],
+          "requiresRole": "engineer",
+          "requiresItem": "toolbox"
+        }
+      ]
+    },
+    {
+      "id": "air_scrubber",
+      "roomId": "engineering",
+      "x": 6,
+      "y": 23,
+      "icon": "circle",
+      "nameKey": "object.air_scrubber.name",
+      "descKey": "object.air_scrubber.desc",
+      "actions": [
+        {
+          "id": "clean_filter",
+          "labelKey": "action.air_scrubber.clean_filter.label",
+          "estimateKey": "action.air_scrubber.clean_filter.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "service",
+              "value": 6
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "battery_bank",
+      "roomId": "engineering",
+      "x": 15,
+      "y": 24,
+      "icon": "bolt",
+      "nameKey": "object.battery_bank.name",
+      "descKey": "object.battery_bank.desc",
+      "actions": [
+        {
+          "id": "balance",
+          "labelKey": "action.battery_bank.balance.label",
+          "estimateKey": "action.battery_bank.balance.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "power",
+              "op": "repair",
+              "value": 6
+            },
+            {
+              "type": "system",
+              "id": "power",
+              "op": "service",
+              "value": 3
+            }
+          ],
+          "requiresRole": "engineer"
+        }
+      ]
+    },
+    {
+      "id": "fuel_cells",
+      "roomId": "engineering",
+      "x": 6,
+      "y": 26,
+      "icon": "box",
+      "nameKey": "object.fuel_cells.name",
+      "descKey": "object.fuel_cells.desc",
+      "actions": [
+        {
+          "id": "swap",
+          "labelKey": "action.fuel_cells.swap.label",
+          "estimateKey": "action.fuel_cells.swap.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "power",
+              "op": "reliability",
+              "value": 5
+            },
+            {
+              "type": "resource",
+              "id": "budget",
+              "value": -10
+            },
+            {
+              "type": "flag",
+              "id": "fuelSwapped",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "welding_bench",
+      "roomId": "engineering",
+      "x": 12,
+      "y": 26,
+      "icon": "wrench",
+      "nameKey": "object.welding_bench.name",
+      "descKey": "object.welding_bench.desc",
+      "actions": [
+        {
+          "id": "weld",
+          "labelKey": "action.welding_bench.weld.label",
+          "estimateKey": "action.welding_bench.weld.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "attitude",
+              "op": "repair",
+              "value": 6
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "health": 1,
+              "value": -2
+            },
+            {
+              "type": "chance",
+              "p": 0.2,
+              "effects": [
+                {
+                  "type": "crew",
+                  "id": "all",
+                  "health": 1,
+                  "value": -4
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pressure_valve",
+      "roomId": "engineering",
+      "x": 9,
+      "y": 26,
+      "icon": "circle",
+      "nameKey": "object.pressure_valve.name",
+      "descKey": "object.pressure_valve.desc",
+      "actions": [
+        {
+          "id": "bleed",
+          "labelKey": "action.pressure_valve.bleed.label",
+          "estimateKey": "action.pressure_valve.bleed.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "repair",
+              "value": 4
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": 3
+            },
+            {
+              "type": "stat",
+              "id": "bleeds",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "coolant_loop",
+      "roomId": "engineering",
+      "x": 15,
+      "y": 26,
+      "icon": "tank",
+      "nameKey": "object.coolant_loop.name",
+      "descKey": "object.coolant_loop.desc",
+      "actions": [
+        {
+          "id": "top_up",
+          "labelKey": "action.coolant_loop.top_up.label",
+          "estimateKey": "action.coolant_loop.top_up.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "thermal",
+              "op": "repair",
+              "value": 9
+            },
+            {
+              "type": "system",
+              "id": "thermal",
+              "op": "reliability",
+              "value": 2
+            },
+            {
+              "type": "resource",
+              "id": "budget",
+              "value": -4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "diagnostic_terminal",
+      "roomId": "engineering",
+      "x": 12,
+      "y": 18,
+      "icon": "screen",
+      "nameKey": "object.diagnostic_terminal.name",
+      "descKey": "object.diagnostic_terminal.desc",
+      "actions": [
+        {
+          "id": "scan",
+          "labelKey": "action.diagnostic_terminal.scan.label",
+          "estimateKey": "action.diagnostic_terminal.scan.estimate",
+          "effects": [
+            {
+              "type": "resource",
+              "id": "data",
+              "value": 2
+            },
+            {
+              "type": "system",
+              "id": "instruments",
+              "op": "service",
+              "value": 3
+            }
+          ]
+        },
+        {
+          "id": "calibrate",
+          "labelKey": "action.diagnostic_terminal.calibrate.label",
+          "estimateKey": "action.diagnostic_terminal.calibrate.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "instruments",
+              "op": "repair",
+              "value": 5
+            },
+            {
+              "type": "resource",
+              "id": "data",
+              "value": 3
+            }
+          ],
+          "requiresRole": "scientist"
+        }
+      ]
+    },
+    {
+      "id": "medkit",
+      "roomId": "medbay",
+      "x": 28,
+      "y": 4,
+      "icon": "cross",
+      "nameKey": "object.medkit.name",
+      "descKey": "object.medkit.desc",
+      "actions": [
+        {
+          "id": "treat",
+          "labelKey": "action.medkit.treat.label",
+          "estimateKey": "action.medkit.treat.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "health": 1,
+              "value": 8
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -3
+            },
+            {
+              "type": "stat",
+              "id": "treatments",
+              "value": 1
+            }
+          ]
+        }
+      ],
+      "item": true
+    },
+    {
+      "id": "stretcher",
+      "roomId": "medbay",
+      "x": 30,
+      "y": 4,
+      "icon": "bed",
+      "nameKey": "object.stretcher.name",
+      "descKey": "object.stretcher.desc",
+      "actions": [
+        {
+          "id": "rest",
+          "labelKey": "action.stretcher.rest.label",
+          "estimateKey": "action.stretcher.rest.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "sleep",
+              "value": 10
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -5
+            },
+            {
+              "type": "stat",
+              "id": "rests",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thermometer",
+      "roomId": "medbay",
+      "x": 32,
+      "y": 4,
+      "icon": "circle",
+      "nameKey": "object.thermometer.name",
+      "descKey": "object.thermometer.desc",
+      "actions": [
+        {
+          "id": "screen",
+          "labelKey": "action.thermometer.screen.label",
+          "estimateKey": "action.thermometer.screen.estimate",
+          "effects": [
+            {
+              "type": "stat",
+              "id": "screens",
+              "value": 1
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -2
+            },
+            {
+              "type": "resource",
+              "id": "data",
+              "value": 1
+            }
+          ]
+        }
+      ],
+      "item": true
+    },
+    {
+      "id": "medication_pods",
+      "roomId": "medbay",
+      "x": 34,
+      "y": 4,
+      "icon": "flask",
+      "nameKey": "object.medication_pods.name",
+      "descKey": "object.medication_pods.desc",
+      "actions": [
+        {
+          "id": "treat",
+          "labelKey": "action.medication_pods.treat.label",
+          "estimateKey": "action.medication_pods.treat.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "health": 1,
+              "value": 12
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "sleep",
+              "value": 5
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -4
+            }
+          ],
+          "requiresRole": "medic_cook",
+          "requiresItem": "medkit"
+        }
+      ]
+    },
+    {
+      "id": "scanner",
+      "roomId": "medbay",
+      "x": 28,
+      "y": 8,
+      "icon": "screen",
+      "nameKey": "object.scanner.name",
+      "descKey": "object.scanner.desc",
+      "actions": [
+        {
+          "id": "scan",
+          "labelKey": "action.scanner.scan.label",
+          "estimateKey": "action.scanner.scan.estimate",
+          "effects": [
+            {
+              "type": "resource",
+              "id": "data",
+              "value": 3
+            },
+            {
+              "type": "stat",
+              "id": "scans",
+              "value": 1
+            }
+          ],
+          "requiresRole": "scientist"
+        }
+      ]
+    },
+    {
+      "id": "oxygen_mask",
+      "roomId": "medbay",
+      "x": 34,
+      "y": 8,
+      "icon": "circle",
+      "nameKey": "object.oxygen_mask.name",
+      "descKey": "object.oxygen_mask.desc",
+      "actions": [
+        {
+          "id": "breathe",
+          "labelKey": "action.oxygen_mask.breathe.label",
+          "estimateKey": "action.oxygen_mask.breathe.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -4
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "health": 1,
+              "value": 3
+            },
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "degrade",
+              "value": 1,
+              "cause": "object"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hygiene_station",
+      "roomId": "medbay",
+      "x": 28,
+      "y": 12,
+      "icon": "circle",
+      "nameKey": "object.hygiene_station.name",
+      "descKey": "object.hygiene_station.desc",
+      "actions": [
+        {
+          "id": "shower",
+          "labelKey": "action.hygiene_station.shower.label",
+          "estimateKey": "action.hygiene_station.shower.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "hygiene",
+              "value": 18
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -6
+            },
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "degrade",
+              "value": 2,
+              "cause": "object"
+            },
+            {
+              "type": "stat",
+              "id": "showers",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "medical_log",
+      "roomId": "medbay",
+      "x": 34,
+      "y": 12,
+      "icon": "box",
+      "nameKey": "object.medical_log.name",
+      "descKey": "object.medical_log.desc",
+      "actions": [
+        {
+          "id": "review",
+          "labelKey": "action.medical_log.review.label",
+          "estimateKey": "action.medical_log.review.estimate",
+          "effects": [
+            {
+              "type": "resource",
+              "id": "data",
+              "value": 2
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "morale": 2
+            },
+            {
+              "type": "flag",
+              "id": "medicalLogRead",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "comms_console",
+      "roomId": "command",
+      "x": 17,
+      "y": 4,
+      "icon": "radio",
+      "nameKey": "object.comms_console.name",
+      "descKey": "object.comms_console.desc",
+      "actions": [
+        {
+          "id": "transmit",
+          "labelKey": "action.comms_console.transmit.label",
+          "estimateKey": "action.comms_console.transmit.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "comms",
+              "op": "service",
+              "value": 4
+            },
+            {
+              "type": "resource",
+              "id": "budget",
+              "value": -5
+            },
+            {
+              "type": "stat",
+              "id": "transmissions",
+              "value": 1
+            }
+          ],
+          "requiresRole": "communications"
+        },
+        {
+          "id": "listen",
+          "labelKey": "action.comms_console.listen.label",
+          "estimateKey": "action.comms_console.listen.estimate",
+          "effects": [
+            {
+              "type": "resource",
+              "id": "data",
+              "value": 1
+            },
+            {
+              "type": "system",
+              "id": "comms",
+              "op": "degrade",
+              "value": 1,
+              "cause": "object"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "telemetry",
+      "roomId": "command",
+      "x": 19,
+      "y": 4,
+      "icon": "screen",
+      "nameKey": "object.telemetry.name",
+      "descKey": "object.telemetry.desc",
+      "actions": [
+        {
+          "id": "review",
+          "labelKey": "action.telemetry.review.label",
+          "estimateKey": "action.telemetry.review.estimate",
+          "effects": [
+            {
+              "type": "resource",
+              "id": "data",
+              "value": 3
+            },
+            {
+              "type": "system",
+              "id": "instruments",
+              "op": "degrade",
+              "value": 1,
+              "cause": "object"
+            },
+            {
+              "type": "flag",
+              "id": "telemetryReviewed",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "orbit_control",
+      "roomId": "command",
+      "x": 22,
+      "y": 4,
+      "icon": "screen",
+      "nameKey": "object.orbit_control.name",
+      "descKey": "object.orbit_control.desc",
+      "actions": [
+        {
+          "id": "adjust",
+          "labelKey": "action.orbit_control.adjust.label",
+          "estimateKey": "action.orbit_control.adjust.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "attitude",
+              "op": "degrade",
+              "value": 4,
+              "cause": "object"
+            },
+            {
+              "type": "resource",
+              "id": "budget",
+              "value": -8
+            },
+            {
+              "type": "flag",
+              "id": "orbitAdjusted",
+              "value": true
+            }
+          ],
+          "requiresRole": "mission_planner"
+        }
+      ]
+    },
+    {
+      "id": "logbook",
+      "roomId": "command",
+      "x": 24,
+      "y": 4,
+      "icon": "box",
+      "nameKey": "object.logbook.name",
+      "descKey": "object.logbook.desc",
+      "actions": [
+        {
+          "id": "write",
+          "labelKey": "action.logbook.write.label",
+          "estimateKey": "action.logbook.write.estimate",
+          "effects": [
+            {
+              "type": "flag",
+              "id": "logbookUpdated",
+              "value": true
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "morale": 2
+            },
+            {
+              "type": "resource",
+              "id": "data",
+              "value": 1
+            }
+          ]
+        }
+      ],
+      "item": true
+    },
+    {
+      "id": "star_chart",
+      "roomId": "command",
+      "x": 17,
+      "y": 8,
+      "icon": "star",
+      "nameKey": "object.star_chart.name",
+      "descKey": "object.star_chart.desc",
+      "actions": [
+        {
+          "id": "study",
+          "labelKey": "action.star_chart.study.label",
+          "estimateKey": "action.star_chart.study.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "morale": 3
+            },
+            {
+              "type": "resource",
+              "id": "data",
+              "value": 2
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "sleep",
+              "value": -2
+            }
+          ],
+          "requiresRole": "scientist"
+        }
+      ]
+    },
+    {
+      "id": "nav_table",
+      "roomId": "command",
+      "x": 24,
+      "y": 8,
+      "icon": "screen",
+      "nameKey": "object.nav_table.name",
+      "descKey": "object.nav_table.desc",
+      "actions": [
+        {
+          "id": "plot",
+          "labelKey": "action.nav_table.plot.label",
+          "estimateKey": "action.nav_table.plot.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "attitude",
+              "op": "service",
+              "value": 3
+            },
+            {
+              "type": "resource",
+              "id": "budget",
+              "value": -2
+            },
+            {
+              "type": "flag",
+              "id": "coursePlotted",
+              "value": true
+            }
+          ],
+          "requiresRole": "mission_planner"
+        }
+      ]
+    },
+    {
+      "id": "broadcast_mic",
+      "roomId": "command",
+      "x": 17,
+      "y": 12,
+      "icon": "radio",
+      "nameKey": "object.broadcast_mic.name",
+      "descKey": "object.broadcast_mic.desc",
+      "actions": [
+        {
+          "id": "announce",
+          "labelKey": "action.broadcast_mic.announce.label",
+          "estimateKey": "action.broadcast_mic.announce.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "morale": 6
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -5
+            }
+          ],
+          "requiresRole": "communications"
+        }
+      ]
+    },
+    {
+      "id": "crew_terminal",
+      "roomId": "command",
+      "x": 24,
+      "y": 12,
+      "icon": "screen",
+      "nameKey": "object.crew_terminal.name",
+      "descKey": "object.crew_terminal.desc",
+      "actions": [
+        {
+          "id": "check",
+          "labelKey": "action.crew_terminal.check.label",
+          "estimateKey": "action.crew_terminal.check.estimate",
+          "effects": [
+            {
+              "type": "resource",
+              "id": "data",
+              "value": 1
+            },
+            {
+              "type": "flag",
+              "id": "crewTerminalChecked",
+              "value": true
+            },
+            {
+              "type": "chance",
+              "p": 0.1,
+              "effects": [
+                {
+                  "type": "crew",
+                  "id": "all",
+                  "morale": -2
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "light_panel",
+      "roomId": "corridor",
+      "x": 5,
+      "y": 14,
+      "icon": "bolt",
+      "nameKey": "object.light_panel.name",
+      "descKey": "object.light_panel.desc",
+      "actions": [
+        {
+          "id": "dim",
+          "labelKey": "action.light_panel.dim.label",
+          "estimateKey": "action.light_panel.dim.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "power",
+              "op": "repair",
+              "value": 3
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": 2
+            },
+            {
+              "type": "flag",
+              "id": "lightsDimmed",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hatch",
+      "roomId": "corridor",
+      "x": 34,
+      "y": 14,
+      "icon": "door",
+      "nameKey": "object.hatch.name",
+      "descKey": "object.hatch.desc",
+      "actions": [
+        {
+          "id": "seal",
+          "labelKey": "action.hatch.seal.label",
+          "estimateKey": "action.hatch.seal.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "repair",
+              "value": 2
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -1
+            },
+            {
+              "type": "flag",
+              "id": "hatchSealed",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "floor_plates",
+      "roomId": "corridor",
+      "x": 7,
+      "y": 16,
+      "icon": "box",
+      "nameKey": "object.floor_plates.name",
+      "descKey": "object.floor_plates.desc",
+      "actions": [
+        {
+          "id": "inspect",
+          "labelKey": "action.floor_plates.inspect.label",
+          "estimateKey": "action.floor_plates.inspect.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "attitude",
+              "op": "service",
+              "value": 3
+            },
+            {
+              "type": "stat",
+              "id": "inspections",
+              "value": 1
+            },
+            {
+              "type": "chance",
+              "p": 0.2,
+              "effects": [
+                {
+                  "type": "crew",
+                  "id": "all",
+                  "stress": 3
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fire_extinguisher",
+      "roomId": "corridor",
+      "x": 12,
+      "y": 14,
+      "icon": "flask",
+      "nameKey": "object.fire_extinguisher.name",
+      "descKey": "object.fire_extinguisher.desc",
+      "actions": [
+        {
+          "id": "discharge",
+          "labelKey": "action.fire_extinguisher.discharge.label",
+          "estimateKey": "action.fire_extinguisher.discharge.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "thermal",
+              "op": "repair",
+              "value": 5
+            },
+            {
+              "type": "resource",
+              "id": "budget",
+              "value": -3
+            },
+            {
+              "type": "stat",
+              "id": "fires",
+              "value": 1
+            }
+          ],
+          "once": true
+        }
+      ],
+      "item": true
+    },
+    {
+      "id": "pressure_gauge",
+      "roomId": "corridor",
+      "x": 24,
+      "y": 16,
+      "icon": "circle",
+      "nameKey": "object.pressure_gauge.name",
+      "descKey": "object.pressure_gauge.desc",
+      "actions": [
+        {
+          "id": "read",
+          "labelKey": "action.pressure_gauge.read.label",
+          "estimateKey": "action.pressure_gauge.read.estimate",
+          "effects": [
+            {
+              "type": "resource",
+              "id": "data",
+              "value": 1
+            },
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "service",
+              "value": 2
+            },
+            {
+              "type": "flag",
+              "id": "pressureChecked",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "storage_locker",
+      "roomId": "corridor",
+      "x": 30,
+      "y": 15,
+      "icon": "box",
+      "nameKey": "object.storage_locker.name",
+      "descKey": "object.storage_locker.desc",
+      "actions": [
+        {
+          "id": "open",
+          "labelKey": "action.storage_locker.open.label",
+          "estimateKey": "action.storage_locker.open.estimate",
+          "effects": [
+            {
+              "type": "resource",
+              "id": "budget",
+              "value": 2
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "morale": 2
+            },
+            {
+              "type": "stat",
+              "id": "supplies",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bunk_beds",
+      "roomId": "dorm",
+      "x": 18,
+      "y": 18,
+      "icon": "bed",
+      "nameKey": "object.bunk_beds.name",
+      "descKey": "object.bunk_beds.desc",
+      "actions": [
+        {
+          "id": "sleep",
+          "labelKey": "action.bunk_beds.sleep.label",
+          "estimateKey": "action.bunk_beds.sleep.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "sleep",
+              "value": 14
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -4
+            },
+            {
+              "type": "stat",
+              "id": "sleeps",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sleep_pods",
+      "roomId": "dorm",
+      "x": 25,
+      "y": 18,
+      "icon": "bed",
+      "nameKey": "object.sleep_pods.name",
+      "descKey": "object.sleep_pods.desc",
+      "actions": [
+        {
+          "id": "rest",
+          "labelKey": "action.sleep_pods.rest.label",
+          "estimateKey": "action.sleep_pods.rest.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "sleep",
+              "value": 20
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "health": 1,
+              "value": 2
+            },
+            {
+              "type": "system",
+              "id": "power",
+              "op": "degrade",
+              "value": 1,
+              "cause": "object"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "personal_lockers",
+      "roomId": "dorm",
+      "x": 18,
+      "y": 22,
+      "icon": "box",
+      "nameKey": "object.personal_lockers.name",
+      "descKey": "object.personal_lockers.desc",
+      "actions": [
+        {
+          "id": "sort",
+          "labelKey": "action.personal_lockers.sort.label",
+          "estimateKey": "action.personal_lockers.sort.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "morale": 3
+            },
+            {
+              "type": "resource",
+              "id": "budget",
+              "value": 1
+            },
+            {
+              "type": "flag",
+              "id": "lockersSorted",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reading_lamp",
+      "roomId": "dorm",
+      "x": 25,
+      "y": 22,
+      "icon": "bolt",
+      "nameKey": "object.reading_lamp.name",
+      "descKey": "object.reading_lamp.desc",
+      "actions": [
+        {
+          "id": "repair",
+          "labelKey": "action.reading_lamp.repair.label",
+          "estimateKey": "action.reading_lamp.repair.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "power",
+              "op": "repair",
+              "value": 2
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -2
+            },
+            {
+              "type": "flag",
+              "id": "lampFixed",
+              "value": true
+            }
+          ],
+          "requiresItem": "toolbox"
+        }
+      ]
+    },
+    {
+      "id": "hygiene_kit",
+      "roomId": "dorm",
+      "x": 18,
+      "y": 26,
+      "icon": "box",
+      "nameKey": "object.hygiene_kit.name",
+      "descKey": "object.hygiene_kit.desc",
+      "actions": [
+        {
+          "id": "use",
+          "labelKey": "action.hygiene_kit.use.label",
+          "estimateKey": "action.hygiene_kit.use.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "hygiene",
+              "value": 10
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "morale": 2
+            }
+          ]
+        }
+      ],
+      "item": true
+    },
+    {
+      "id": "music_speaker",
+      "roomId": "dorm",
+      "x": 22,
+      "y": 26,
+      "icon": "radio",
+      "nameKey": "object.music_speaker.name",
+      "descKey": "object.music_speaker.desc",
+      "actions": [
+        {
+          "id": "play",
+          "labelKey": "action.music_speaker.play.label",
+          "estimateKey": "action.music_speaker.play.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "morale": 7
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -6
+            },
+            {
+              "type": "system",
+              "id": "power",
+              "op": "degrade",
+              "value": 1,
+              "cause": "object"
+            },
+            {
+              "type": "flag",
+              "id": "musicOn",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "window_port",
+      "roomId": "dorm",
+      "x": 25,
+      "y": 26,
+      "icon": "circle",
+      "nameKey": "object.window_port.name",
+      "descKey": "object.window_port.desc",
+      "actions": [
+        {
+          "id": "observe",
+          "labelKey": "action.window_port.observe.label",
+          "estimateKey": "action.window_port.observe.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "morale": 4
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -3
+            },
+            {
+              "type": "resource",
+              "id": "data",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "outer_hatch",
+      "roomId": "airlock",
+      "x": 28,
+      "y": 18,
+      "icon": "door",
+      "nameKey": "object.outer_hatch.name",
+      "descKey": "object.outer_hatch.desc",
+      "actions": [
+        {
+          "id": "cycle",
+          "labelKey": "action.outer_hatch.cycle.label",
+          "estimateKey": "action.outer_hatch.cycle.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "degrade",
+              "value": 2,
+              "cause": "object"
+            },
+            {
+              "type": "resource",
+              "id": "budget",
+              "value": -2
+            },
+            {
+              "type": "stat",
+              "id": "evas",
+              "value": 1
+            },
+            {
+              "type": "flag",
+              "id": "airlockCycled",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "suit_locker",
+      "roomId": "airlock",
+      "x": 34,
+      "y": 18,
+      "icon": "box",
+      "nameKey": "object.suit_locker.name",
+      "descKey": "object.suit_locker.desc",
+      "actions": [
+        {
+          "id": "check_suits",
+          "labelKey": "action.suit_locker.check_suits.label",
+          "estimateKey": "action.suit_locker.check_suits.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "attitude",
+              "op": "service",
+              "value": 3
+            },
+            {
+              "type": "stat",
+              "id": "suits",
+              "value": 1
+            },
+            {
+              "type": "flag",
+              "id": "suitsChecked",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "decontamination",
+      "roomId": "airlock",
+      "x": 28,
+      "y": 22,
+      "icon": "circle",
+      "nameKey": "object.decontamination.name",
+      "descKey": "object.decontamination.desc",
+      "actions": [
+        {
+          "id": "run",
+          "labelKey": "action.decontamination.run.label",
+          "estimateKey": "action.decontamination.run.estimate",
+          "effects": [
+            {
+              "type": "crew",
+              "id": "all",
+              "need": "hygiene",
+              "value": 12
+            },
+            {
+              "type": "system",
+              "id": "power",
+              "op": "degrade",
+              "value": 3,
+              "cause": "object"
+            },
+            {
+              "type": "resource",
+              "id": "budget",
+              "value": -3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tether_reel",
+      "roomId": "airlock",
+      "x": 34,
+      "y": 22,
+      "icon": "box",
+      "nameKey": "object.tether_reel.name",
+      "descKey": "object.tether_reel.desc",
+      "actions": [
+        {
+          "id": "inspect",
+          "labelKey": "action.tether_reel.inspect.label",
+          "estimateKey": "action.tether_reel.inspect.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "attitude",
+              "op": "repair",
+              "value": 3
+            },
+            {
+              "type": "stat",
+              "id": "tethers",
+              "value": 1
+            },
+            {
+              "type": "chance",
+              "p": 0.2,
+              "effects": [
+                {
+                  "type": "system",
+                  "id": "attitude",
+                  "op": "degrade",
+                  "value": 2,
+                  "cause": "object"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pressure_seal",
+      "roomId": "airlock",
+      "x": 28,
+      "y": 26,
+      "icon": "wrench",
+      "nameKey": "object.pressure_seal.name",
+      "descKey": "object.pressure_seal.desc",
+      "actions": [
+        {
+          "id": "replace",
+          "labelKey": "action.pressure_seal.replace.label",
+          "estimateKey": "action.pressure_seal.replace.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "repair",
+              "value": 8
+            },
+            {
+              "type": "system",
+              "id": "lifeSupport",
+              "op": "service",
+              "value": 4
+            },
+            {
+              "type": "resource",
+              "id": "budget",
+              "value": -5
+            },
+            {
+              "type": "consequence",
+              "code": "cons.object.pressure_seal",
+              "whyKey": "cons.why.pressure_seal",
+              "dueInDays": 3,
+              "dueAfterEvents": 4,
+              "cause": "object",
+              "severity": "warn",
+              "origin": "object"
+            }
+          ],
+          "requiresItem": "toolbox"
+        }
+      ]
+    },
+    {
+      "id": "eva_toolkit",
+      "roomId": "airlock",
+      "x": 34,
+      "y": 26,
+      "icon": "wrench",
+      "nameKey": "object.eva_toolkit.name",
+      "descKey": "object.eva_toolkit.desc",
+      "actions": [
+        {
+          "id": "prepare",
+          "labelKey": "action.eva_toolkit.prepare.label",
+          "estimateKey": "action.eva_toolkit.prepare.estimate",
+          "effects": [
+            {
+              "type": "system",
+              "id": "power",
+              "op": "service",
+              "value": 2
+            },
+            {
+              "type": "crew",
+              "id": "all",
+              "stress": -2
+            },
+            {
+              "type": "stat",
+              "id": "evaPrep",
+              "value": 1
+            }
+          ]
+        }
+      ],
+      "item": true
+    }
+  ]
+}

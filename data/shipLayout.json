@@ -1,0 +1,110 @@
+{
+  "id": "ship.last-expedition",
+  "nameKey": "room.ship.name",
+  "width": 40,
+  "height": 30,
+  "tileSize": 48,
+  "tiles": {
+    "void": 0,
+    "floor": 1,
+    "wall": 2,
+    "door": 3
+  },
+  "spawns": [
+    { "x": 18, "y": 15 },
+    { "x": 19, "y": 15 },
+    { "x": 20, "y": 15 },
+    { "x": 21, "y": 15 }
+  ],
+  "rooms": [
+    {
+      "id": "galley",
+      "nameKey": "room.galley.name",
+      "system": "lifeSupport",
+      "rect": { "x": 6, "y": 4, "w": 8, "h": 9 },
+      "spawns": [
+        { "x": 9, "y": 6 },
+        { "x": 10, "y": 6 },
+        { "x": 9, "y": 7 },
+        { "x": 10, "y": 7 }
+      ]
+    },
+    {
+      "id": "command",
+      "nameKey": "room.command.name",
+      "system": "comms",
+      "rect": { "x": 17, "y": 4, "w": 8, "h": 9 },
+      "spawns": [
+        { "x": 20, "y": 6 },
+        { "x": 21, "y": 6 },
+        { "x": 20, "y": 7 },
+        { "x": 21, "y": 7 }
+      ]
+    },
+    {
+      "id": "medbay",
+      "nameKey": "room.medbay.name",
+      "system": "lifeSupport",
+      "rect": { "x": 28, "y": 4, "w": 7, "h": 9 },
+      "spawns": [
+        { "x": 31, "y": 6 },
+        { "x": 32, "y": 6 },
+        { "x": 31, "y": 7 }
+      ]
+    },
+    {
+      "id": "corridor",
+      "nameKey": "room.corridor.name",
+      "system": "power",
+      "rect": { "x": 4, "y": 14, "w": 32, "h": 3 },
+      "spawns": [
+        { "x": 18, "y": 15 },
+        { "x": 19, "y": 15 },
+        { "x": 20, "y": 15 },
+        { "x": 21, "y": 15 }
+      ]
+    },
+    {
+      "id": "engineering",
+      "nameKey": "room.engineering.name",
+      "system": "power",
+      "rect": { "x": 6, "y": 18, "w": 10, "h": 9 },
+      "spawns": [
+        { "x": 10, "y": 20 },
+        { "x": 11, "y": 20 },
+        { "x": 10, "y": 21 },
+        { "x": 11, "y": 21 }
+      ]
+    },
+    {
+      "id": "dorm",
+      "nameKey": "room.dorm.name",
+      "system": "thermal",
+      "rect": { "x": 18, "y": 18, "w": 8, "h": 9 },
+      "spawns": [
+        { "x": 21, "y": 20 },
+        { "x": 22, "y": 20 },
+        { "x": 21, "y": 21 }
+      ]
+    },
+    {
+      "id": "airlock",
+      "nameKey": "room.airlock.name",
+      "system": "lifeSupport",
+      "rect": { "x": 28, "y": 18, "w": 7, "h": 9 },
+      "spawns": [
+        { "x": 31, "y": 20 },
+        { "x": 32, "y": 20 },
+        { "x": 31, "y": 21 }
+      ]
+    }
+  ],
+  "doors": [
+    { "id": "door.galley", "x": 10, "y": 13, "rooms": ["galley", "corridor"] },
+    { "id": "door.command", "x": 20, "y": 13, "rooms": ["command", "corridor"] },
+    { "id": "door.medbay", "x": 31, "y": 13, "rooms": ["medbay", "corridor"] },
+    { "id": "door.engineering", "x": 10, "y": 17, "rooms": ["engineering", "corridor"] },
+    { "id": "door.dorm", "x": 21, "y": 17, "rooms": ["dorm", "corridor"] },
+    { "id": "door.airlock", "x": 31, "y": 17, "rooms": ["airlock", "corridor"] }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "items": [
+    {
+      "id": "rations",
+      "nameKey": "food.rations.name",
+      "qty": 200,
+      "freshness": 88,
+      "kind": "meal"
+    },
+    {
+      "id": "fresh",
+      "nameKey": "food.fresh.name",
+      "qty": 40,
+      "freshness": 100,
+      "kind": "produce"
+    },
+    {
+      "id": "protein",
+      "nameKey": "food.protein.name",
+      "qty": 70,
+      "freshness": 82,
+      "kind": "protein"
+    },
+    {
+      "id": "canned",
+      "nameKey": "food.canned.name",
+      "qty": 55,
+      "freshness": 100,
+      "kind": "canned"
+    }
+  ]
+}

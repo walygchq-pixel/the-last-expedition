@@ -1,0 +1,52 @@
+{
+  "items": [
+    {
+      "id": "scn.ceres_survey",
+      "nameKey": "scenario.scn.ceres_survey.name",
+      "descKey": "scenario.scn.ceres_survey.desc",
+      "briefKey": "scenario.scn.ceres_survey.brief",
+      "objectiveId": "map_region",
+      "critical": "data",
+      "requiredData": 50,
+      "pantry": [
+        { "id": "rations", "qty": 190, "freshness": 88, "kind": "meal" },
+        { "id": "fresh", "qty": 40, "freshness": 100, "kind": "produce" },
+        { "id": "protein", "qty": 70, "freshness": 82, "kind": "protein" },
+        { "id": "canned", "qty": 60, "freshness": 100, "kind": "canned" }
+      ],
+      "hazards": ["ev.micrometeorites", "ev.battery_failure", "ev.earth_request", "ev.overheating"]
+    },
+    {
+      "id": "scn.venus_atmosphere",
+      "nameKey": "scenario.scn.venus_atmosphere.name",
+      "descKey": "scenario.scn.venus_atmosphere.desc",
+      "briefKey": "scenario.scn.venus_atmosphere.brief",
+      "objectiveId": "study_atmosphere",
+      "critical": "power",
+      "requiredData": 55,
+      "pantry": [
+        { "id": "rations", "qty": 195, "freshness": 88, "kind": "meal" },
+        { "id": "fresh", "qty": 35, "freshness": 100, "kind": "produce" },
+        { "id": "protein", "qty": 70, "freshness": 82, "kind": "protein" },
+        { "id": "canned", "qty": 65, "freshness": 100, "kind": "canned" }
+      ],
+      "hazards": ["ev.overheating", "ev.solar_storm", "ev.comms_blackout", "ev.pressure_leak"]
+    },
+    {
+      "id": "scn.europa_ice",
+      "nameKey": "scenario.scn.europa_ice.name",
+      "descKey": "scenario.scn.europa_ice.desc",
+      "briefKey": "scenario.scn.europa_ice.brief",
+      "objectiveId": "study_interior",
+      "critical": "time",
+      "requiredData": 60,
+      "pantry": [
+        { "id": "rations", "qty": 200, "freshness": 88, "kind": "meal" },
+        { "id": "fresh", "qty": 30, "freshness": 100, "kind": "produce" },
+        { "id": "protein", "qty": 75, "freshness": 82, "kind": "protein" },
+        { "id": "canned", "qty": 65, "freshness": 100, "kind": "canned" }
+      ],
+      "hazards": ["ev.solar_storm", "ev.food_outbreak", "ev.crew_conflict", "ev.micrometeorites"]
+    }
+  ]
+}

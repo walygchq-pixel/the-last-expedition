@@ -1,0 +1,457 @@
+{
+  "items": [
+    {
+      "id": "ev.solar_storm",
+      "kind": "random",
+      "weight": 3,
+      "severity": "severe",
+      "minDay": 10,
+      "cooldownDays": 25,
+      "requires": {},
+      "titleKey": "event.ev.solar_storm.title",
+      "descriptionKey": "event.ev.solar_storm.description",
+      "options": [
+        {
+          "id": "shelter",
+          "labelKey": "event.ev.solar_storm.opt.shelter.label",
+          "estimateKey": "event.ev.solar_storm.opt.shelter.estimate",
+          "whyKey": "event.ev.solar_storm.opt.shelter.why",
+          "effects": [
+            { "type": "system", "id": "instruments", "op": "degrade", "value": 8 },
+            { "type": "crew", "id": "all", "need": "stress", "value": 8 },
+            { "type": "crew", "id": "all", "need": "sleep", "value": -6 },
+            { "type": "flag", "id": "storm_sheltered", "value": true }
+          ]
+        },
+        {
+          "id": "keep_observing",
+          "labelKey": "event.ev.solar_storm.opt.keep_observing.label",
+          "estimateKey": "event.ev.solar_storm.opt.keep_observing.estimate",
+          "whyKey": "event.ev.solar_storm.opt.keep_observing.why",
+          "effects": [
+            { "type": "crew", "id": "all", "need": "health", "value": -12 },
+            { "type": "data", "value": 12 },
+            { "type": "system", "id": "power", "op": "degrade", "value": 6 },
+            {
+              "type": "consequence",
+              "code": "cons.radiation_dose",
+              "whyKey": "cons.why.radiation_dose",
+              "severity": "critical",
+              "dueInDays": 3,
+              "effects": [
+                { "type": "crew", "id": "all", "need": "health", "value": -6 },
+                { "type": "crewCondition", "id": "all", "condition": "ill", "days": 2, "damage": 2 }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "turn_hull",
+          "labelKey": "event.ev.solar_storm.opt.turn_hull.label",
+          "estimateKey": "event.ev.solar_storm.opt.turn_hull.estimate",
+          "whyKey": "event.ev.solar_storm.opt.turn_hull.why",
+          "effects": [
+            { "type": "system", "id": "attitude", "op": "degrade", "value": 10 },
+            { "type": "resource", "id": "budget", "value": -6 },
+            { "type": "crew", "id": "all", "need": "morale", "value": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ev.storm_forecast",
+      "kind": "scheduled",
+      "scheduledDay": 30,
+      "weight": 1,
+      "severity": "severe",
+      "minDay": 0,
+      "cooldownDays": 999,
+      "requires": {},
+      "titleKey": "event.ev.storm_forecast.title",
+      "descriptionKey": "event.ev.storm_forecast.description",
+      "options": [
+        {
+          "id": "prepare_shield",
+          "labelKey": "event.ev.storm_forecast.opt.prepare_shield.label",
+          "estimateKey": "event.ev.storm_forecast.opt.prepare_shield.estimate",
+          "whyKey": "event.ev.storm_forecast.opt.prepare_shield.why",
+          "effects": [
+            { "type": "resource", "id": "budget", "value": -8 },
+            { "type": "system", "id": "comms", "op": "service", "value": 10 },
+            { "type": "flag", "id": "storm_prepared", "value": true }
+          ]
+        },
+        {
+          "id": "observe_storm",
+          "labelKey": "event.ev.storm_forecast.opt.observe_storm.label",
+          "estimateKey": "event.ev.storm_forecast.opt.observe_storm.estimate",
+          "whyKey": "event.ev.storm_forecast.opt.observe_storm.why",
+          "effects": [
+            { "type": "data", "value": 10 },
+            { "type": "crew", "id": "all", "need": "sleep", "value": -8 },
+            { "type": "chance", "p": 0.6, "effects": [{ "type": "system", "id": "power", "op": "degrade", "value": 12 }] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ev.battery_failure",
+      "kind": "random",
+      "weight": 2,
+      "severity": "normal",
+      "minDay": 4,
+      "cooldownDays": 10,
+      "requires": { "systemBelow": { "id": "power", "health": 82 } },
+      "titleKey": "event.ev.battery_failure.title",
+      "descriptionKey": "event.ev.battery_failure.description",
+      "options": [
+        {
+          "id": "swap_bank",
+          "labelKey": "event.ev.battery_failure.opt.swap_bank.label",
+          "estimateKey": "event.ev.battery_failure.opt.swap_bank.estimate",
+          "whyKey": "event.ev.battery_failure.opt.swap_bank.why",
+          "effects": [
+            { "type": "system", "id": "power", "op": "repair", "value": 12 },
+            { "type": "resource", "id": "budget", "value": -5 },
+            { "type": "crew", "id": "all", "need": "stress", "value": 4 }
+          ]
+        },
+        {
+          "id": "load_shed",
+          "labelKey": "event.ev.battery_failure.opt.load_shed.label",
+          "estimateKey": "event.ev.battery_failure.opt.load_shed.estimate",
+          "whyKey": "event.ev.battery_failure.opt.load_shed.why",
+          "effects": [
+            { "type": "system", "id": "power", "op": "service", "value": 8 },
+            { "type": "system", "id": "thermal", "op": "degrade", "value": 6 },
+            { "type": "crew", "id": "all", "need": "morale", "value": -5 },
+            {
+              "type": "consequence",
+              "code": "cons.power_fault",
+              "whyKey": "cons.why.power_fault",
+              "severity": "warn",
+              "dueInDays": 4,
+              "effects": [{ "type": "system", "id": "power", "op": "degrade", "value": 10 }]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ev.pressure_leak",
+      "kind": "random",
+      "weight": 2,
+      "severity": "severe",
+      "minDay": 6,
+      "cooldownDays": 18,
+      "requires": { "systemBelow": { "id": "lifeSupport", "health": 90 } },
+      "titleKey": "event.ev.pressure_leak.title",
+      "descriptionKey": "event.ev.pressure_leak.description",
+      "options": [
+        {
+          "id": "patch",
+          "labelKey": "event.ev.pressure_leak.opt.patch.label",
+          "estimateKey": "event.ev.pressure_leak.opt.patch.estimate",
+          "whyKey": "event.ev.pressure_leak.opt.patch.why",
+          "effects": [
+            { "type": "system", "id": "lifeSupport", "op": "repair", "value": 10 },
+            { "type": "resource", "id": "budget", "value": -4 },
+            { "type": "crew", "id": "all", "need": "stress", "value": 5 }
+          ]
+        },
+        {
+          "id": "isolate",
+          "labelKey": "event.ev.pressure_leak.opt.isolate.label",
+          "estimateKey": "event.ev.pressure_leak.opt.isolate.estimate",
+          "whyKey": "event.ev.pressure_leak.opt.isolate.why",
+          "effects": [
+            { "type": "system", "id": "lifeSupport", "op": "degrade", "value": 6 },
+            { "type": "crew", "id": "all", "need": "morale", "value": -6 },
+            { "type": "data", "value": -5 }
+          ]
+        },
+        {
+          "id": "keep_working",
+          "labelKey": "event.ev.pressure_leak.opt.keep_working.label",
+          "estimateKey": "event.ev.pressure_leak.opt.keep_working.estimate",
+          "whyKey": "event.ev.pressure_leak.opt.keep_working.why",
+          "effects": [
+            { "type": "system", "id": "lifeSupport", "op": "service", "value": 8 },
+            { "type": "crewCondition", "id": "all", "condition": "ill", "days": 2, "damage": 3 },
+            { "type": "resource", "id": "budget", "value": 3 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ev.food_outbreak",
+      "kind": "random",
+      "weight": 3,
+      "severity": "normal",
+      "minDay": 5,
+      "cooldownDays": 12,
+      "requires": { "freshnessBelow": 55 },
+      "titleKey": "event.ev.food_outbreak.title",
+      "descriptionKey": "event.ev.food_outbreak.description",
+      "options": [
+        {
+          "id": "discard",
+          "labelKey": "event.ev.food_outbreak.opt.discard.label",
+          "estimateKey": "event.ev.food_outbreak.opt.discard.estimate",
+          "whyKey": "event.ev.food_outbreak.opt.discard.why",
+          "effects": [
+            { "type": "food", "op": "waste", "value": 8 },
+            { "type": "food", "op": "freshness", "value": 10 },
+            { "type": "crew", "id": "all", "need": "morale", "value": -4 }
+          ]
+        },
+        {
+          "id": "serve_anyway",
+          "labelKey": "event.ev.food_outbreak.opt.serve_anyway.label",
+          "estimateKey": "event.ev.food_outbreak.opt.serve_anyway.estimate",
+          "whyKey": "event.ev.food_outbreak.opt.serve_anyway.why",
+          "effects": [
+            { "type": "crewCondition", "id": "all", "condition": "ill", "days": 3, "damage": 4 },
+            { "type": "resource", "id": "budget", "value": 4 },
+            {
+              "type": "consequence",
+              "code": "cons.food_poisoning",
+              "whyKey": "cons.why.food_poisoning",
+              "severity": "warn",
+              "dueAfterEvents": 3,
+              "effects": [{ "type": "crew", "id": "all", "need": "health", "value": -5 }]
+            }
+          ]
+        },
+        {
+          "id": "cook_clean",
+          "labelKey": "event.ev.food_outbreak.opt.cook_clean.label",
+          "estimateKey": "event.ev.food_outbreak.opt.cook_clean.estimate",
+          "whyKey": "event.ev.food_outbreak.opt.cook_clean.why",
+          "effects": [
+            { "type": "food", "op": "freshness", "value": 6 },
+            { "type": "crew", "id": "all", "need": "thirst", "value": 6 },
+            { "type": "resource", "id": "budget", "value": -3 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ev.earth_request",
+      "kind": "random",
+      "weight": 2,
+      "severity": "normal",
+      "minDay": 12,
+      "cooldownDays": 15,
+      "requires": { "systemAbove": { "id": "comms", "health": 40 } },
+      "titleKey": "event.ev.earth_request.title",
+      "descriptionKey": "event.ev.earth_request.description",
+      "options": [
+        {
+          "id": "early_window",
+          "labelKey": "event.ev.earth_request.opt.early_window.label",
+          "estimateKey": "event.ev.earth_request.opt.early_window.estimate",
+          "whyKey": "event.ev.earth_request.opt.early_window.why",
+          "effects": [
+            { "type": "resource", "id": "data", "value": -10 },
+            { "type": "resource", "id": "budget", "value": 8 },
+            { "type": "crew", "id": "all", "need": "stress", "value": 4 }
+          ]
+        },
+        {
+          "id": "late_window",
+          "labelKey": "event.ev.earth_request.opt.late_window.label",
+          "estimateKey": "event.ev.earth_request.opt.late_window.estimate",
+          "whyKey": "event.ev.earth_request.opt.late_window.why",
+          "effects": [
+            { "type": "resource", "id": "data", "value": -4 },
+            { "type": "crew", "id": "all", "need": "morale", "value": -5 },
+            { "type": "system", "id": "comms", "op": "degrade", "value": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ev.micrometeorites",
+      "kind": "random",
+      "weight": 3,
+      "severity": "normal",
+      "minDay": 3,
+      "cooldownDays": 12,
+      "requires": {},
+      "titleKey": "event.ev.micrometeorites.title",
+      "descriptionKey": "event.ev.micrometeorites.description",
+      "options": [
+        {
+          "id": "maneuver",
+          "labelKey": "event.ev.micrometeorites.opt.maneuver.label",
+          "estimateKey": "event.ev.micrometeorites.opt.maneuver.estimate",
+          "whyKey": "event.ev.micrometeorites.opt.maneuver.why",
+          "effects": [
+            { "type": "system", "id": "attitude", "op": "degrade", "value": 6 },
+            { "type": "resource", "id": "budget", "value": -3 },
+            { "type": "crew", "id": "all", "need": "sleep", "value": -4 }
+          ]
+        },
+        {
+          "id": "absorb",
+          "labelKey": "event.ev.micrometeorites.opt.absorb.label",
+          "estimateKey": "event.ev.micrometeorites.opt.absorb.estimate",
+          "whyKey": "event.ev.micrometeorites.opt.absorb.why",
+          "effects": [
+            { "type": "system", "id": "instruments", "op": "degrade", "value": 9 },
+            { "type": "system", "id": "thermal", "op": "degrade", "value": 5 },
+            { "type": "crew", "id": "all", "need": "morale", "value": 3 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ev.overheating",
+      "kind": "random",
+      "weight": 3,
+      "severity": "normal",
+      "minDay": 3,
+      "cooldownDays": 10,
+      "requires": { "systemBelow": { "id": "thermal", "health": 85 } },
+      "titleKey": "event.ev.overheating.title",
+      "descriptionKey": "event.ev.overheating.description",
+      "options": [
+        {
+          "id": "radiator_boost",
+          "labelKey": "event.ev.overheating.opt.radiator_boost.label",
+          "estimateKey": "event.ev.overheating.opt.radiator_boost.estimate",
+          "whyKey": "event.ev.overheating.opt.radiator_boost.why",
+          "effects": [
+            { "type": "system", "id": "thermal", "op": "repair", "value": 12 },
+            { "type": "system", "id": "power", "op": "degrade", "value": 8 }
+          ]
+        },
+        {
+          "id": "throttle_instruments",
+          "labelKey": "event.ev.overheating.opt.throttle_instruments.label",
+          "estimateKey": "event.ev.overheating.opt.throttle_instruments.estimate",
+          "whyKey": "event.ev.overheating.opt.throttle_instruments.why",
+          "effects": [
+            { "type": "system", "id": "instruments", "op": "degrade", "value": 5 },
+            { "type": "data", "value": -6 },
+            { "type": "crew", "id": "all", "need": "stress", "value": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ev.isolation",
+      "kind": "random",
+      "weight": 2,
+      "severity": "normal",
+      "minDay": 20,
+      "cooldownDays": 20,
+      "requires": { "crewStressAbove": 45 },
+      "titleKey": "event.ev.isolation.title",
+      "descriptionKey": "event.ev.isolation.description",
+      "options": [
+        {
+          "id": "group_session",
+          "labelKey": "event.ev.isolation.opt.group_session.label",
+          "estimateKey": "event.ev.isolation.opt.group_session.estimate",
+          "whyKey": "event.ev.isolation.opt.group_session.why",
+          "effects": [
+            { "type": "crew", "id": "all", "need": "stress", "value": -8 },
+            { "type": "crew", "id": "all", "need": "morale", "value": 5 },
+            { "type": "crew", "id": "all", "need": "sleep", "value": -5 }
+          ]
+        },
+        {
+          "id": "private_time",
+          "labelKey": "event.ev.isolation.opt.private_time.label",
+          "estimateKey": "event.ev.isolation.opt.private_time.estimate",
+          "whyKey": "event.ev.isolation.opt.private_time.why",
+          "effects": [
+            { "type": "crew", "id": "all", "need": "stress", "value": -5 },
+            { "type": "data", "value": -4 },
+            { "type": "system", "id": "comms", "op": "service", "value": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ev.crew_conflict",
+      "kind": "random",
+      "weight": 2,
+      "severity": "normal",
+      "minDay": 15,
+      "cooldownDays": 15,
+      "requires": { "crewStressAbove": 55 },
+      "titleKey": "event.ev.crew_conflict.title",
+      "descriptionKey": "event.ev.crew_conflict.description",
+      "options": [
+        {
+          "id": "mediate",
+          "labelKey": "event.ev.crew_conflict.opt.mediate.label",
+          "estimateKey": "event.ev.crew_conflict.opt.mediate.estimate",
+          "whyKey": "event.ev.crew_conflict.opt.mediate.why",
+          "effects": [
+            { "type": "crew", "id": "all", "need": "sleep", "value": -8 },
+            { "type": "crew", "id": "all", "need": "morale", "value": 6 },
+            { "type": "resource", "id": "budget", "value": -2 }
+          ]
+        },
+        {
+          "id": "commander_decides",
+          "labelKey": "event.ev.crew_conflict.opt.commander_decides.label",
+          "estimateKey": "event.ev.crew_conflict.opt.commander_decides.estimate",
+          "whyKey": "event.ev.crew_conflict.opt.commander_decides.why",
+          "effects": [
+            { "type": "crew", "id": "all", "need": "morale", "value": -5 },
+            { "type": "crew", "id": "all", "need": "stress", "value": 4 },
+            { "type": "data", "value": 5 },
+            {
+              "type": "consequence",
+              "code": "cons.conflict_aftermath",
+              "whyKey": "cons.why.conflict_aftermath",
+              "severity": "warn",
+              "dueInDays": 5,
+              "effects": [{ "type": "crew", "id": "all", "need": "morale", "value": -4 }]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ev.comms_blackout",
+      "kind": "random",
+      "weight": 2,
+      "severity": "normal",
+      "minDay": 6,
+      "cooldownDays": 10,
+      "requires": { "systemBelow": { "id": "comms", "health": 80 } },
+      "titleKey": "event.ev.comms_blackout.title",
+      "descriptionKey": "event.ev.comms_blackout.description",
+      "options": [
+        {
+          "id": "low_gain",
+          "labelKey": "event.ev.comms_blackout.opt.low_gain.label",
+          "estimateKey": "event.ev.comms_blackout.opt.low_gain.estimate",
+          "whyKey": "event.ev.comms_blackout.opt.low_gain.why",
+          "effects": [
+            { "type": "system", "id": "comms", "op": "service", "value": 6 },
+            { "type": "resource", "id": "data", "value": -6 },
+            { "type": "crew", "id": "all", "need": "stress", "value": 3 }
+          ]
+        },
+        {
+          "id": "repair_window",
+          "labelKey": "event.ev.comms_blackout.opt.repair_window.label",
+          "estimateKey": "event.ev.comms_blackout.opt.repair_window.estimate",
+          "whyKey": "event.ev.comms_blackout.opt.repair_window.why",
+          "effects": [
+            { "type": "system", "id": "comms", "op": "repair", "value": 10 },
+            { "type": "crew", "id": "all", "need": "sleep", "value": -6 },
+            { "type": "resource", "id": "budget", "value": -4 }
+          ]
+        }
+      ]
+    }
+  ]
+}

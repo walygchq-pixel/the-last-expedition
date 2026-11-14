@@ -1,0 +1,47 @@
+{
+  "items": [
+    {
+      "id": "observe_planet",
+      "nameKey": "obj.observe_planet.name",
+      "descKey": "obj.observe_planet.desc",
+      "requires": [
+        { "type": "science", "tag": "imaging", "value": 4 },
+        { "type": "coverage", "value": 0.5 },
+        { "type": "data", "value": 40 }
+      ]
+    },
+    {
+      "id": "map_region",
+      "nameKey": "obj.map_region.name",
+      "descKey": "obj.map_region.desc",
+      "requires": [
+        { "type": "science", "tag": "mapping", "value": 4 },
+        { "type": "science", "tag": "surface", "value": 3 },
+        { "type": "coverage", "value": 0.6 },
+        { "type": "data", "value": 50 }
+      ]
+    },
+    {
+      "id": "study_atmosphere",
+      "nameKey": "obj.study_atmosphere.name",
+      "descKey": "obj.study_atmosphere.desc",
+      "requires": [
+        { "type": "science", "tag": "atmosphere", "value": 4 },
+        { "type": "science", "tag": "particles", "value": 3 },
+        { "type": "coverage", "value": 0.45 },
+        { "type": "data", "value": 55 }
+      ]
+    },
+    {
+      "id": "study_interior",
+      "nameKey": "obj.study_interior.name",
+      "descKey": "obj.study_interior.desc",
+      "requires": [
+        { "type": "science", "tag": "interior", "value": 4 },
+        { "type": "science", "tag": "composition", "value": 2 },
+        { "type": "coverage", "value": 0.4 },
+        { "type": "data", "value": 60 }
+      ]
+    }
+  ]
+}

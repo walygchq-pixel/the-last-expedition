@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "id": "low",
+      "rank": 1,
+      "nameKey": "orbit.low.name",
+      "descKey": "orbit.low.desc",
+      "coverage": 0.55,
+      "radiation": 0.15,
+      "eclipseFraction": 0.35,
+      "comms": { "cycleMinutes": 90, "windowMinutes": 10, "bandwidthFactor": 0.55 }
+    },
+    {
+      "id": "medium",
+      "rank": 2,
+      "nameKey": "orbit.medium.name",
+      "descKey": "orbit.medium.desc",
+      "coverage": 0.7,
+      "radiation": 0.4,
+      "eclipseFraction": 0.2,
+      "comms": { "cycleMinutes": 240, "windowMinutes": 20, "bandwidthFactor": 0.8 }
+    },
+    {
+      "id": "high",
+      "rank": 3,
+      "nameKey": "orbit.high.name",
+      "descKey": "orbit.high.desc",
+      "coverage": 0.45,
+      "radiation": 0.55,
+      "eclipseFraction": 0.05,
+      "comms": { "continuous": true, "bandwidthFactor": 0.6 }
+    },
+    {
+      "id": "transfer",
+      "rank": 4,
+      "nameKey": "orbit.transfer.name",
+      "descKey": "orbit.transfer.desc",
+      "coverage": 0.8,
+      "radiation": 0.8,
+      "eclipseFraction": 0.1,
+      "comms": { "cycleMinutes": 2880, "windowMinutes": 60, "bandwidthFactor": 1 }
+    }
+  ]
+}

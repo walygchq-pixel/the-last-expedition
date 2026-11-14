@@ -1,0 +1,436 @@
+{
+  "groups": [
+    {
+      "id": "structure",
+      "system": "structure",
+      "nameKey": "part.group.structure.name",
+      "descKey": "part.group.structure.desc",
+      "options": [
+        {
+          "id": "structure.simple",
+          "version": "simple",
+          "nameKey": "part.structure.simple.name",
+          "descKey": "part.structure.simple.desc",
+          "providesKey": "part.provides.frame",
+          "mass": 900,
+          "powerGen": 0,
+          "powerDraw": 0,
+          "cost": 12,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 94
+        },
+        {
+          "id": "structure.advanced",
+          "version": "advanced",
+          "nameKey": "part.structure.advanced.name",
+          "descKey": "part.structure.advanced.desc",
+          "providesKey": "part.provides.frame",
+          "mass": 620,
+          "powerGen": 0,
+          "powerDraw": 0,
+          "cost": 24,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 96
+        }
+      ]
+    },
+    {
+      "id": "power_panels",
+      "system": "power",
+      "nameKey": "part.group.power_panels.name",
+      "descKey": "part.group.power_panels.desc",
+      "options": [
+        {
+          "id": "power_panels.simple",
+          "version": "simple",
+          "nameKey": "part.power_panels.simple.name",
+          "descKey": "part.power_panels.simple.desc",
+          "providesKey": "part.provides.power",
+          "mass": 220,
+          "powerGen": 1200,
+          "powerDraw": 0,
+          "cost": 16,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 91
+        },
+        {
+          "id": "power_panels.advanced",
+          "version": "advanced",
+          "nameKey": "part.power_panels.advanced.name",
+          "descKey": "part.power_panels.advanced.desc",
+          "providesKey": "part.provides.power",
+          "mass": 300,
+          "powerGen": 1900,
+          "powerDraw": 0,
+          "cost": 30,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 86
+        }
+      ]
+    },
+    {
+      "id": "power_battery",
+      "system": "power",
+      "nameKey": "part.group.power_battery.name",
+      "descKey": "part.group.power_battery.desc",
+      "options": [
+        {
+          "id": "power_battery.simple",
+          "version": "simple",
+          "nameKey": "part.power_battery.simple.name",
+          "descKey": "part.power_battery.simple.desc",
+          "providesKey": "part.provides.storage",
+          "mass": 140,
+          "powerGen": 0,
+          "powerDraw": 0,
+          "cost": 10,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 92
+        },
+        {
+          "id": "power_battery.advanced",
+          "version": "advanced",
+          "nameKey": "part.power_battery.advanced.name",
+          "descKey": "part.power_battery.advanced.desc",
+          "providesKey": "part.provides.storage",
+          "mass": 90,
+          "powerGen": 0,
+          "powerDraw": 0,
+          "cost": 20,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 95
+        }
+      ]
+    },
+    {
+      "id": "antenna",
+      "system": "comms",
+      "nameKey": "part.group.antenna.name",
+      "descKey": "part.group.antenna.desc",
+      "options": [
+        {
+          "id": "antenna.simple",
+          "version": "simple",
+          "nameKey": "part.antenna.simple.name",
+          "descKey": "part.antenna.simple.desc",
+          "providesKey": "part.provides.link",
+          "mass": 40,
+          "powerGen": 0,
+          "powerDraw": 40,
+          "cost": 8,
+          "dataRate": 5,
+          "dataStorage": 0,
+          "reliability": 92
+        },
+        {
+          "id": "antenna.advanced",
+          "version": "advanced",
+          "nameKey": "part.antenna.advanced.name",
+          "descKey": "part.antenna.advanced.desc",
+          "providesKey": "part.provides.link",
+          "mass": 120,
+          "powerGen": 0,
+          "powerDraw": 90,
+          "cost": 26,
+          "dataRate": 14,
+          "dataStorage": 0,
+          "reliability": 87
+        }
+      ]
+    },
+    {
+      "id": "computer",
+      "system": "power",
+      "nameKey": "part.group.computer.name",
+      "descKey": "part.group.computer.desc",
+      "options": [
+        {
+          "id": "computer.simple",
+          "version": "simple",
+          "nameKey": "part.computer.simple.name",
+          "descKey": "part.computer.simple.desc",
+          "providesKey": "part.provides.memory",
+          "mass": 60,
+          "powerGen": 0,
+          "powerDraw": 60,
+          "cost": 12,
+          "dataRate": 1,
+          "dataStorage": 15,
+          "reliability": 93
+        },
+        {
+          "id": "computer.advanced",
+          "version": "advanced",
+          "nameKey": "part.computer.advanced.name",
+          "descKey": "part.computer.advanced.desc",
+          "providesKey": "part.provides.memory",
+          "mass": 80,
+          "powerGen": 0,
+          "powerDraw": 110,
+          "cost": 30,
+          "dataRate": 3,
+          "dataStorage": 40,
+          "reliability": 90
+        }
+      ]
+    },
+    {
+      "id": "attitude",
+      "system": "attitude",
+      "nameKey": "part.group.attitude.name",
+      "descKey": "part.group.attitude.desc",
+      "options": [
+        {
+          "id": "attitude.simple",
+          "version": "simple",
+          "nameKey": "part.attitude.simple.name",
+          "descKey": "part.attitude.simple.desc",
+          "providesKey": "part.provides.pointing",
+          "mass": 90,
+          "powerGen": 0,
+          "powerDraw": 70,
+          "cost": 12,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 88
+        },
+        {
+          "id": "attitude.advanced",
+          "version": "advanced",
+          "nameKey": "part.attitude.advanced.name",
+          "descKey": "part.attitude.advanced.desc",
+          "providesKey": "part.provides.pointing",
+          "mass": 60,
+          "powerGen": 0,
+          "powerDraw": 50,
+          "cost": 22,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 94
+        }
+      ]
+    },
+    {
+      "id": "life_support",
+      "system": "lifeSupport",
+      "nameKey": "part.group.life_support.name",
+      "descKey": "part.group.life_support.desc",
+      "options": [
+        {
+          "id": "life_support.simple",
+          "version": "simple",
+          "nameKey": "part.life_support.simple.name",
+          "descKey": "part.life_support.simple.desc",
+          "providesKey": "part.provides.air_water",
+          "mass": 380,
+          "powerGen": 0,
+          "powerDraw": 190,
+          "cost": 24,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 88
+        },
+        {
+          "id": "life_support.advanced",
+          "version": "advanced",
+          "nameKey": "part.life_support.advanced.name",
+          "descKey": "part.life_support.advanced.desc",
+          "providesKey": "part.provides.air_water",
+          "mass": 480,
+          "powerGen": 0,
+          "powerDraw": 300,
+          "cost": 40,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 94
+        }
+      ]
+    },
+    {
+      "id": "thermal",
+      "system": "thermal",
+      "nameKey": "part.group.thermal.name",
+      "descKey": "part.group.thermal.desc",
+      "options": [
+        {
+          "id": "thermal.simple",
+          "version": "simple",
+          "nameKey": "part.thermal.simple.name",
+          "descKey": "part.thermal.simple.desc",
+          "providesKey": "part.provides.heat",
+          "mass": 150,
+          "powerGen": 0,
+          "powerDraw": 90,
+          "cost": 12,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 89
+        },
+        {
+          "id": "thermal.advanced",
+          "version": "advanced",
+          "nameKey": "part.thermal.advanced.name",
+          "descKey": "part.thermal.advanced.desc",
+          "providesKey": "part.provides.heat",
+          "mass": 140,
+          "powerGen": 0,
+          "powerDraw": 70,
+          "cost": 22,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 93
+        }
+      ]
+    },
+    {
+      "id": "galley",
+      "system": "lifeSupport",
+      "nameKey": "part.group.galley.name",
+      "descKey": "part.group.galley.desc",
+      "options": [
+        {
+          "id": "galley.simple",
+          "version": "simple",
+          "nameKey": "part.galley.simple.name",
+          "descKey": "part.galley.simple.desc",
+          "providesKey": "part.provides.food",
+          "mass": 240,
+          "powerGen": 0,
+          "powerDraw": 80,
+          "cost": 12,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 92
+        },
+        {
+          "id": "galley.advanced",
+          "version": "advanced",
+          "nameKey": "part.galley.advanced.name",
+          "descKey": "part.galley.advanced.desc",
+          "providesKey": "part.provides.food",
+          "mass": 200,
+          "powerGen": 0,
+          "powerDraw": 70,
+          "cost": 24,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 95
+        }
+      ]
+    },
+    {
+      "id": "engineering",
+      "system": "power",
+      "nameKey": "part.group.engineering.name",
+      "descKey": "part.group.engineering.desc",
+      "options": [
+        {
+          "id": "engineering.simple",
+          "version": "simple",
+          "nameKey": "part.engineering.simple.name",
+          "descKey": "part.engineering.simple.desc",
+          "providesKey": "part.provides.tools",
+          "mass": 260,
+          "powerGen": 0,
+          "powerDraw": 55,
+          "cost": 12,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 91
+        },
+        {
+          "id": "engineering.advanced",
+          "version": "advanced",
+          "nameKey": "part.engineering.advanced.name",
+          "descKey": "part.engineering.advanced.desc",
+          "providesKey": "part.provides.tools",
+          "mass": 230,
+          "powerGen": 0,
+          "powerDraw": 50,
+          "cost": 26,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 95
+        }
+      ]
+    },
+    {
+      "id": "medbay",
+      "system": "lifeSupport",
+      "nameKey": "part.group.medbay.name",
+      "descKey": "part.group.medbay.desc",
+      "options": [
+        {
+          "id": "medbay.simple",
+          "version": "simple",
+          "nameKey": "part.medbay.simple.name",
+          "descKey": "part.medbay.simple.desc",
+          "providesKey": "part.provides.medical",
+          "mass": 220,
+          "powerGen": 0,
+          "powerDraw": 70,
+          "cost": 12,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 92
+        },
+        {
+          "id": "medbay.advanced",
+          "version": "advanced",
+          "nameKey": "part.medbay.advanced.name",
+          "descKey": "part.medbay.advanced.desc",
+          "providesKey": "part.provides.medical",
+          "mass": 190,
+          "powerGen": 0,
+          "powerDraw": 60,
+          "cost": 26,
+          "dataRate": 0,
+          "dataStorage": 0,
+          "reliability": 95
+        }
+      ]
+    },
+    {
+      "id": "command",
+      "system": "comms",
+      "nameKey": "part.group.command.name",
+      "descKey": "part.group.command.desc",
+      "options": [
+        {
+          "id": "command.simple",
+          "version": "simple",
+          "nameKey": "part.command.simple.name",
+          "descKey": "part.command.simple.desc",
+          "providesKey": "part.provides.control",
+          "mass": 300,
+          "powerGen": 0,
+          "powerDraw": 130,
+          "cost": 16,
+          "dataRate": 1,
+          "dataStorage": 5,
+          "reliability": 92
+        },
+        {
+          "id": "command.advanced",
+          "version": "advanced",
+          "nameKey": "part.command.advanced.name",
+          "descKey": "part.command.advanced.desc",
+          "providesKey": "part.provides.control",
+          "mass": 280,
+          "powerGen": 0,
+          "powerDraw": 110,
+          "cost": 30,
+          "dataRate": 2,
+          "dataStorage": 10,
+          "reliability": 95
+        }
+      ]
+    }
+  ]
+}

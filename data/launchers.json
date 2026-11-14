@@ -1,0 +1,31 @@
+{
+  "items": [
+    {
+      "id": "vector_s",
+      "nameKey": "launcher.vector_s.name",
+      "descKey": "launcher.vector_s.desc",
+      "payloadCapacity": 4200,
+      "cost": 26,
+      "maxOrbitRank": 1,
+      "reliability": 95
+    },
+    {
+      "id": "atlas_m",
+      "nameKey": "launcher.atlas_m.name",
+      "descKey": "launcher.atlas_m.desc",
+      "payloadCapacity": 7000,
+      "cost": 42,
+      "maxOrbitRank": 3,
+      "reliability": 92
+    },
+    {
+      "id": "hermes_heavy",
+      "nameKey": "launcher.hermes_heavy.name",
+      "descKey": "launcher.hermes_heavy.desc",
+      "payloadCapacity": 11000,
+      "cost": 66,
+      "maxOrbitRank": 4,
+      "reliability": 89
+    }
+  ]
+}

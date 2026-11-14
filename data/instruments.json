@@ -1,0 +1,172 @@
+{
+  "items": [
+    {
+      "id": "camera",
+      "system": "instruments",
+      "nameKey": "instrument.camera.name",
+      "descKey": "instrument.camera.desc",
+      "versions": {
+        "simple": {
+          "nameKey": "instrument.camera.simple.name",
+          "descKey": "instrument.camera.simple.desc",
+          "mass": 45,
+          "powerDraw": 60,
+          "cost": 14,
+          "dataRate": 3.5,
+          "reliability": 93,
+          "science": { "imaging": 5, "mapping": 2 }
+        },
+        "advanced": {
+          "nameKey": "instrument.camera.advanced.name",
+          "descKey": "instrument.camera.advanced.desc",
+          "mass": 70,
+          "powerDraw": 95,
+          "cost": 28,
+          "dataRate": 6,
+          "reliability": 91,
+          "science": { "imaging": 8, "mapping": 4 }
+        }
+      }
+    },
+    {
+      "id": "spectrometer",
+      "system": "instruments",
+      "nameKey": "instrument.spectrometer.name",
+      "descKey": "instrument.spectrometer.desc",
+      "versions": {
+        "simple": {
+          "nameKey": "instrument.spectrometer.simple.name",
+          "descKey": "instrument.spectrometer.simple.desc",
+          "mass": 60,
+          "powerDraw": 80,
+          "cost": 18,
+          "dataRate": 4,
+          "reliability": 92,
+          "science": { "atmosphere": 5, "composition": 3 }
+        },
+        "advanced": {
+          "nameKey": "instrument.spectrometer.advanced.name",
+          "descKey": "instrument.spectrometer.advanced.desc",
+          "mass": 85,
+          "powerDraw": 120,
+          "cost": 34,
+          "dataRate": 7,
+          "reliability": 90,
+          "science": { "atmosphere": 8, "composition": 5 }
+        }
+      }
+    },
+    {
+      "id": "radar",
+      "system": "instruments",
+      "nameKey": "instrument.radar.name",
+      "descKey": "instrument.radar.desc",
+      "versions": {
+        "simple": {
+          "nameKey": "instrument.radar.simple.name",
+          "descKey": "instrument.radar.simple.desc",
+          "mass": 80,
+          "powerDraw": 110,
+          "cost": 20,
+          "dataRate": 5,
+          "reliability": 90,
+          "science": { "mapping": 5, "surface": 3 }
+        },
+        "advanced": {
+          "nameKey": "instrument.radar.advanced.name",
+          "descKey": "instrument.radar.advanced.desc",
+          "mass": 110,
+          "powerDraw": 160,
+          "cost": 38,
+          "dataRate": 9,
+          "reliability": 87,
+          "science": { "mapping": 8, "surface": 5 }
+        }
+      }
+    },
+    {
+      "id": "seismometer",
+      "system": "instruments",
+      "nameKey": "instrument.seismometer.name",
+      "descKey": "instrument.seismometer.desc",
+      "versions": {
+        "simple": {
+          "nameKey": "instrument.seismometer.simple.name",
+          "descKey": "instrument.seismometer.simple.desc",
+          "mass": 35,
+          "powerDraw": 30,
+          "cost": 16,
+          "dataRate": 2,
+          "reliability": 95,
+          "science": { "interior": 5, "surface": 2 }
+        },
+        "advanced": {
+          "nameKey": "instrument.seismometer.advanced.name",
+          "descKey": "instrument.seismometer.advanced.desc",
+          "mass": 50,
+          "powerDraw": 45,
+          "cost": 30,
+          "dataRate": 3.5,
+          "reliability": 94,
+          "science": { "interior": 8, "surface": 3 }
+        }
+      }
+    },
+    {
+      "id": "magnetometer",
+      "system": "instruments",
+      "nameKey": "instrument.magnetometer.name",
+      "descKey": "instrument.magnetometer.desc",
+      "versions": {
+        "simple": {
+          "nameKey": "instrument.magnetometer.simple.name",
+          "descKey": "instrument.magnetometer.simple.desc",
+          "mass": 25,
+          "powerDraw": 25,
+          "cost": 12,
+          "dataRate": 1.5,
+          "reliability": 96,
+          "science": { "interior": 3, "composition": 2 }
+        },
+        "advanced": {
+          "nameKey": "instrument.magnetometer.advanced.name",
+          "descKey": "instrument.magnetometer.advanced.desc",
+          "mass": 40,
+          "powerDraw": 35,
+          "cost": 24,
+          "dataRate": 2.5,
+          "reliability": 95,
+          "science": { "interior": 5, "composition": 3 }
+        }
+      }
+    },
+    {
+      "id": "particle_detector",
+      "system": "instruments",
+      "nameKey": "instrument.particle_detector.name",
+      "descKey": "instrument.particle_detector.desc",
+      "versions": {
+        "simple": {
+          "nameKey": "instrument.particle_detector.simple.name",
+          "descKey": "instrument.particle_detector.simple.desc",
+          "mass": 55,
+          "powerDraw": 90,
+          "cost": 22,
+          "dataRate": 4.5,
+          "reliability": 89,
+          "science": { "atmosphere": 4, "particles": 5 }
+        },
+        "advanced": {
+          "nameKey": "instrument.particle_detector.advanced.name",
+          "descKey": "instrument.particle_detector.advanced.desc",
+          "mass": 80,
+          "powerDraw": 130,
+          "cost": 40,
+          "dataRate": 8,
+          "reliability": 86,
+          "science": { "atmosphere": 6, "particles": 8 }
+        }
+      }
+    }
+  ]
+}

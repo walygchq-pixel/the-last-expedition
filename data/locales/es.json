@@ -341,6 +341,7 @@
   "err.world_no_game": "No hay ninguna misión en curso.",
   "err.world_no_world": "El mapa de la nave no está disponible.",
   "err.world_not_portable": "Ese objeto no se puede llevar.",
+  "err.world_object_carried": "Un tripulante lleva ese objeto: primero déjalo en la nave.",
   "err.world_role_required": "Esta acción requiere el rol {role}.",
   "err.world_too_far": "Acércate para interactuar.",
   "err.world_unknown_action": "Esa acción no está disponible.",

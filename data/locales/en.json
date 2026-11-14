@@ -341,6 +341,7 @@
   "err.world_no_game": "No mission is running.",
   "err.world_no_world": "The ship map is not available.",
   "err.world_not_portable": "That object cannot be carried.",
+  "err.world_object_carried": "A crew member is carrying that object: put it down on the ship first.",
   "err.world_role_required": "This action requires the {role} role.",
   "err.world_too_far": "Move closer to interact.",
   "err.world_unknown_action": "That action is not available.",

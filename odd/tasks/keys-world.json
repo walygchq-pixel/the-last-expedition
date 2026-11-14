@@ -276,7 +276,8 @@
     "room.engineering.name": "Engineering",
     "room.galley.name": "Galley",
     "room.medbay.name": "Medbay",
-    "room.ship.name": "The Last Expedition"
+    "room.ship.name": "The Last Expedition",
+    "err.world_object_carried": "A crew member is carrying that object: put it down on the ship first."
   },
   "es": {
     "action.air_scrubber.clean_filter.estimate": "Fiabilidad del soporte vital +6 · estrés −2",
@@ -555,6 +556,7 @@
     "room.engineering.name": "Mecánica",
     "room.galley.name": "Cocina",
     "room.medbay.name": "Enfermería",
-    "room.ship.name": "La última expedición"
+    "room.ship.name": "La última expedición",
+    "err.world_object_carried": "Un tripulante lleva ese objeto: primero déjalo en la nave."
   }
 }

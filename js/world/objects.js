@@ -163,6 +163,8 @@
 
     var object = find(world, objectId);
     if (!object) return fail('err.world_unknown_object', { object: objectId });
+    // Si un jugador lo lleva encima, ya no está en el mapa para usarlo (R3-003).
+    if (object.carriedBy) return fail('err.world_object_carried', { object: object.nameKey });
 
     var action = object.actions.find(function (item) {
       return item.id === actionId;

@@ -76,13 +76,18 @@
 
   function paintRect(tiles, width, rect, value, roomIndex, roomIndexValue) {
     if (!rect) return;
+    // El alto sale del propio arreglo: las salas se pintan sobre una cuadrícula ya
+    // dimensionada, así que ninguna puede escribir fuera de rango (R3-004).
+    var height = width > 0 ? tiles.length / width : 0;
     var x0 = Math.round(rect.x);
     var y0 = Math.round(rect.y);
     var w = Math.round(rect.w);
     var h = Math.round(rect.h);
     for (var y = y0; y < y0 + h; y += 1) {
       for (var x = x0; x < x0 + w; x += 1) {
-        if (x < 0 || y < 0 || x >= width) continue;
+        // Falta el límite inferior: una sala que se pasa del alto escribía fuera
+        // del arreglo y corrompía `tiles` y `roomIndex` (R3-004).
+        if (x < 0 || y < 0 || x >= width || y >= height) continue;
         tiles[y * width + x] = value;
         if (roomIndex && roomIndexValue !== undefined) roomIndex[y * width + x] = roomIndexValue;
       }

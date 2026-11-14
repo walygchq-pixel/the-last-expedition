@@ -90,7 +90,9 @@
     if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return false;
     input.handler = function (event) {
       if (event.type === 'keydown') {
-        press(input, event.code);
+        // `event.repeat` marca la repetición automática del sistema: para el
+        // juego no es una pulsación nueva (R3-002).
+        if (!event.repeat) press(input, event.code);
         if (event.preventDefault && isGameCode(input, event.code)) event.preventDefault();
       } else {
         release(input, event.code);

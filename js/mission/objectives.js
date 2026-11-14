@@ -102,9 +102,12 @@
     }).length;
     var coverage = checks.length === 0 ? 0 : satisfied / checks.length;
     return {
-      met: checks.every(function (check) {
-        return check.ok && check.id !== 'crew';
-      }) && alive > 0,
+      met:
+        checks.every(function (check) {
+          // El chequeo de tripulación viva no es un requisito del objetivo: se
+          // exige por separado (abajo) y no impide cumplir el resto (R3-001).
+          return check.id === 'crew' ? true : check.ok;
+        }) && alive > 0,
       // El progreso se mide sobre todo por datos transmitidos.
       coverage: round1(clamp01(transmitted / Math.max(1, required))),
       checks: checks,

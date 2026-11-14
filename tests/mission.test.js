@@ -482,3 +482,25 @@ for (const scenario of catalog.scenarios()) {
     });
   }
 }
+
+test('R3-001: el objetivo se declara cumplido con datos, ciencia, cobertura y tripulación viva', () => {
+  const objectivesModule = require('../js/mission/objectives.js');
+  const fakeGame = {
+    scenario: { id: 'scn.ceres_survey', objectiveId: 'map_region', requiredData: 50 },
+    design: {
+      instruments: [{ id: 'radar', science: { mapping: 5, surface: 3 } }],
+      orbit: { coverage: 0.7 }
+    },
+    datastore: { transmitted: 60 },
+    crew: { members: [{ alive: true }, { alive: false }] }
+  };
+  const done = objectivesModule.runtime(fakeGame);
+  assert.equal(done.met, true, 'todos los requisitos están cubiertos');
+  assert.equal(done.coverage, 1);
+
+  const withoutData = objectivesModule.runtime({ ...fakeGame, datastore: { transmitted: 10 } });
+  assert.equal(withoutData.met, false, 'sin datos transmitidos el objetivo no se cumple');
+
+  const withoutCrew = objectivesModule.runtime({ ...fakeGame, crew: { members: [{ alive: false }] } });
+  assert.equal(withoutCrew.met, false, 'sin tripulación viva no hay misión cumplida');
+});

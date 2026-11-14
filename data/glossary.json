@@ -1,0 +1,19 @@
+{
+  "items": [
+    { "id": "mass", "termKey": "glossary.mass.term", "defKey": "glossary.mass.def" },
+    { "id": "power", "termKey": "glossary.power.term", "defKey": "glossary.power.def" },
+    { "id": "delta_v", "termKey": "glossary.delta_v.term", "defKey": "glossary.delta_v.def" },
+    { "id": "orbit", "termKey": "glossary.orbit.term", "defKey": "glossary.orbit.def" },
+    { "id": "comms_window", "termKey": "glossary.comms_window.term", "defKey": "glossary.comms_window.def" },
+    { "id": "reliability", "termKey": "glossary.reliability.term", "defKey": "glossary.reliability.def" },
+    { "id": "technical_debt", "termKey": "glossary.technical_debt.term", "defKey": "glossary.technical_debt.def" },
+    { "id": "cannibalization", "termKey": "glossary.cannibalization.term", "defKey": "glossary.cannibalization.def" },
+    { "id": "freshness", "termKey": "glossary.freshness.term", "defKey": "glossary.freshness.def" },
+    { "id": "radiation", "termKey": "glossary.radiation.term", "defKey": "glossary.radiation.def" },
+    { "id": "budget", "termKey": "glossary.budget.term", "defKey": "glossary.budget.def" },
+    { "id": "data", "termKey": "glossary.data.term", "defKey": "glossary.data.def" },
+    { "id": "coverage", "termKey": "glossary.coverage.term", "defKey": "glossary.coverage.def" },
+    { "id": "eclipse", "termKey": "glossary.eclipse.term", "defKey": "glossary.eclipse.def" },
+    { "id": "life_support", "termKey": "glossary.life_support.term", "defKey": "glossary.life_support.def" }
+  ]
+}

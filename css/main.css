@@ -1,0 +1,537 @@
+/*
+ * Tema base de la interfaz (E-5, S66, S82).
+ *
+ * Consola de misión oscura, sin fuentes ni imágenes externas (RG-6). Todo el
+ * texto se dimensiona en `rem` para que los tamaños 100/125/150 % escalen juntos
+ * (clase `text-large` / `text-xlarge` en `<html>`), y cada contenedor tolera
+ * textos un 30 % más largos sin romper botones, paneles ni HUD (I-14).
+ */
+
+:root {
+  color-scheme: dark;
+  font-size: 100%;
+
+  --bg: #070910;
+  --bg-soft: #0d1220;
+  --panel: #111a2b;
+  --panel-2: #16223a;
+  --line: #26365a;
+  --line-strong: #3d5687;
+  --text: #e6ecfb;
+  --text-dim: #a9b6d3;
+  --text-faint: #7d8bab;
+  --accent: #6fd3c7;
+  --accent-2: #ffcf6b;
+  --ok: #6fd98a;
+  --warn: #ffcf6b;
+  --critical: #ff7a7a;
+  --focus: #ffe082;
+
+  --radius: 0.5rem;
+  --gap: 0.75rem;
+  --pad: 0.9rem;
+  --font: ui-monospace, SFMono-Regular, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+}
+
+html.text-large {
+  font-size: 125%;
+}
+
+html.text-xlarge {
+  font-size: 150%;
+}
+
+html.contrast-high {
+  --bg: #000000;
+  --bg-soft: #05070d;
+  --panel: #0a0e18;
+  --panel-2: #101828;
+  --line: #6c86bf;
+  --line-strong: #c8d6f5;
+  --text: #ffffff;
+  --text-dim: #e2e9f8;
+  --text-faint: #c3cee6;
+  --accent: #8ff5e6;
+  --accent-2: #ffe08a;
+  --ok: #8bffab;
+  --warn: #ffe08a;
+  --critical: #ff9d9d;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+body {
+  background-image: radial-gradient(circle at 20% 0%, rgba(111, 211, 199, 0.09), transparent 45%),
+    radial-gradient(circle at 90% 10%, rgba(255, 207, 107, 0.07), transparent 40%);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0 0 0.4em;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Las etiquetas de recurso nunca se parten por la mitad: si el texto crece
+   (I-14) el contenedor se reacomoda y la palabra se mantiene entera. */
+.resource-item__name,
+.resource-item__value,
+.resource-item__status {
+  /* Se permite cortar con guion antes que desbordar la tarjeta: la palabra
+     entera se conserva cuando entra, y el panel nunca empuja el ancho de la
+     pantalla (I-14, S82). */
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+  min-width: 0;
+}
+
+h1 {
+  font-size: 1.8rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+}
+
+h3 {
+  font-size: 1.05rem;
+  color: var(--accent);
+}
+
+p {
+  margin: 0 0 0.6em;
+}
+
+a {
+  color: var(--accent);
+}
+
+/* --- Estructura ------------------------------------------------------- */
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  min-width: 0;
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: none;
+  border: 1px solid transparent;
+}
+
+.topbar .spacer {
+  flex: 1 1 auto;
+}
+
+.topbar .context {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  max-width: 100%;
+}
+
+.screen {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--pad);
+}
+
+.screen:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -4px;
+}
+
+/* --- Controles -------------------------------------------------------- */
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  min-height: 2.4rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+  cursor: pointer;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+  transition: background 120ms linear, border-color 120ms linear;
+}
+
+button:hover:not(:disabled) {
+  background: #1d2c4a;
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button[aria-pressed="true"],
+button.is-selected {
+  border-color: var(--accent);
+  background: rgba(111, 211, 199, 0.16);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #04120f;
+  font-weight: 700;
+}
+
+button.primary:hover:not(:disabled) {
+  background: #8ce9dd;
+}
+
+button.danger {
+  border-color: var(--critical);
+  color: var(--critical);
+}
+
+button.ghost {
+  background: none;
+  border-color: transparent;
+}
+
+button.icon {
+  min-width: 2.4rem;
+  text-align: center;
+  padding: 0.3rem;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+label {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  margin-bottom: 0.2rem;
+}
+
+select,
+input[type="text"],
+input[type="search"] {
+  min-height: 2.2rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+  max-width: 100%;
+}
+
+/* --- Bloques reutilizables ------------------------------------------- */
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel), var(--bg-soft));
+  padding: var(--pad);
+  min-width: 0;
+}
+
+.card > h2,
+.card > h3 {
+  margin-top: 0;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.row.tight {
+  gap: 0.3rem;
+}
+
+.grid {
+  display: grid;
+  gap: var(--gap);
+  min-width: 0;
+}
+
+.grid.cols-2 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+
+.grid.cols-3 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}
+
+.muted {
+  color: var(--text-dim);
+}
+
+.faint {
+  color: var(--text-faint);
+  font-size: 0.85rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  background: var(--bg-soft);
+  max-width: 100%;
+}
+
+.divider {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 0.7rem 0;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.list > li {
+  min-width: 0;
+}
+
+.bar {
+  position: relative;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #0a1322;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  min-width: 3rem;
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+}
+
+.bar.is-warn > span {
+  background: var(--warn);
+}
+
+.bar.is-critical > span {
+  background: var(--critical);
+}
+
+/* Formas: el estado nunca depende solo del color (RN-2, S29). */
+.shape {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: 0 0 auto;
+  background: currentColor;
+}
+
+.shape--square {
+  border-radius: 2px;
+}
+
+.shape--circle {
+  border-radius: 50%;
+}
+
+.shape--triangle {
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+}
+
+.shape--diamond {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+.status--ok {
+  color: var(--ok);
+}
+
+.status--warn {
+  color: var(--warn);
+}
+
+.status--critical {
+  color: var(--critical);
+}
+
+.icon-glyph {
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--text-dim);
+}
+
+/* --- Pantallas de título y configuración ----------------------------- */
+
+.title-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.2rem;
+  max-width: 56rem;
+  margin: 0 auto;
+  min-height: 100%;
+}
+
+.title-screen h1 {
+  font-size: 2.2rem;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.title-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 0.6rem;
+}
+
+.setup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: var(--gap);
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+  text-align: left;
+  min-width: 0;
+}
+
+.choice strong {
+  color: var(--text);
+}
+
+.choice span {
+  color: var(--text-dim);
+  font-size: 0.88rem;
+}
+
+/* --- Tabla simple ----------------------------------------------------- */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.table th {
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+/* --- Movimiento reducido --------------------------------------------- */
+
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* --- Disposición estrecha -------------------------------------------- */
+
+@media (max-width: 48rem) {
+  .screen {
+    padding: 0.6rem;
+  }
+
+  .title-screen h1 {
+    font-size: 1.7rem;
+  }
+}

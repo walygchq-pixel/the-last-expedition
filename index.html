@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!--
+  The Last Expedition — punto de entrada (RG-1, S1, C-1).
+  Se abre con doble clic: no hay servidor, ni módulos ES, ni CDN, ni fuentes
+  externas. Todo el texto visible lo escribe `js/main.js` y los módulos de UI a
+  partir de las claves de `data/locales/*.json` (I-3); este archivo solo declara
+  contenedores y el orden de carga de los scripts clásicos.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title></title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/overlays.css">
+    <link rel="stylesheet" href="css/design.css">
+    <link rel="stylesheet" href="css/travel.css">
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <header id="topbar" class="topbar" role="banner"></header>
+      <main id="screen" class="screen" role="main" tabindex="-1"></main>
+      <div id="toasts" class="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
+      <div id="overlays" class="overlays"></div>
+      <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+    </div>
+    <script src="data/data-bundle.js"></script>
+    <script src="js/i18n/format.js"></script>
+    <script src="js/i18n/index.js"></script>
+    <script src="js/core/rng.js"></script>
+    <script src="js/core/resources.js"></script>
+    <script src="js/core/systems.js"></script>
+    <script src="js/core/crew.js"></script>
+    <script src="js/core/food.js"></script>
+    <script src="js/core/datastore.js"></script>
+    <script src="js/core/comms.js"></script>
+    <script src="js/core/consequences.js"></script>
+    <script src="js/core/events.js"></script>
+    <script src="js/core/effects.js"></script>
+    <script src="js/core/time.js"></script>
+    <script src="js/core/scoring.js"></script>
+    <script src="js/core/game.js"></script>
+    <script src="js/mission/catalog.js"></script>
+    <script src="js/mission/design.js"></script>
+    <script src="js/mission/objectives.js"></script>
+    <script src="js/world/pathfinding.js"></script>
+    <script src="js/world/shipMap.js"></script>
+    <script src="js/world/objects.js"></script>
+    <script src="js/world/players.js"></script>
+    <script src="js/world/input.js"></script>
+    <script src="js/world/renderer.js"></script>
+    <script src="js/world/world.js"></script>
+    <script src="js/storage/store.js"></script>
+    <script src="js/storage/prefs.js"></script>
+    <script src="js/storage/saves.js"></script>
+    <script src="js/storage/transfer.js"></script>
+    <script src="js/storage/leaderboard.js"></script>
+    <script src="js/ui/tutorial.js"></script>
+    <script src="js/ui/designScreen.js"></script>
+    <script src="js/ui/travelScreen.js"></script>
+    <script src="js/ui/reportScreen.js"></script>
+    <script src="js/ui/settingsScreen.js"></script>
+    <script src="js/ui/shell.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>

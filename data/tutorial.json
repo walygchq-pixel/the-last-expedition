@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "id": "design_basic",
+      "titleKey": "tutorial.design_basic.title",
+      "bodyKey": "tutorial.design_basic.body",
+      "target": "#design-objective"
+    },
+    {
+      "id": "tradeoffs",
+      "titleKey": "tutorial.tradeoffs.title",
+      "bodyKey": "tutorial.tradeoffs.body",
+      "target": "#design-parts"
+    },
+    {
+      "id": "launch_check",
+      "titleKey": "tutorial.launch_check.title",
+      "bodyKey": "tutorial.launch_check.body",
+      "target": "#design-launch"
+    },
+    {
+      "id": "first_repair",
+      "titleKey": "tutorial.first_repair.title",
+      "bodyKey": "tutorial.first_repair.body",
+      "target": "#travel-actions"
+    },
+    {
+      "id": "deferred_consequence",
+      "titleKey": "tutorial.deferred_consequence.title",
+      "bodyKey": "tutorial.deferred_consequence.body",
+      "target": "#travel-consequences"
+    }
+  ]
+}

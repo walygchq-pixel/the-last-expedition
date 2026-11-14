@@ -1,0 +1,349 @@
+/*
+ * Superposiciones: modales, glosario, tutorial, avisos y tooltips (E-2, E-3).
+ *
+ * Todo modal es `role="dialog"` con foco inicial dentro, cierre con Escape y
+ * foco devuelto al elemento que lo abrió. Los avisos viven en una región
+ * `aria-live` para que un lector de pantalla los anuncie sin robar el foco.
+ */
+
+.overlays {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 5, 10, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  pointer-events: auto;
+  overflow: auto;
+}
+
+.dialog {
+  width: min(64rem, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.dialog--narrow {
+  width: min(38rem, 100%);
+}
+
+.dialog__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.5rem;
+}
+
+.dialog__head h2 {
+  margin: 0;
+}
+
+.dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* Glosario (E-2). */
+.glossary-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 0.6rem;
+}
+
+.glossary-term {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+  padding: 0.5rem 0.6rem;
+  min-width: 0;
+}
+
+.glossary-term dt {
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 0.15rem;
+}
+
+.glossary-term dd {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+}
+
+.glossary-term.is-target {
+  border-color: var(--focus);
+}
+
+/* Tutorial (E-1, S-18). */
+.tutorial-overlay {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  width: min(24rem, calc(100vw - 2rem));
+  border: 1px solid var(--focus);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 45;
+  pointer-events: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.tutorial-overlay h3 {
+  margin: 0;
+  color: var(--focus);
+  font-size: 0.95rem;
+}
+
+.tutorial-overlay p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+}
+
+.tutorial-step-count {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tutorial-highlight {
+  outline: 2px dashed var(--focus) !important;
+  outline-offset: 2px;
+}
+
+/* Vista previa del tutorial dentro de un diálogo. */
+.tutorial-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.tutorial-preview h3 {
+  margin: 0;
+  color: var(--focus);
+}
+
+/* Avisos (toasts). */
+.toasts {
+  position: fixed;
+  right: 1rem;
+  top: 4rem;
+  width: min(24rem, calc(100vw - 2rem));
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.toast {
+  border: 1px solid var(--line-strong);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.86rem;
+  color: var(--text);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  animation: toast-in 140ms ease-out;
+}
+
+.toast.is-info {
+  border-left-color: var(--accent);
+}
+
+.toast.is-warn {
+  border-left-color: var(--warn);
+}
+
+.toast.is-severe,
+.toast.is-critical {
+  border-left-color: var(--critical);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.3rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Tooltip reutilizable (E-3). */
+.tooltip {
+  position: fixed;
+  z-index: 60;
+  max-width: min(24rem, calc(100vw - 2rem));
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: #04060c;
+  color: var(--text);
+  padding: 0.4rem 0.55rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  pointer-events: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+}
+
+.tooltip[hidden] {
+  display: none;
+}
+
+/* Informe y comparador (P-2, P-3, G-3). */
+.report-score {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.report-score .total {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent-2);
+}
+
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.breakdown-row {
+  display: grid;
+  grid-template-columns: minmax(0, 12rem) minmax(4rem, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.88rem;
+  min-width: 0;
+}
+
+.breakdown-row .why {
+  grid-column: 1 / -1;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.analysis-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+}
+
+.analysis-list li {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent-2);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.5rem;
+  background: var(--bg-soft);
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: var(--gap);
+}
+
+.delta-better {
+  color: var(--ok);
+}
+
+.delta-worse {
+  color: var(--critical);
+}
+
+.delta-tie {
+  color: var(--text-dim);
+}
+
+/* Ajustes: tabla de controles (RG-8). */
+.controls-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.controls-table th,
+.controls-table td {
+  border: 1px solid var(--line);
+  padding: 0.3rem 0.4rem;
+  text-align: left;
+}
+
+.controls-table td button {
+  width: 100%;
+  font-size: 0.8rem;
+  min-height: 2rem;
+  padding: 0.2rem 0.4rem;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.settings-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.settings-options button {
+  font-size: 0.88rem;
+}
+
+.checkbox-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--accent);
+}

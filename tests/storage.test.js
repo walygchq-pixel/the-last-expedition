@@ -183,3 +183,26 @@ test('R3-001: al importar se descarta cualquier campo de texto ya traducido', ()
     nameKey: 'scenario.scn.ceres_survey.name'
   });
 });
+
+test('R3-002/R3-003: guardar rechaza lo no serializable y no cobra de más al sobrescribir', () => {
+  store.clearMemory();
+  const rejected = store.write('tle.k', undefined);
+  assert.equal(rejected.ok, false);
+  assert.equal(rejected.code, 'save.unserializable');
+
+  assert.equal(store.write('tle.k', 'a'.repeat(1000)).ok, true);
+  const afterFirst = store.usage().used;
+  assert.equal(store.write('tle.k', 'b'.repeat(1000)).ok, true, 'sobrescribir no debe fallar por cuota');
+  assert.equal(store.usage().used, afterFirst, 'el tamaño ocupado no se duplica');
+});
+
+test('R3-004: el guardado respeta el máximo de ranuras', () => {
+  store.clearMemory();
+  for (let i = 0; i < 25; i += 1) {
+    saves.saveGame(sampleState(), { now: 1700000000000 + i * 1000, id: 'g' + i });
+  }
+  const listed = saves.listSaves();
+  assert.equal(listed.length, 20, 'se conservan 20 ranuras');
+  assert.equal(saves.loadGame('g0'), null, 'la partida más vieja se descartó');
+  assert.ok(saves.loadGame('g24'), 'la más reciente sigue disponible');
+});

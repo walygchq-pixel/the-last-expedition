@@ -46,6 +46,15 @@
       state: state
     };
     var result = store.write(SAVE_PREFIX + id, payload);
+    if (result.ok) {
+      // Máximo de ranuras: se descartan las partidas más viejas (R3-004).
+      var all = listSaves();
+      if (all.length > MAX_SLOTS) {
+        all.slice(MAX_SLOTS).forEach(function (save) {
+          removeSave(save.id);
+        });
+      }
+    }
     return { ok: result.ok, code: result.code || null, id: id, bytes: result.bytes };
   }
 

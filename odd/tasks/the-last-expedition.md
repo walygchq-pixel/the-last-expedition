@@ -241,3 +241,15 @@ que cada clave exista en los dos idiomas.
   restaurar) y *R3-TICK-PENDING* (un tick largo seguía simulando y sorteando
   eventos después del primero, con el reloj por delante de la simulación).
   El reloj ahora avanza subpaso a subpaso. Suite completa: **88 pruebas**.
+- **L7 (cadena de revisión nativa).** Slices revisados y **aprobados**, cada uno con
+  su linaje y su recibo quemado (`gentle-ai.review-acknowledged/v1`):
+  `core` (`review-782ad290cdb701c8`, 2 correcciones), `mission`
+  (`review-e8ac91c0b8def597`, 1 corrección), `data` del mundo
+  (`review-712a74b32f5f070e`) y `world` (`review-0f9fb2634e80a8c9`), `storage`
+  (`review-33be7043f529810a`, 1 corrección). Cada rebanada se partió hasta entrar
+  en el presupuesto del revisor: el candidato completo (22.733 líneas) y el commit
+  de mundo entero (4.757) se detuvieron con `lens_context_budget_exceeded`.
+  Total: 12 ejecuciones de modelo (revisor, refutador y validador), ~505k tokens,
+  ~0,18 USD. Suite: **93 pruebas** en verde y humo en Chrome sin problemas.
+  Pendientes de revisión: la interfaz (`32df2dc`, ~5.6k líneas) y el contenido
+  inicial de datos (`2ab63b4`), ambos por encima del presupuesto sin partir.

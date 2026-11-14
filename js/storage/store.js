@@ -71,21 +71,30 @@
     } catch (error) {
       return { ok: false, code: 'save.unserializable', bytes: 0 };
     }
+    // `JSON.stringify(undefined)` devuelve undefined: guardarlo dejaría una clave
+    // ilegible respondiendo `ok` (R3-003).
+    if (text === undefined) return { ok: false, code: 'save.unserializable', bytes: 0 };
     var bytes = bytesOf(text);
     if (bytes > LIMIT_BYTES) return { ok: false, code: 'save.too_large', bytes: bytes };
 
     var store = nativeStore();
     if (store) {
       try {
-        if (usedBytes(store) + bytes > LIMIT_BYTES) return { ok: false, code: 'save.quota', bytes: bytes };
+        // Al sobrescribir una clave se descuenta lo que ya ocupaba: si no, una
+        // actualización cerca del tope falla sin motivo (R3-002).
+        var previous = store.getItem(key);
+        var freed = previous ? bytesOf(key) + bytesOf(previous) : 0;
+        var projected = usedBytes(store) - freed + bytesOf(key) + bytes;
+        if (projected > LIMIT_BYTES) return { ok: false, code: 'save.quota', bytes: bytes };
         store.setItem(key, text);
         return { ok: true, bytes: bytes };
       } catch (error) {
         return { ok: false, code: 'save.quota', bytes: bytes };
       }
     }
-    if (memoryBytes + bytes > LIMIT_BYTES) return { ok: false, code: 'save.quota', bytes: bytes };
-    memoryBytes += bytes - (memory.has(key) ? bytesOf(memory.get(key)) : 0);
+    var previousMemory = memory.has(key) ? bytesOf(memory.get(key)) : 0;
+    if (memoryBytes - previousMemory + bytes > LIMIT_BYTES) return { ok: false, code: 'save.quota', bytes: bytes };
+    memoryBytes += bytes - previousMemory;
     memory.set(key, text);
     return { ok: true, bytes: bytes };
   }

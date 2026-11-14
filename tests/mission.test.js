@@ -504,3 +504,18 @@ test('R3-001: el objetivo se declara cumplido con datos, ciencia, cobertura y tr
   const withoutCrew = objectivesModule.runtime({ ...fakeGame, crew: { members: [{ alive: false }] } });
   assert.equal(withoutCrew.met, false, 'sin tripulación viva no hay misión cumplida');
 });
+
+test('R3-002: la semilla de la partida no depende del orden de elección', () => {
+  const designModule = require('../js/mission/design.js');
+  const first = designModule.createDesign({ scenarioId: 'scn.ceres_survey', difficultyId: 'basic' });
+  designModule.setInstrument(first, 'radar', 'simple');
+  designModule.setInstrument(first, 'camera', 'advanced');
+
+  const second = designModule.createDesign({ scenarioId: 'scn.ceres_survey', difficultyId: 'basic' });
+  designModule.setInstrument(second, 'camera', 'advanced');
+  designModule.setInstrument(second, 'radar', 'simple');
+
+  assert.equal(designModule.seedFor(first, 'x'), designModule.seedFor(second, 'x'));
+  designModule.setInstrument(second, 'seismometer', 'simple');
+  assert.notEqual(designModule.seedFor(first, 'x'), designModule.seedFor(second, 'x'));
+});

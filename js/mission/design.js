@@ -469,12 +469,26 @@
     };
   }
 
-  /** Semilla reproducible de una partida derivada del diseño. */
+  /**
+   * Semilla reproducible de una partida derivada del diseño.
+   * Componentes e instrumentos se ordenan antes de hashear: el mismo diseño
+   * elegido en otro orden tiene que dar la misma semilla (R3-002).
+   */
   function seedFor(design, salt) {
+    var groups = Object.keys(design.groups || {})
+      .sort()
+      .map(function (groupId) {
+        return groupId + '=' + design.groups[groupId];
+      })
+      .join(',');
+    var instruments = (design.instruments || [])
+      .map(function (entry) {
+        return entry.id + ':' + entry.version;
+      })
+      .sort()
+      .join(',');
     return rngModule.hashSeed(
-      [design.scenarioId, design.difficultyId, design.launcherId, design.orbitId, salt || ''].join('|') +
-        JSON.stringify(design.groups) +
-        JSON.stringify(design.instruments)
+      [design.scenarioId, design.difficultyId, design.launcherId, design.orbitId, salt || ''].join('|') + '|' + groups + '|' + instruments
     );
   }
 

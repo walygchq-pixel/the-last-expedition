@@ -1,0 +1,244 @@
+/*
+ * Sistemas de la nave (V-6, V-7) y canibalización (V-10, S-7).
+ *
+ * Cada sistema tiene estado 0..100 y fiabilidad 0..100. El estado se degrada con
+ * el uso y con la fiabilidad baja; la fiabilidad baja con el uso y con los fallos.
+ * Los efectos se exponen como multiplicadores 0..1 que consumen el resto de los
+ * módulos (luz, temperatura, agua, enlace), para que la degradación se vea en la
+ * nave y no solo en un número.
+ */
+(function (global, factory) {
+  'use strict';
+  if (typeof module === 'object' && typeof module.exports === 'object') {
+    module.exports = factory();
+  } else {
+    var GS = (global.GS = global.GS || {});
+    GS.core = GS.core || {};
+    GS.core.systems = factory();
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  var SYSTEM_IDS = ['power', 'lifeSupport', 'comms', 'attitude', 'thermal', 'instruments'];
+
+  var DEFAULT_RELIABILITY = 88;
+  var CANNIBAL_RELIABILITY_MIN = 15;
+  var CANNIBAL_RELIABILITY_MAX = 25;
+  var CANNIBAL_FAULT_DAYS_MIN = 3;
+  var CANNIBAL_FAULT_DAYS_MAX = 6;
+  var CANNIBAL_FAULT_EVENTS = 5;
+
+  function clamp(value, min, max) {
+    var n = Number(value);
+    if (!isFinite(n)) return min;
+    return Math.min(max, Math.max(min, n));
+  }
+
+  function round1(value) {
+    return Math.round(value * 10) / 10;
+  }
+
+  /**
+   * Crea el estado de sistemas a partir del diseño de misión.
+   * `design.parts` es una lista de piezas con `system`, `reliability` e `id`;
+   * de ahí sale también el origen de cada sistema (DM-6).
+   */
+  function createSystems(design) {
+    var parts = (design && design.parts) || [];
+    var items = {};
+    SYSTEM_IDS.forEach(function (id) {
+      var own = parts.filter(function (part) {
+        return part.system === id;
+      });
+      var reliability = DEFAULT_RELIABILITY;
+      if (own.length > 0) {
+        var total = own.reduce(function (sum, part) {
+          return sum + (isFinite(part.reliability) ? part.reliability : DEFAULT_RELIABILITY);
+        }, 0);
+        reliability = total / own.length;
+      }
+      items[id] = {
+        id: id,
+        health: 100,
+        reliability: round1(reliability),
+        origins: own.map(function (part) {
+          return part.id;
+        }),
+        failures: 0
+      };
+    });
+    return items;
+  }
+
+  function get(state, id) {
+    return state ? state[id] : undefined;
+  }
+
+  function average(state) {
+    var sum = 0;
+    SYSTEM_IDS.forEach(function (id) {
+      sum += state[id] ? state[id].health : 0;
+    });
+    return sum / SYSTEM_IDS.length;
+  }
+
+  /**
+   * Degrada un sistema y devuelve el descriptor del fallo para el libro de
+   * consecuencias o la bitácora.
+   */
+  function degrade(state, id, points, cause) {
+    var system = state && state[id];
+    if (!system) return null;
+    var applied = clamp(points, 0, system.health);
+    system.health = round1(clamp(system.health - applied, 0, 100));
+    system.reliability = round1(clamp(system.reliability - applied * 0.4, 0, 100));
+    system.failures += 1;
+    return {
+      systemId: id,
+      points: round1(applied),
+      cause: cause || 'failure',
+      health: system.health,
+      reliability: system.reliability
+    };
+  }
+
+  /** Repara un sistema. Devuelve los puntos realmente aplicados. */
+  function repair(state, id, points) {
+    var system = state && state[id];
+    if (!system) return 0;
+    var before = system.health;
+    system.health = round1(clamp(system.health + points, 0, 100));
+    return round1(system.health - before);
+  }
+
+  /** Repara la fiabilidad (mantenimiento preventivo), sin tocar el estado. */
+  function service(state, id, points) {
+    var system = state && state[id];
+    if (!system) return 0;
+    var before = system.reliability;
+    system.reliability = round1(clamp(system.reliability + points, 0, 100));
+    return round1(system.reliability - before);
+  }
+
+  /**
+   * Avanza el desgaste durante `days` días de misión.
+   * @param {Object} ctx `{rng, usage:{system:0..1}, severity:number}`
+   * @returns {{failures:Array, worn:Array}}
+   */
+  function tick(state, days, ctx) {
+    var context = ctx || {};
+    var rng = context.rng;
+    var severity = isFinite(context.severity) ? context.severity : 1;
+    var usage = context.usage || {};
+    var failures = [];
+    var step = Math.max(0, isFinite(days) ? days : 0);
+    if (step === 0) return { failures: failures };
+
+    SYSTEM_IDS.forEach(function (id) {
+      var system = state[id];
+      if (!system) return;
+      var load = isFinite(usage[id]) ? clamp(usage[id], 0, 1) : 0.5;
+
+      // 1. La fiabilidad baja con el uso (V-6).
+      system.reliability = round1(clamp(system.reliability - step * (0.12 + load * 0.5) * severity, 0, 100));
+
+      // 2. Probabilidad de avería: crece con el uso y con la fiabilidad baja.
+      var hazard = (0.004 + load * 0.012 + (100 - system.reliability) / 100 * 0.02) * severity;
+      var chancePerDay = 1 - Math.pow(1 - Math.min(0.95, hazard), 1);
+      var probability = 1 - Math.pow(1 - chancePerDay, step);
+      if (rng && rng.chance(probability)) {
+        var magnitude = 8 + (rng ? rng.float(0, 18) : 9);
+        failures.push(degrade(state, id, magnitude, 'random_failure'));
+      }
+
+      // 3. Una fiabilidad muy baja corroe el estado aunque no haya avería.
+      if (system.reliability < 50) {
+        system.health = round1(clamp(system.health - step * (50 - system.reliability) * 0.06 * severity, 0, 100));
+      }
+    });
+
+    return { failures: failures };
+  }
+
+  /**
+   * Canibaliza un sistema para reparar otro al instante (V-10).
+   * Devuelve el descriptor que el libro de consecuencias convierte en avería
+   * diferida: fiabilidad del donante −15…−25 y disparo a 3–6 días o 5 eventos.
+   */
+  function cannibalize(state, donorId, targetId, rng) {
+    var donor = state && state[donorId];
+    var target = state && state[targetId];
+    if (!donor || !target || donorId === targetId) return null;
+
+    var loss = rng ? rng.float(CANNIBAL_RELIABILITY_MIN, CANNIBAL_RELIABILITY_MAX) : 20;
+    var repaired = repair(state, targetId, 55);
+    donor.reliability = round1(clamp(donor.reliability - loss, 0, 100));
+    var days = rng ? rng.int(CANNIBAL_FAULT_DAYS_MIN, CANNIBAL_FAULT_DAYS_MAX) : CANNIBAL_FAULT_DAYS_MAX;
+
+    return {
+      donorId: donorId,
+      targetId: targetId,
+      repaired: repaired,
+      reliabilityLoss: round1(loss),
+      donorReliability: donor.reliability,
+      faultInDays: days,
+      faultAfterEvents: CANNIBAL_FAULT_EVENTS
+    };
+  }
+
+  /**
+   * Multiplicadores 0..1 que consume el resto de la simulación y el render.
+   * `lighting` y `temperature` son los que se ven en la nave (V-7).
+   */
+  function effects(state) {
+    var power = clamp(state.power.health / 100, 0, 1);
+    var life = clamp(state.lifeSupport.health / 100, 0, 1);
+    var thermal = clamp(state.thermal.health / 100, 0, 1);
+    var comms = clamp(state.comms.health / 100, 0, 1);
+    var attitude = clamp(state.attitude.health / 100, 0, 1);
+    var instruments = clamp(state.instruments.health / 100, 0, 1);
+    return {
+      lighting: clamp(power * 0.75 + life * 0.25, 0.15, 1),
+      temperature: clamp(thermal * 0.7 + power * 0.3, 0, 1),
+      water: clamp(life, 0, 1),
+      air: clamp(life * 0.9 + thermal * 0.1, 0, 1),
+      commsQuality: clamp(comms * (0.6 + attitude * 0.4), 0, 1),
+      dataQuality: clamp(instruments, 0, 1),
+      powerFactor: power
+    };
+  }
+
+  /** Resumen para el HUD y para detectar que la nave quedó inoperativa (V-18). */
+  function summary(state) {
+    var worst = null;
+    var criticalCount = 0;
+    SYSTEM_IDS.forEach(function (id) {
+      var system = state[id];
+      if (!system) return;
+      if (!worst || system.health < worst.health) worst = { id: id, health: system.health };
+      if (system.health <= 5) criticalCount += 1;
+    });
+    return {
+      average: round1(average(state)),
+      worst: worst,
+      criticalCount: criticalCount,
+      // Nave inoperativa: los cinco sistemas de supervivencia están muertos.
+      inoperable: criticalCount >= 4 && state.lifeSupport.health <= 5
+    };
+  }
+
+  return {
+    SYSTEM_IDS: SYSTEM_IDS,
+    DEFAULT_RELIABILITY: DEFAULT_RELIABILITY,
+    createSystems: createSystems,
+    get: get,
+    average: average,
+    degrade: degrade,
+    repair: repair,
+    service: service,
+    tick: tick,
+    cannibalize: cannibalize,
+    effects: effects,
+    summary: summary
+  };
+});

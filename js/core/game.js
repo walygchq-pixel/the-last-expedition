@@ -216,6 +216,8 @@
       eventHistory: [],
       flags: {},
       vote: null,
+      // Penalización temporal de eficiencia tras un desacuerdo (S-5).
+      penalty: null,
       votes: { total: 0, agreed: 0 },
       stats: {
         repairs: 0,
@@ -380,6 +382,7 @@
   function simulateStep(game, days) {
     var look = systems.effects(game.systems);
     var day = time.days(game.clock);
+    applyPenaltyDecay(game, days);
 
     // 1. Sistemas: desgaste, averías y efectos visibles (V-6, V-7).
     var usage = {
@@ -492,6 +495,21 @@
     rolled.forEach(function (event) {
       queueEvent(game, event);
     });
+  }
+
+  /**
+   * Consume la penalización de eficiencia vigente (S-5): sin acuerdo, la
+   * tripulación trabaja un 10 % peor durante 2 días de misión.
+   */
+  function applyPenaltyDecay(game, days) {
+    if (!game.penalty) return;
+    game.penalty.daysLeft = Math.round((game.penalty.daysLeft - days) * 100) / 100;
+    if (game.penalty.daysLeft <= 0) game.penalty = null;
+  }
+
+  /** Multiplicador de eficiencia vigente: 1 sin penalización, 0,9 con desacuerdo. */
+  function penaltyFactor(game) {
+    return game.penalty ? Math.max(0.5, 1 - game.penalty.factor) : 1;
   }
 
   function memberNameKey(game, memberId) {
@@ -754,7 +772,7 @@
     if (!system) return { ok: false, codes: [{ code: 'msg.unknown_system' }] };
     var actor = crew.member(game.crew, input.memberId);
     var bonus = actor && actor.alive ? crew.roleModifier(actor.role, 'repair') : 1;
-    var points = systems.repair(game.systems, input.systemId, 28 * bonus);
+    var points = systems.repair(game.systems, input.systemId, 28 * bonus * penaltyFactor(game));
     game.stats.repairs += 1;
     pushJournal(game, {
       code: 'journal.repair',
@@ -771,7 +789,7 @@
     if (!system) return { ok: false, codes: [{ code: 'msg.unknown_system' }] };
     var actor = crew.member(game.crew, input.memberId);
     var bonus = actor && actor.alive ? crew.roleModifier(actor.role, 'service') : 1;
-    var points = systems.service(game.systems, input.systemId, 16 * bonus);
+    var points = systems.service(game.systems, input.systemId, 16 * bonus * penaltyFactor(game));
     game.stats.services += 1;
     return { ok: true, codes: [{ code: 'msg.serviced', params: { system: 'sys.' + input.systemId + '.name', points: round1(points) } }], severity: 'info' };
   }
@@ -988,6 +1006,10 @@
     // S-5: sin acuerdo, penalización del 10 % en colaboración y eficiencia
     // reducida durante 2 días de misión.
     if (!unanimous) {
+      // S-5: el desacuerdo cuesta 2 días con la eficiencia un 10 % más baja. La
+      // penalización se aplica de inmediato y se descuenta sola con el reloj; el
+      // libro de consecuencias conserva el registro para la bitácora.
+      game.penalty = { factor: 0.1, daysLeft: 2 };
       consequences.schedule(game.log, {
         code: 'cons.vote_default',
         params: { decision: vote.code, option: option.labelKey },
@@ -1036,7 +1058,10 @@
       id: game.id,
       version: game.version,
       seed: game.seed,
-      rngState: game.rngState,
+      // La semilla del generador se lee en el momento de guardar: si una acción
+      // consumió azar (comer, canibalizar, votar en solitario) el valor en caché
+      // quedaría viejo y al restaurar la partida el generador retrocedería.
+      rngState: game.rng.state(),
       mode: game.mode,
       scenarioId: game.scenarioId,
       scenario: game.scenario,
@@ -1053,6 +1078,7 @@
       eventHistory: game.eventHistory,
       flags: game.flags,
       vote: game.vote,
+      penalty: game.penalty || null,
       votes: game.votes,
       stats: game.stats,
       journal: game.journal,

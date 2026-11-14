@@ -485,3 +485,74 @@ test('DM-11: el lanzamiento se bloquea y explica el motivo y la corrección', ()
   assert.deepEqual(valid.blockers, []);
   assert.ok(valid.warnings.length >= 0);
 });
+
+test('R3-RNGSTATE: guardar después de consumir azar no rebobina el generador', () => {
+  const mission = validDesign();
+  const state = game.createGame({
+    mode: 'campaign',
+    scenario: catalog.findScenario(mission.scenarioId),
+    difficulty: design.profileOf(mission),
+    design: design.toGameDesign(mission),
+    players: [{ id: 'p1', role: 'medic_cook' }],
+    seed: 'rng-guardado',
+    catalogs: { events: [], food: catalog.foodItems() },
+    evaluateObjective: objectives.runtime
+  });
+  const before = game.getState(state).rngState;
+  game.applyAction(state, { type: 'eat', memberId: 'p1' });
+  const after = game.getState(state).rngState;
+  assert.notEqual(after, before, 'la acción consumió azar y el guardado tiene que reflejarlo');
+
+  const restored = game.restoreGame(JSON.parse(JSON.stringify(game.getState(state))), {
+    events: catalog.events(),
+    food: catalog.foodItems(),
+    evaluateObjective: objectives.runtime
+  });
+  assert.equal(restored.rng.state(), after, 'la partida restaurada sigue el sorteo donde quedó');
+});
+
+test('S-5/R3-VOTE-PENALTY: el desacuerdo reduce la eficiencia 2 días y se recupera', () => {
+  const mission = validDesign();
+  const build = (seed) =>
+    game.createGame({
+      mode: 'cooperative',
+      scenario: catalog.findScenario(mission.scenarioId),
+      difficulty: design.profileOf(mission),
+      design: design.toGameDesign(mission),
+      players: [{ id: 'p1', role: 'engineer' }, { id: 'p2', role: 'scientist' }],
+      seed,
+      // Sin eventos: el reloj no se detiene y la penalización se puede medir.
+      catalogs: { events: [], food: catalog.foodItems() },
+      evaluateObjective: objectives.runtime
+    });
+
+  // 1. La misma reparación rinde menos con la penalización vigente.
+  const calm = build('penal-calma');
+  systems.degrade(calm.systems, 'comms', 40, 'test');
+  game.applyAction(calm, { type: 'repair', systemId: 'comms', memberId: 'p1' });
+
+  const penalized = build('penal-calma');
+  systems.degrade(penalized.systems, 'comms', 40, 'test');
+  penalized.penalty = { factor: 0.1, daysLeft: 2 };
+  game.applyAction(penalized, { type: 'repair', systemId: 'comms', memberId: 'p1' });
+  assert.ok(
+    penalized.systems.comms.health < calm.systems.comms.health,
+    'sin acuerdo la tripulación repara peor (S-5)'
+  );
+
+  // 2. Un desacuerdo real arranca la penalización de 2 días.
+  const voted = build('penal-voto');
+  game.applyAction(voted, { type: 'propose', decisionId: 'ration' });
+  game.applyAction(voted, { type: 'vote', memberId: 'p1', optionId: 'full' });
+  game.applyAction(voted, { type: 'vote', memberId: 'p2', optionId: 'half' });
+  assert.deepEqual(voted.penalty, { factor: 0.1, daysLeft: 2 });
+
+  // 3. Se consume con el reloj y no queda pegada para siempre.
+  let guard = 0;
+  while (voted.penalty && guard < 100) {
+    game.tick(voted, 3000);
+    guard += 1;
+  }
+  assert.equal(voted.penalty, null, 'la penalización se extingue a los 2 días');
+  assert.ok(guard > 0 && guard < 100);
+});

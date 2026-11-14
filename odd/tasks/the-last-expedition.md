@@ -222,3 +222,13 @@ que cada clave exista en los dos idiomas.
   ~400 líneas: el contenido del juego (datos + locales) y la interfaz entraron
   como unidades completas, porque ya venían terminadas al autorizar el commit y
   partirlas habría dejado commits que no arrancan.
+- **L5 (revisión nativa, rebanada core).** `gentle_review` sobre `719de3b..9e89c6e`
+  (lente `review-reliability`, tier medium, 3.783 líneas) levantó dos hallazgos
+  CRITICAL confirmados por el refutador como propios del candidato:
+  *R3-RNGSTATE* (el estado guardado serializaba la semilla en caché, así que
+  guardar después de comer, canibalizar o votar en solitario rebobinaba el
+  generador al restaurar) y *R3-VOTE-PENALTY* (la penalización de S-5 agendaba una
+  bandera que ningún código leía ni limpiaba, así que la eficiencia reducida de 2
+  días nunca ocurría). Corrección acotada en `15dad45`, con dos pruebas nuevas que
+  fallan sin el arreglo y pasan con él; propagada a `feat/the-last-expedition`.
+  Suite completa: **85 pruebas en verde**.

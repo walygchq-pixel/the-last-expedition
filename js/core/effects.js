@@ -59,6 +59,10 @@
             if (!member.alive) return;
             if (effect.condition === 'ill') member.illnessDays = Math.max(member.illnessDays, days);
             member.health = clamp(member.health - (effect.damage || 0), 0, 100);
+            // Un daño que deja la salud en cero mata al tripulante: si no, el conteo
+            // de vivos lo seguiría sumando y la partida nunca cerraría por pérdida
+            // de tripulación (hallazgo R3-CREW-DEATH).
+            if (member.health <= 0) member.alive = false;
             if (member.conditions.indexOf(effect.condition) === -1) member.conditions.push(effect.condition);
           });
           applied.push({ type: 'crewCondition', condition: effect.condition, days: days });

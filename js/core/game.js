@@ -359,12 +359,19 @@
     }
 
     var step = time.advance(game.clock, realMs);
+    // El reloj se avanza subpaso a subpaso: cada subpaso tiene que ver su propia
+    // hora de misión, y si un evento pendiente corta el bucle no queda tiempo
+    // simulado de más ni reloj adelantado (R3-TICK-PENDING).
+    game.clock.hours -= step.deltaHours;
     var remaining = step.deltaDays;
     while (remaining > 0) {
       var slice = Math.min(SUBSTEP_DAYS, remaining);
+      game.clock.hours += slice * time.HOURS_PER_DAY;
       simulateStep(game, slice);
       remaining -= slice;
       if (game.status !== 'travel') break;
+      // Un evento pendiente detiene el reloj en el acto.
+      if (game.pendingEvents.length > 0) break;
     }
 
     recomputeResources(game);
@@ -372,7 +379,7 @@
     game.rngState = game.rng.state();
     checkEnd(game);
     return {
-      advancedDays: round1(step.deltaDays * 100) / 100,
+      advancedDays: round1((step.deltaDays - Math.max(0, remaining)) * 100) / 100,
       pendingEvents: game.pendingEvents.length,
       ended: game.status !== 'travel'
     };
@@ -1074,6 +1081,9 @@
       pantry: game.pantry,
       datastore: game.datastore,
       log: game.log,
+      // Estado del motor de eventos: sin esto, un evento sorteado y todavía
+      // pendiente al guardar perdía su enfriamiento al restaurar (R3-RESTORE-COOLDOWN).
+      engine: { firedAt: Object.assign({}, game.engine.firedAt) },
       pendingEvents: game.pendingEvents,
       eventHistory: game.eventHistory,
       flags: game.flags,
@@ -1105,7 +1115,14 @@
       food: (options && options.food) || []
     };
     game.evaluateObjective = (options && options.evaluateObjective) || null;
-    // Reconstruye los disparadores de enfriamiento a partir del historial.
+    // Reconstruye los disparadores de enfriamiento: primero los que venían en el
+    // estado guardado (incluyen los eventos todavía pendientes) y después el historial.
+    var savedFiredAt = state.engine && state.engine.firedAt ? state.engine.firedAt : null;
+    if (savedFiredAt) {
+      Object.keys(savedFiredAt).forEach(function (id) {
+        if (isFinite(savedFiredAt[id])) game.engine.firedAt[id] = savedFiredAt[id];
+      });
+    }
     (state.eventHistory || []).forEach(function (entry) {
       if (isFinite(entry.day)) game.engine.firedAt[entry.id] = entry.day;
     });

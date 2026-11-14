@@ -232,3 +232,12 @@ que cada clave exista en los dos idiomas.
   días nunca ocurría). Corrección acotada en `15dad45`, con dos pruebas nuevas que
   fallan sin el arreglo y pasan con él; propagada a `feat/the-last-expedition`.
   Suite completa: **85 pruebas en verde**.
+- **L6 (hallazgos consultivos del revisor).** La revisión aprobada dejó tres
+  hallazgos WARNING no bloqueantes que se corrigieron igual, como trabajo
+  posterior y con prueba de regresión cada uno:
+  *R3-CREW-DEATH* (un efecto `crewCondition` bajaba la salud a cero sin marcar al
+  tripulante como perdido, así que el conteo de vivos lo seguía sumando),
+  *R3-RESTORE-COOLDOWN* (un evento pendiente al guardar perdía su enfriamiento al
+  restaurar) y *R3-TICK-PENDING* (un tick largo seguía simulando y sorteando
+  eventos después del primero, con el reloj por delante de la simulación).
+  El reloj ahora avanza subpaso a subpaso. Suite completa: **88 pruebas**.

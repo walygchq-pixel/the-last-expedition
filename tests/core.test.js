@@ -18,6 +18,7 @@ const systems = require('../js/core/systems.js');
 const crew = require('../js/core/crew.js');
 const food = require('../js/core/food.js');
 const consequences = require('../js/core/consequences.js');
+const effects = require('../js/core/effects.js');
 const events = require('../js/core/events.js');
 const comms = require('../js/core/comms.js');
 const datastore = require('../js/core/datastore.js');
@@ -555,4 +556,80 @@ test('S-5/R3-VOTE-PENALTY: el desacuerdo reduce la eficiencia 2 días y se recup
   }
   assert.equal(voted.penalty, null, 'la penalización se extingue a los 2 días');
   assert.ok(guard > 0 && guard < 100);
+});
+
+test('R3-CREW-DEATH: un efecto que deja la salud en cero mata al tripulante', () => {
+  const team = crew.createCrew([{ id: 'p1', role: 'engineer' }]);
+  team.members[0].health = 3;
+  const target = {
+    crew: team,
+    systems: systems.createSystems({ parts: [] }),
+    resources: { budget: 0, budgetTotal: 0, bandwidth: 0 },
+    pantry: food.createPantry([]),
+    log: consequences.createLog(),
+    datastore: { total: 0 },
+    flags: {},
+    stats: {}
+  };
+  effects.applyEffects(target, [{ type: 'crewCondition', id: 'all', condition: 'ill', days: 2, damage: 5 }], {
+    rng: fixedRng(),
+    severity: 1
+  });
+  assert.equal(team.members[0].alive, false, 'la salud en cero implica tripulante perdido');
+  assert.equal(crew.aliveCount(team), 0);
+});
+
+test('R3-RESTORE-COOLDOWN: un evento pendiente conserva su enfriamiento al restaurar', () => {
+  const mission = validDesign();
+  const catalogEvents = catalog.events();
+  const state = game.createGame({
+    mode: 'campaign',
+    scenario: catalog.findScenario(mission.scenarioId),
+    difficulty: design.profileOf(mission),
+    design: design.toGameDesign(mission),
+    players: [{ id: 'p1', role: 'engineer' }],
+    seed: 'cooldown',
+    catalogs: { events: catalogEvents, food: catalog.foodItems() },
+    evaluateObjective: objectives.runtime
+  });
+  const eventId = catalogEvents[0].id;
+  state.engine.firedAt[eventId] = 4;
+  const restored = game.restoreGame(JSON.parse(JSON.stringify(game.getState(state))), {
+    events: catalogEvents,
+    food: catalog.foodItems(),
+    evaluateObjective: objectives.runtime
+  });
+  assert.equal(restored.engine.firedAt[eventId], 4, 'el enfriamiento sobrevive al guardado');
+});
+
+test('R3-TICK-PENDING: el primer evento pendiente corta el reloj en ese subpaso', () => {
+  const mission = validDesign();
+  const state = game.createGame({
+    mode: 'campaign',
+    scenario: catalog.findScenario(mission.scenarioId),
+    difficulty: design.profileOf(mission),
+    design: design.toGameDesign(mission),
+    players: [{ id: 'p1', role: 'engineer' }],
+    seed: 'corte',
+    // Un evento programado en el día 0 cae en el primer subpaso de simulación.
+    catalogs: {
+      events: [
+        {
+          id: 'ev.test',
+          kind: 'scheduled',
+          scheduledDay: 0,
+          titleKey: 'event.solar_storm.title',
+          descriptionKey: 'event.solar_storm.description',
+          options: []
+        }
+      ],
+      food: []
+    },
+    evaluateObjective: objectives.runtime
+  });
+
+  const result = game.tick(state, 30000); // dos días reales
+  assert.equal(state.pendingEvents.length, 1, 'el evento queda esperando respuesta');
+  assert.ok(result.advancedDays <= 0.3, 'no se simula más allá del subpaso con evento: ' + result.advancedDays);
+  assert.ok(state.clock.hours <= 6.5, 'el reloj no se adelanta a la simulación: ' + state.clock.hours);
 });

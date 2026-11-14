@@ -1,0 +1,7 @@
+# Dependencias y artefactos de herramientas de agentes
+node_modules/
+.atl/
+*.log
+
+# Artefactos del arnés de smoke (capturas de Chrome)
+tools/.smoke/

@@ -159,3 +159,27 @@ test('P-4/G-3: la clasificación ordena por puntaje y el comparador marca el mej
   const rate = comparison.rows.find((row) => row.id === 'compare.data_rate');
   assert.equal(rate.better, 'b', 'más ritmo de datos es mejor');
 });
+
+test('R3-001: al importar se descarta cualquier campo de texto ya traducido', () => {
+  const payload = {
+    code: 'x',
+    translatedText: 'texto',
+    localizedLabel: 'etiqueta',
+    text: 'suelto',
+    label: 'etiqueta suelta',
+    translated: 'traducido',
+    description: 'descripción traducida',
+    title: 'título traducido',
+    nested: { text: 'otro', params: { name: 'Ceres' } },
+    nameKey: 'scenario.scn.ceres_survey.name'
+  };
+  const result = transfer.importJson(
+    JSON.stringify({ format: 'the-last-expedition', version: 1, kind: 'report', data: payload })
+  );
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.data, {
+    code: 'x',
+    nested: { params: { name: 'Ceres' } },
+    nameKey: 'scenario.scn.ceres_survey.name'
+  });
+});

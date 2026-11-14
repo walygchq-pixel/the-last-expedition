@@ -57,13 +57,30 @@
     return { ok: true, kind: parsed.kind, data: sanitized, exportedAt: parsed.exportedAt };
   }
 
-  /** Elimina cualquier campo `text`, `label`, `translated` que no sea clave i18n. */
+  /*
+   * Campos que, por convención, llevarían el texto ya traducido. Las claves i18n
+   * (`*Key`) siempre se conservan: el archivo importado guarda claves y valores,
+   * nunca texto (I-10, hallazgo R3-001).
+   */
+  var TRANSLATED_FIELDS = {
+    translatedText: true,
+    localizedLabel: true,
+    translated: true,
+    localized: true,
+    text: true,
+    label: true,
+    message: true,
+    description: true,
+    title: true
+  };
+
+  /** Elimina en profundidad cualquier campo con texto ya traducido. */
   function stripTranslatedText(node) {
     if (Array.isArray(node)) return node.map(stripTranslatedText);
     if (!node || typeof node !== 'object') return node;
     var out = {};
     Object.keys(node).forEach(function (key) {
-      if (key === 'translatedText' || key === 'localizedLabel') return;
+      if (TRANSLATED_FIELDS[key] === true) return;
       out[key] = stripTranslatedText(node[key]);
     });
     return out;

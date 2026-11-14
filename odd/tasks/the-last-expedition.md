@@ -187,13 +187,13 @@ que cada clave exista en los dos idiomas.
 | T2 | S70–S83: `js/i18n/*` + locales base + pruebas | parent | hecho |
 | T3 | S27–S54: `js/core/*` (rng, recursos, sistemas, tripulación, comida, consecuencias, eventos, efectos, datos, comms, tiempo, puntaje, game) | parent | hecho |
 | T4 | S13–S26: `js/mission/{catalog,design}.js` | parent | hecho |
-| T11 | S21–S26, S43–S45, S84: `data/{launchers,orbits,objectives,scenarios,food,events}.json` + claves EN/ES + `tests/mission.test.js` | worker | en curso |
-| T5 | S59–S61: `js/storage/*` | parent | pendiente |
-| T6 | S7–S12, S30–S34, S86: `js/world/*` + `data/{shipLayout,objects}.json` + `tests/world.test.js` | worker | en curso |
-| T7 | S4, S55–S58, S62–S66, S29, S82: `js/ui/*`, `css/*` | parent | pendiente |
-| T8 | integración `index.html`, `data/data-bundle.js`, `main.js` | parent | pendiente |
-| T9 | S68, C-8, C-2: suite completa + cobertura de claves + smoke en Chrome | parent | pendiente |
-| T10 | README con §14 documentada | parent | pendiente |
+| T11 | S21–S26, S43–S45, S84: `data/{launchers,orbits,objectives,scenarios,food,events}.json` + claves EN/ES + `tests/mission.test.js` | worker | hecho |
+| T5 | S59–S61: `js/storage/*` + `tests/storage.test.js` | parent | hecho |
+| T6 | S7–S12, S30–S34, S86: `js/world/*` + `data/{shipLayout,objects}.json` + `tests/world.test.js` | worker | hecho |
+| T7 | S4, S55–S58, S62–S66, S29, S82: `js/ui/*`, `css/*` | worker | hecho |
+| T8 | integración `index.html`, `data/data-bundle.js`, `main.js` | parent | hecho |
+| T9 | S68, C-8, C-2: suite completa + cobertura de claves + smoke en Chrome (`tools/smoke.js`) | parent | hecho |
+| T10 | README con §14 documentada | parent | hecho |
 
 ## Log
 
@@ -212,3 +212,13 @@ que cada clave exista en los dos idiomas.
   o 5 eventos.
 - **L3 (usuario).** «git init + rama + commits por unidad». Repo creado en `main`; trabajo en
   `feat/the-last-expedition`; sin push ni PR.
+
+- **L4 (cierre).** Implementación terminada y verificada: **83 pruebas** de Node en
+  verde y `node tools/smoke.js` sin problemas (carga desde `file://`, flujo
+  diseño → lanzamiento → viaje con canvas, cambio de idioma en vivo, sin
+  excepciones, sin claves crudas y sin desborde horizontal).
+  Commits por unidad en `feat/the-last-expedition` (11 commits, `main` queda en el
+  andamiaje inicial). El corte por unidad de trabajo no sigue el tamaño ideal de
+  ~400 líneas: el contenido del juego (datos + locales) y la interfaz entraron
+  como unidades completas, porque ya venían terminadas al autorizar el commit y
+  partirlas habría dejado commits que no arrancan.

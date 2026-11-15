@@ -194,7 +194,7 @@ Spanish originals live alongside it and both editions stay in sync, enforced by
 | [REQUIREMENTS.md](REQUIREMENTS.md) | [REQUISITOS.md](REQUISITOS.md) |
 
 Internal process artifacts stay in Spanish by decision of the author and are not normative for
-reviewers: the work log under `odd/tasks/` (contracts, tasks and the L1–L12 log) and the design
+reviewers: the work log under `odd/tasks/` (contracts, tasks and a dated log) and the design
 system under `design/`. Code comments are in Spanish too, as the original specification
 (§12, T-4) requires; translating them module by module is planned follow-up work, not a
 pending defect.

@@ -191,7 +191,7 @@ nada: los originales en español viven al lado y ambas ediciones se mantienen si
 | [REQUIREMENTS.md](REQUIREMENTS.md) | [REQUISITOS.md](REQUISITOS.md) |
 
 Los artefactos internos de proceso se quedan en español por decisión del autor y no son
-normativos para quien revisa: la bitácora bajo `odd/tasks/` (contratos, tareas y log L1–L12) y
+normativos para quien revisa: la bitácora bajo `odd/tasks/` (contratos, tareas y un log fechado) y
 el sistema de diseño bajo `design/`. Los comentarios del código también están en español, como
 pide la hoja original (§12, T-4); traducirlos módulo a módulo es trabajo planificado, no un
 defecto pendiente.

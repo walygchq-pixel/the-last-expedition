@@ -4,6 +4,13 @@ Juego de **diseño y supervivencia de misiones espaciales** que funciona entero 
 navegador, sin instalación ni servidor, con interfaz bilingüe **inglés / español**
 intercambiable en vivo.
 
+> **Proyecto abierto para evaluación.** Juego completo que corre en el navegador, sin instalación, sin servidor y sin dependencias externas.
+>
+> - **Demo jugable:** <https://walygchq-pixel.github.io/the-last-expedition/>
+> - **Estado verificado:** 95 pruebas de Node en verde y un humo en Chrome headless que recorre título → diseño de misión → lanzamiento → viaje, cambia de idioma en vivo y falla ante cualquier excepción, clave sin traducir o desborde.
+> - **Trazabilidad de requisitos:** [REQUISITOS.md](REQUISITOS.md) mapea cada requisito de la hoja original (§1–§14) con el archivo que lo implementa y la prueba que lo cubre.
+> - **Cómo jugar en 30 segundos:** Nueva misión → escenario → dificultad Básico → elegí lanzador (Atlas M), órbita (Media), Radar y Computadora avanzada → Lanzar → movete con `WASD` y pulsá `E` junto a un objeto.
+
 Se abre haciendo **doble clic en `index.html`**. No hay dependencias externas, ni
 CDN, ni fuentes descargadas, ni módulos ES: todo son scripts clásicos y datos
 locales, justamente para que `file://` funcione (ver «Decisiones de diseño», D-1).

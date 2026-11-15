@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Viaje · cubierta de vuelo</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #070910;
+    --bg-soft: #0d1220;
+    --panel: #111a2b;
+    --panel-2: #16223a;
+    --line: #26365a;
+    --line-strong: #3d5687;
+    --text: #e6ecfb;
+    --text-dim: #a9b6d3;
+    --text-faint: #7d8bab;
+    --accent: #6fd3c7;
+    --accent-2: #ffcf6b;
+    --ok: #6fd98a;
+    --warn: #ffcf6b;
+    --critical: #ff7a7a;
+    --focus: #ffe082;
+    --radius: 0.5rem;
+    --gap: 0.75rem;
+    --pad: 0.9rem;
+    --font: ui-monospace, SFMono-Regular, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); }
+  body {
+    position: relative; width: 1440px; height: 900px; overflow: hidden;
+    font-family: var(--font); font-size: 16px; line-height: 1.35; color: var(--text);
+    background-image:
+      radial-gradient(circle at 14% 4%, rgba(111, 211, 199, 0.07), transparent 40%),
+      radial-gradient(circle at 92% 8%, rgba(255, 207, 107, 0.05), transparent 36%);
+  }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  h1, h2, h3 { margin: 0; line-height: 1.2; font-weight: 700; letter-spacing: 0.02em; }
+  p { margin: 0; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  /* ---------- chasis ---------- */
+  .frame {
+    position: absolute; inset: 8px;
+    display: grid; grid-template-rows: 46px 72px minmax(0, 1fr) 28px;
+    gap: 8px; padding: 8px;
+    border: 1px solid var(--line-strong); border-radius: var(--radius);
+    background:
+      linear-gradient(180deg, rgba(230, 236, 251, 0.05), transparent 26%),
+      linear-gradient(180deg, var(--panel-2), var(--panel) 38%, var(--bg-soft));
+    box-shadow:
+      inset 0 1px 0 rgba(230, 236, 251, 0.14),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.55),
+      0 10px 30px rgba(0, 0, 0, 0.6);
+  }
+  .screw { position: absolute; width: 10px; height: 10px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--line-strong), var(--panel) 70%);
+    box-shadow: inset 0 0 0 1px var(--bg); }
+  .screw::before { content: ""; position: absolute; inset: 3px 1px; border-top: 1px solid var(--bg); transform: rotate(28deg); }
+  .screw.tl { top: 8px; left: 8px; } .screw.tr { top: 8px; right: 8px; }
+  .screw.bl { bottom: 8px; left: 8px; } .screw.br { bottom: 8px; right: 8px; }
+
+  /* ---------- cabecera: reloj y velocidad arriba a la izquierda ---------- */
+  .bridge-head {
+    display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--gap);
+    padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    box-shadow: inset 0 1px 0 rgba(230, 236, 251, 0.1);
+    min-width: 0;
+  }
+  .clock-block { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+  .clock-readout {
+    display: flex; flex-direction: column; padding: 0.1rem 0.5rem;
+    border: 1px solid var(--line-strong); border-radius: 2px; background: var(--bg);
+    box-shadow: inset 0 1px 0 rgba(230, 236, 251, 0.06);
+  }
+  .clock-readout b { font-size: 1rem; letter-spacing: 0.06em; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .clock-readout span { font-size: 0.52rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-faint); }
+  .speed-group { display: flex; align-items: center; gap: 2px; }
+  .speed-group button {
+    font: inherit; font-size: 0.62rem; min-height: 22px; padding: 2px 6px; cursor: pointer;
+    color: var(--text-dim); background: var(--bg-soft); border: 1px solid var(--line);
+    border-radius: 2px; box-shadow: 0 0 0 1px rgba(125, 139, 171, 0.22);
+  }
+  .speed-group button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 700; }
+  .head-objective { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .head-objective b { font-size: 0.78rem; letter-spacing: 0.02em; }
+  .head-objective span { font-size: 0.62rem; color: var(--text-dim); }
+  .head-right { display: flex; align-items: center; gap: 0.45rem; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.1rem 0.5rem;
+    border: 1px solid var(--line-strong); border-radius: 999px; background: var(--bg-soft);
+    font-size: 0.62rem; color: var(--text-dim); white-space: nowrap;
+  }
+  .led { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 6px rgba(111, 217, 138, 0.85); }
+  .led.warn { background: var(--warn); box-shadow: 0 0 6px rgba(255, 207, 107, 0.85); }
+
+  /* ---------- anillo: tripulación ---------- */
+  .crew-ring { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; min-height: 0; }
+  .crew-card {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 8px; align-items: center;
+    padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--panel), var(--bg-soft));
+    box-shadow: inset 0 1px 0 rgba(230, 236, 251, 0.06);
+  }
+  .crew-card.is-active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .crew-card .who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .crew-card .who b { font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .crew-card .who span { font-size: 0.54rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 0.6rem; font-weight: 700; color: var(--bg);
+    border: 1px solid rgba(230, 236, 251, 0.5);
+  }
+  .needs { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; margin-top: 3px; }
+  .need { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .need span { font-size: 0.5rem; letter-spacing: 0.02em; color: var(--text-faint); white-space: nowrap; }
+  .need b { font-size: 0.56rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .need .bar { height: 4px; border-radius: 999px; background: #0a1322; border: 1px solid var(--line); overflow: hidden; }
+  .need .bar > i { display: block; height: 100%; background: var(--ok); }
+  .need .bar.is-warn > i { background: var(--warn); }
+  .need .bar.is-critical > i { background: var(--critical); }
+
+  /* ---------- cuerpo: raíles + visor ---------- */
+  .bridge-main { display: grid; grid-template-columns: 220px minmax(0, 1fr) 250px; gap: 8px; min-height: 0; min-width: 0; }
+  .rail { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+  .panel {
+    display: flex; flex-direction: column; min-height: 0; min-width: 0; padding: 7px;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--panel), var(--bg-soft));
+    box-shadow: inset 0 1px 0 rgba(230, 236, 251, 0.07);
+  }
+  .panel > h2 {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 0.4rem;
+    font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim);
+    padding-bottom: 4px; margin-bottom: 5px; border-bottom: 1px solid var(--line);
+  }
+  .panel > h2 em { font-style: normal; color: var(--text-faint); letter-spacing: 0.06em; font-size: 0.54rem; }
+
+  .objective .line { display: flex; justify-content: space-between; gap: 0.4rem; font-size: 0.62rem; color: var(--text-dim); }
+  .objective .line b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .bigbar { height: 8px; border-radius: 999px; background: #0a1322; border: 1px solid var(--line); overflow: hidden; margin: 5px 0 3px; }
+  .bigbar > i { display: block; height: 100%; background: var(--accent); }
+  .hint { font-size: 0.56rem; color: var(--text-faint); }
+
+  .comms-state { display: flex; align-items: center; gap: 0.35rem; font-size: 0.66rem; color: var(--text); }
+  .comms-state b { color: var(--ok); }
+  .instr-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+  .instr-list li {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.4rem;
+    font-size: 0.6rem; color: var(--text-dim); padding: 3px 5px;
+    border: 1px solid var(--line); border-radius: 2px; background: var(--bg-soft);
+  }
+  .instr-list .on { color: var(--ok); font-size: 0.54rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  .conflict {
+    border: 1px solid var(--line-strong); border-left: 3px solid var(--accent-2);
+    border-radius: 2px; background: rgba(255, 207, 107, 0.06); padding: 4px 6px;
+    font-size: 0.58rem; color: var(--text-dim);
+  }
+  .log-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .log-list li { font-size: 0.58rem; color: var(--text-dim); border-bottom: 1px dotted var(--line); padding-bottom: 3px; }
+  .log-list li b { color: var(--text); display: block; font-size: 0.6rem; }
+
+  /* ---------- visor ---------- */
+  .viewport {
+    position: relative; min-width: 0; min-height: 0; overflow: hidden;
+    border: 2px solid var(--line-strong); border-radius: var(--radius);
+    background:
+      radial-gradient(ellipse at 50% 38%, rgba(38, 54, 90, 0.55), transparent 62%),
+      linear-gradient(180deg, #05070d, var(--bg-soft));
+    box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.55), inset 0 0 60px rgba(0, 0, 0, 0.8);
+  }
+  .viewport::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+    background-image:
+      linear-gradient(to right, rgba(38, 54, 90, 0.55) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(38, 54, 90, 0.55) 1px, transparent 1px);
+    background-size: 2rem 2rem;
+    opacity: 0.18;
+  }
+  .viewport::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 3;
+    background: repeating-linear-gradient(0deg, rgba(230, 236, 251, 0.03) 0 1px, transparent 1px 3px);
+  }
+  .viewport-head {
+    position: absolute; top: 6px; left: 6px; right: 6px; z-index: 4;
+    display: flex; justify-content: space-between; gap: 0.4rem; pointer-events: none;
+  }
+  .viewport-head span {
+    font-size: 0.54rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint);
+    background: rgba(5, 7, 13, 0.82); border: 1px solid var(--line); border-radius: 2px; padding: 1px 5px;
+  }
+  svg#deck { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 1; font-family: var(--font); }
+
+  .obj { cursor: pointer; }
+  .obj .f-top { fill: var(--panel-2); transition: fill 120ms linear; }
+  .obj .f-left { fill: var(--panel); }
+  .obj .f-right { fill: var(--bg-soft); }
+  .obj .warm { fill: rgba(230, 236, 251, 0.1); pointer-events: none; }
+  .obj .shade { fill: rgba(0, 0, 0, 0.32); pointer-events: none; }
+  .obj .edge { stroke: var(--line-strong); stroke-width: 0.9; fill: none; }
+  .obj .rim { stroke: rgba(230, 236, 251, 0.42); stroke-width: 1.4; fill: none; stroke-linecap: round; }
+  .obj .mark { stroke: rgba(230, 236, 251, 0.16); stroke-width: 1; }
+  .obj .glyph { stroke: var(--text-dim); stroke-width: 1; fill: none; opacity: 0.65; }
+  .obj .shadow { fill: rgba(0, 0, 0, 0.45); }
+  .obj .tag { opacity: 0; transition: opacity 120ms linear; }
+  .obj .tag rect { fill: var(--panel); stroke: var(--focus); stroke-width: 1; }
+  .obj .tag text { fill: var(--text); font-size: 9.5px; letter-spacing: 0.02em; text-anchor: middle; }
+  .obj:hover .f-top, .obj:focus .f-top, .obj.is-near .f-top { fill: rgba(111, 211, 199, 0.32); }
+  .obj:hover .f-left, .obj:focus .f-left, .obj.is-near .f-left { fill: #14312f; }
+  .obj:hover .f-right, .obj:focus .f-right, .obj.is-near .f-right { fill: #0f2523; }
+  .obj:hover .edge, .obj:focus .edge, .obj.is-near .edge { stroke: var(--accent); stroke-width: 1.2; }
+  .obj:hover .tag, .obj:focus .tag, .obj.is-near .tag { opacity: 1; }
+  .obj:focus-visible .f-top { stroke: var(--focus); stroke-width: 2; }
+  .obj .ring { opacity: 0; stroke: var(--accent); stroke-width: 1.4; fill: none; stroke-dasharray: 4 3; }
+  .obj.is-near .ring { opacity: 1; animation: ring 2.4s ease-in-out infinite; }
+  @keyframes ring { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+  .room-label { fill: var(--text-dim); font-size: 10px; opacity: 0.75; letter-spacing: 0.14em; text-transform: uppercase; text-anchor: middle; }
+  .player .p-body { fill: var(--panel-2); stroke: rgba(230, 236, 251, 0.55); stroke-width: 1; }
+  .player .p-head { stroke: rgba(5, 7, 13, 0.9); stroke-width: 1; }
+  .player .p-shadow { fill: rgba(0, 0, 0, 0.5); }
+  .player .p-chip rect { fill: var(--bg); stroke: var(--line-strong); }
+  .player .p-chip text { fill: var(--text-dim); font-size: 8.5px; text-anchor: middle; letter-spacing: 0.06em; }
+  .player.is-sel .p-chip rect { fill: var(--accent); stroke: var(--accent); }
+  .player.is-sel .p-chip text { fill: var(--bg); font-weight: 700; }
+  .player.is-sel .p-body { stroke: var(--accent); stroke-width: 1.6; }
+
+  /* ---------- bahía inferior anclada al visor ---------- */
+  .bay {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
+    display: grid; grid-template-columns: 268px minmax(0, 1fr); gap: 8px;
+    padding: 8px 10px 9px;
+    border-top: 2px solid var(--line-strong);
+    background: linear-gradient(180deg, var(--panel-2), var(--panel) 55%, var(--bg-soft));
+    box-shadow: 0 -1px 0 rgba(230, 236, 251, 0.12), 0 -12px 26px rgba(0, 0, 0, 0.55);
+  }
+  .bay h2 {
+    font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim);
+    display: flex; justify-content: space-between; gap: 0.4rem; margin-bottom: 4px;
+  }
+  .bay h2 em { font-style: normal; color: var(--text-faint); letter-spacing: 0.06em; font-size: 0.52rem; }
+  .slots { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .slot {
+    display: flex; flex-direction: column; gap: 1px; padding: 4px 5px; min-width: 0;
+    border: 1px solid var(--line); border-radius: 2px; background: var(--bg-soft);
+    box-shadow: inset 0 1px 0 rgba(230, 236, 251, 0.06);
+  }
+  .slot b { font-size: 0.64rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .slot span { font-size: 0.52rem; color: var(--text-faint); }
+  .slot.is-empty { border-style: dashed; color: var(--text-faint); }
+
+  .reach {
+    display: flex; align-items: baseline; gap: 0.4rem; font-size: 0.6rem; color: var(--text-faint);
+    margin-bottom: 4px; flex-wrap: wrap;
+  }
+  .reach b { color: var(--text); font-size: 0.7rem; }
+  .reach .why { color: var(--text-dim); font-size: 0.56rem; }
+  .actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .action {
+    font: inherit; color: inherit; text-align: left; cursor: pointer; padding: 4px 6px;
+    border: 1px solid var(--line-strong); border-radius: 2px;
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    box-shadow: 0 0 0 1px rgba(125, 139, 171, 0.28), inset 0 1px 0 rgba(230, 236, 251, 0.08);
+    display: flex; flex-direction: column; gap: 1px; min-width: 0;
+    transition: background 120ms linear, border-color 120ms linear;
+  }
+  .action:hover { border-color: var(--accent); background: #1d2c4a; }
+  .action b { font-size: 0.64rem; }
+  .action span { font-size: 0.54rem; color: var(--text-dim); }
+  .action.is-target { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus), inset 0 1px 0 rgba(230, 236, 251, 0.1); }
+
+  /* ---------- raíl derecho: gauges y cinta ---------- */
+  .gauges { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .gauge-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 4px; padding: 3px 5px;
+    border: 1px solid var(--line); border-radius: 2px; background: var(--bg-soft); }
+  .gauge-item .gname { font-size: 0.62rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gauge-item .gval { font-size: 0.58rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .gauge-item .track { grid-column: 1 / -1; height: 5px; border-radius: 999px; background: #0a1322; border: 1px solid var(--line); overflow: hidden; }
+  .gauge-item .track > i { display: block; height: 100%; background: var(--ok); }
+  .gauge-item .track.is-warn > i { background: var(--warn); }
+  .gauge-item .track.is-critical > i { background: var(--critical); }
+  .gauge-item .reliab { font-size: 0.5rem; color: var(--text-faint); letter-spacing: 0.04em; }
+
+  .tape {
+    display: flex; flex-direction: column; min-height: 0; padding: 7px 7px 7px 12px;
+    border: 1px dashed var(--line-strong); border-radius: var(--radius);
+    background:
+      linear-gradient(90deg, rgba(38, 54, 90, 0.5) 0 3px, transparent 3px) 6px 0 / 3px 100% no-repeat,
+      linear-gradient(180deg, var(--panel), var(--bg-soft));
+  }
+  .tape > h2 { font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 5px; }
+  .tape-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; min-height: 0; }
+  .tape-list li {
+    border-left: 2px solid var(--accent-2); padding: 3px 5px; background: rgba(255, 207, 107, 0.05);
+    border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line);
+  }
+  .tape-list li b { display: block; font-size: 0.62rem; }
+  .tape-list li .when {
+    display: inline-block; margin-top: 1px; font-size: 0.52rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent-2);
+  }
+  .tape-list li .why { display: block; font-size: 0.54rem; color: var(--text-faint); margin-top: 1px; }
+
+  /* ---------- pie ---------- */
+  .captions {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+    border: 1px solid var(--line); border-radius: 2px; background: var(--bg-soft);
+    padding: 0 8px; font-size: 0.58rem; color: var(--text-dim); min-width: 0;
+  }
+  .captions span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .captions .keys { color: var(--text-faint); }
+
+  /* ---------- llamado de tutorial ---------- */
+  .callout {
+    position: absolute; left: 286px; bottom: 126px; width: 300px; z-index: 6;
+    border: 1px solid var(--focus); border-radius: var(--radius); background: var(--panel);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); padding: 0.55rem 0.65rem;
+    display: flex; flex-direction: column; gap: 0.3rem;
+  }
+  .callout h3 { color: var(--focus); font-size: 0.74rem; }
+  .callout p { font-size: 0.64rem; color: var(--text-dim); }
+  .callout .step { font-size: 0.54rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-faint); }
+  .callout .actions-row { display: flex; gap: 0.35rem; margin-top: 0.15rem; }
+  .callout button {
+    font: inherit; font-size: 0.62rem; padding: 0.2rem 0.5rem; min-height: 1.55rem; cursor: pointer;
+    border: 1px solid var(--line-strong); border-radius: 2px; background: var(--panel-2); color: var(--text);
+    box-shadow: 0 0 0 1px rgba(125, 139, 171, 0.28);
+  }
+  .callout button.primary { background: var(--focus); border-color: var(--focus); color: #1a1503; font-weight: 700; }
+  .callout .leader { position: absolute; left: 24px; bottom: -13px; width: 1px; height: 13px; background: var(--focus); }
+  .callout .leader::after {
+    content: ""; position: absolute; left: -4px; bottom: -6px;
+    border-top: 6px solid var(--focus); border-left: 4px solid transparent; border-right: 4px solid transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important; animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+    .obj.is-near .ring { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+  <span class="screw tl" aria-hidden="true"></span>
+  <span class="screw tr" aria-hidden="true"></span>
+  <span class="screw bl" aria-hidden="true"></span>
+  <span class="screw br" aria-hidden="true"></span>
+
+  <header class="bridge-head" role="banner" aria-label="Reloj y estado de la misión">
+    <div class="clock-block">
+      <div class="clock-readout">
+        <b>Día 14 · 06:40</b>
+        <span>tiempo de misión</span>
+      </div>
+      <div class="speed-group" role="group" aria-label="Velocidad del reloj">
+        <button type="button" aria-pressed="false" aria-label="Pausar">⏸</button>
+        <button type="button" aria-pressed="false">×1</button>
+        <button type="button" aria-pressed="true">×2</button>
+        <button type="button" aria-pressed="false">×4</button>
+        <button type="button" aria-pressed="false">×8</button>
+      </div>
+    </div>
+    <div class="head-objective">
+      <b>Censo de Ceres · cartografiar una región</b>
+      <span>Cobertura 70 % · datos transmitidos 18 de 50 KB · vida útil restante 62 días</span>
+    </div>
+    <div class="head-right">
+      <span class="pill"><i class="led" aria-hidden="true"></i> enlace abierto</span>
+      <span class="pill">eclipse en 1 h 20 min</span>
+      <span class="pill">pausa para revisar consecuencias</span>
+    </div>
+  </header>
+
+  <section class="crew-ring" aria-label="Tripulación: salud, estrés, hambre, sed y sueño">
+    <article class="crew-card is-active">
+      <span class="avatar" style="background: var(--accent)" aria-hidden="true">P1</span>
+      <div class="who"><b>Ingeniero</b><span>activo · junto a la bomba</span></div>
+      <div class="needs">
+        <div class="need"><span>Salud</span><b>82</b><div class="bar"><i style="width: 82%"></i></div></div>
+        <div class="need"><span>Estrés</span><b>41</b><div class="bar"><i style="width: 41%"></i></div></div>
+        <div class="need"><span>Hambre</span><b>63</b><div class="bar"><i style="width: 63%"></i></div></div>
+        <div class="need"><span>Sed</span><b>55</b><div class="bar"><i style="width: 55%"></i></div></div>
+        <div class="need"><span>Sueño</span><b>48</b><div class="bar"><i style="width: 48%"></i></div></div>
+      </div>
+    </article>
+    <article class="crew-card">
+      <span class="avatar" style="background: var(--accent-2)" aria-hidden="true">P2</span>
+      <div class="who"><b>Médico/Cocina</b><span>enfermería</span></div>
+      <div class="needs">
+        <div class="need"><span>Salud</span><b>91</b><div class="bar"><i style="width: 91%"></i></div></div>
+        <div class="need"><span>Estrés</span><b>28</b><div class="bar"><i style="width: 28%"></i></div></div>
+        <div class="need"><span>Hambre</span><b>44</b><div class="bar"><i style="width: 44%"></i></div></div>
+        <div class="need"><span>Sed</span><b>39</b><div class="bar"><i style="width: 39%"></i></div></div>
+        <div class="need"><span>Sueño</span><b>72</b><div class="bar"><i style="width: 72%"></i></div></div>
+      </div>
+    </article>
+    <article class="crew-card">
+      <span class="avatar" style="background: var(--ok)" aria-hidden="true">P3</span>
+      <div class="who"><b>Científico</b><span>mando · turno de datos</span></div>
+      <div class="needs">
+        <div class="need"><span>Salud</span><b>76</b><div class="bar"><i style="width: 76%"></i></div></div>
+        <div class="need"><span>Estrés</span><b>58</b><div class="bar"><i style="width: 58%"></i></div></div>
+        <div class="need"><span>Hambre</span><b>71</b><div class="bar is-warn"><i style="width: 71%"></i></div></div>
+        <div class="need"><span>Sed</span><b>62</b><div class="bar"><i style="width: 62%"></i></div></div>
+        <div class="need"><span>Sueño</span><b>33</b><div class="bar is-critical"><i style="width: 33%"></i></div></div>
+      </div>
+    </article>
+    <article class="crew-card">
+      <span class="avatar" style="background: var(--critical)" aria-hidden="true">P4</span>
+      <div class="who"><b>Comunicaciones</b><span>pasillo · enlace</span></div>
+      <div class="needs">
+        <div class="need"><span>Salud</span><b>88</b><div class="bar"><i style="width: 88%"></i></div></div>
+        <div class="need"><span>Estrés</span><b>35</b><div class="bar"><i style="width: 35%"></i></div></div>
+        <div class="need"><span>Hambre</span><b>52</b><div class="bar"><i style="width: 52%"></i></div></div>
+        <div class="need"><span>Sed</span><b>47</b><div class="bar"><i style="width: 47%"></i></div></div>
+        <div class="need"><span>Sueño</span><b>61</b><div class="bar"><i style="width: 61%"></i></div></div>
+      </div>
+    </article>
+  </section>
+
+  <main class="bridge-main">
+    <aside class="rail" aria-label="Objetivo, enlace e instrumentos">
+      <section class="panel objective" aria-labelledby="t-obj">
+        <h2 id="t-obj">Objetivo <em>cartografiar</em></h2>
+        <p class="line"><span>Datos transmitidos</span><b>18 / 50 KB</b></p>
+        <div class="bigbar" role="img" aria-label="18 de 50 kilobytes transmitidos"><i style="width: 36%"></i></div>
+        <p class="line" style="margin-top: 3px"><span>Cobertura de la pasada</span><b>70 %</b></p>
+        <div class="bigbar" role="img" aria-label="Cobertura del 70 por ciento"><i style="width: 70%"></i></div>
+        <p class="hint" style="margin-top: 4px">La memoria está llena al 50 de 50 KB: sin enviar, el radar no guarda más.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="t-comms">
+        <h2 id="t-comms">Enlace <em>ventana abierta</em></h2>
+        <p class="comms-state"><i class="led" aria-hidden="true"></i><b>Enlace abierto</b> · 12 KB</p>
+        <p class="hint" style="margin: 3px 0 4px">Se cierra en 6 min. Ancho de banda al 80 %: el resto de la cola espera.</p>
+        <div class="bigbar" role="img" aria-label="Ancho de banda disponible al 80 por ciento"><i style="width: 80%"></i></div>
+      </section>
+
+      <section class="panel" aria-labelledby="t-instr">
+        <h2 id="t-instr">Instrumentos <em>3 de 6</em></h2>
+        <ul class="instr-list">
+          <li><span>Cámara</span><span class="on">encendida</span></li>
+          <li><span>Radar</span><span class="on">encendido</span></li>
+          <li><span>Espectrómetro</span><span class="on">encendido</span></li>
+          <li><span>Sismómetro</span><span style="color: var(--text-faint)">apagado</span></li>
+        </ul>
+        <p class="conflict" style="margin-top: 5px">Margen de potencia bajo: quedan 104 W de 310 generados y los instrumentos compiten con los sistemas.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="t-log" style="flex: 1 1 auto">
+        <h2 id="t-log">Bitácora <em>últimas entradas</em></h2>
+        <ul class="log-list">
+          <li><b>Día 14 · 06:12</b>La bomba vuelve a ceder tras la revisión: el soporte vital pierde 2 puntos.</li>
+          <li><b>Día 13 · 21:40</b>Ventana de enlace: 12 KB enviados, 38 KB en cola.</li>
+          <li><b>Día 13 · 09:05</b>El radar llenó la memoria; prioridad de datos ajustada.</li>
+        </ul>
+        <p class="hint" style="margin-top: auto; padding-top: 6px; border-top: 1px dotted var(--line)">
+          Próximo evento estimado: en 2 días · presupuesto restante 24 M€ · 2 sistemas con fiabilidad por debajo de 90 %.
+        </p>
+      </section>
+    </aside>
+
+    <section class="viewport" aria-label="Vista isométrica de la nave">
+      <p class="visually-hidden">Vista isométrica de la cubierta: cocina, mando, enfermería, pasillo, mecánica, dormitorios y esclusa. Los objetos con relieve se pueden recorrer con el tabulador; al enfocarlos muestran su nombre y su descripción.</p>
+      <div class="viewport-head">
+        <span>visor isométrico · cubierta 2</span>
+        <span>cámara compartida · 4 jugadores</span>
+      </div>
+      <svg id="deck" viewBox="0 0 980 700" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Objetos de la nave"></svg>
+
+      <div class="bay">
+        <div>
+          <h2>Inventario <em>1 de 2 objetos</em></h2>
+          <div class="slots">
+            <div class="slot"><b>Botiquín</b><span>2 usos · P1</span></div>
+            <div class="slot is-empty"><b>libre</b><span>recoge algo del suelo</span></div>
+          </div>
+          <p class="hint" style="margin-top: 4px">Entrega a otro jugador acercándose y usando «Entregar».</p>
+        </div>
+        <div>
+          <h2>Acciones de la tripulación <em>objeto al alcance</em></h2>
+          <p class="reach"><span>Actuando como</span><b>P1 · Ingeniero</b><span>·</span><b>Bomba de agua</b><span class="why">Se ceba con el depósito de la cocina.</span></p>
+          <div class="actions">
+            <button type="button" class="action is-target">
+              <b>Revisar la bomba a fondo</b>
+              <span>Fiabilidad +12 · presupuesto −6 · revisión en 4 días</span>
+            </button>
+            <button type="button" class="action">
+              <b>Cebar la bomba</b>
+              <span>Soporte vital +8 · su fiabilidad −2 · reparaciones +1</span>
+            </button>
+            <button type="button" class="action">
+              <b>Canibalizar el banco de baterías</b>
+              <span>Estado ahora, fiabilidad −15…−25 y avería diferida</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="callout" role="note" aria-labelledby="tut-2">
+        <span class="step">Tutorial · paso 4 de 5</span>
+        <h3 id="tut-2">Tu primera reparación</h3>
+        <p>Abre las acciones de la tripulación y repara un sistema dañado. Las reparaciones recuperan el estado pero no la fiabilidad: eso pide mantenimiento preventivo.</p>
+        <div class="actions-row">
+          <button type="button" class="primary">Entendido</button>
+          <button type="button">Después</button>
+        </div>
+        <span class="leader" aria-hidden="true"></span>
+      </aside>
+    </section>
+
+    <aside class="rail" aria-label="Sistemas y consecuencias pendientes">
+      <section class="panel" aria-labelledby="t-sys">
+        <h2 id="t-sys">Sistemas <em>estado · fiab.</em></h2>
+        <ul class="gauges">
+          <li class="gauge-item"><span class="gname">Soporte vital</span><span class="gval">86 %</span><span class="track"><i style="width: 86%"></i></span><span class="reliab">fiabilidad 88 %</span></li>
+          <li class="gauge-item"><span class="gname">Energía</span><span class="gval">74 %</span><span class="track"><i style="width: 74%"></i></span><span class="reliab">fiabilidad 92 %</span></li>
+          <li class="gauge-item"><span class="gname">Control térmico</span><span class="gval">91 %</span><span class="track"><i style="width: 91%"></i></span><span class="reliab">fiabilidad 89 %</span></li>
+          <li class="gauge-item"><span class="gname">Comunicaciones</span><span class="gval">62 %</span><span class="track is-warn"><i style="width: 62%"></i></span><span class="reliab">fiabilidad 87 %</span></li>
+          <li class="gauge-item"><span class="gname">Instrumentos</span><span class="gval">78 %</span><span class="track"><i style="width: 78%"></i></span><span class="reliab">fiabilidad 90 %</span></li>
+          <li class="gauge-item"><span class="gname">Control de actitud</span><span class="gval">95 %</span><span class="track"><i style="width: 95%"></i></span><span class="reliab">fiabilidad 88 %</span></li>
+        </ul>
+      </section>
+
+      <section class="tape" aria-labelledby="t-cons" style="flex: 1 1 auto">
+        <h2 id="t-cons">Consecuencias pendientes</h2>
+        <ul class="tape-list">
+          <li>
+            <b>La bomba de agua falla tras la revisión.</b>
+            <span class="when">en 4 días</span>
+            <span class="why">La bomba se revisó con prisa y sin juntas de repuesto.</span>
+          </li>
+          <li>
+            <b>Avería de batería</b>
+            <span class="when">tras 5 eventos</span>
+            <span class="why">Una celda que trabaja al límite vuelve a calentarse.</span>
+          </li>
+          <li>
+            <b>Médico/Cocina puede enfermar por comida en mal estado (35 % de riesgo)</b>
+            <span class="when">en 2 días</span>
+            <span class="why">Las bacterias tardan horas en multiplicarse dentro del cuerpo.</span>
+          </li>
+        </ul>
+        <p class="hint" style="margin-top: 5px">Pausa el reloj para revisar las consecuencias pendientes.</p>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="captions">
+    <span>Subtítulos activos: los eventos y las consecuencias aparecen también aquí.</span>
+    <span class="keys">WASD mover · E interactuar · 1–4 jugador · P pausa</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // Proyección isométrica: 36 x 18 px por casilla, cámara compartida.
+  var LW = 46, LH = 18, OX = 344, OY = -14, LIP = 9;
+  var svg = document.getElementById('deck');
+
+  function P(x, y) { return [ (x - y) * (LW / 2) + OX, (x + y) * (LH / 2) + OY ]; }
+  function pts(list) {
+    return list.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+  }
+  function poly(points, attrs) { return '<polygon points="' + pts(points) + '" ' + attrs + '></polygon>'; }
+  function lift(p, dy) { return [ p[0], p[1] + dy ]; }
+  function esc(v) { return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function lerp(a, b, t) { return [ a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t ]; }
+  function insetQ(q, u0, u1, v0, v1) {
+    function at(u, v) { return lerp(lerp(q[0], q[1], u), lerp(q[3], q[2], u), v); }
+    return [ at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1) ];
+  }
+
+  // Detalle de cada objeto sobre sus caras visibles: pantalla, puerta, cuadro
+  // de interruptores, válvula o colchón. Solo alfas de los tokens del sistema.
+  function detail(kind, faces) {
+    var out = '';
+    if (kind === 'screen') {
+      out += poly(insetQ(faces.left, 0.16, 0.84, 0.14, 0.76), 'fill="rgba(111, 211, 199, 0.2)" stroke="var(--accent)" stroke-width="0.9"');
+      out += poly(insetQ(faces.left, 0.24, 0.72, 0.28, 0.44), 'fill="rgba(230, 236, 251, 0.2)"');
+      out += poly(insetQ(faces.left, 0.22, 0.78, 0.82, 0.88), 'fill="rgba(230, 236, 251, 0.14)"');
+    } else if (kind === 'box') {
+      out += poly(insetQ(faces.left, 0.46, 0.54, 0.06, 0.94), 'fill="rgba(0, 0, 0, 0.38)"');
+      out += poly(insetQ(faces.left, 0.6, 0.7, 0.26, 0.4), 'fill="rgba(230, 236, 251, 0.3)"');
+      out += poly(insetQ(faces.top, 0.1, 0.9, 0.12, 0.2), 'fill="rgba(230, 236, 251, 0.1)"');
+    } else if (kind === 'grid') {
+      for (var i = 0; i < 2; i++) {
+        for (var j = 0; j < 2; j++) {
+          out += poly(insetQ(faces.left, 0.12 + i * 0.4, 0.4 + i * 0.4, 0.12 + j * 0.42, 0.44 + j * 0.42),
+            'fill="rgba(230, 236, 251, 0.1)" stroke="rgba(230, 236, 251, 0.26)" stroke-width="0.6"');
+        }
+      }
+    } else if (kind === 'pump') {
+      out += poly(insetQ(faces.top, 0.3, 0.7, 0.3, 0.7), 'fill="rgba(111, 211, 199, 0.18)" stroke="var(--accent)" stroke-width="0.9"');
+      out += poly(insetQ(faces.right, 0.34, 0.66, 0.1, 0.34), 'fill="rgba(230, 236, 251, 0.16)"');
+    } else if (kind === 'bed') {
+      out += poly(insetQ(faces.top, 0.06, 0.94, 0.18, 0.92), 'fill="rgba(230, 236, 251, 0.1)" stroke="rgba(230, 236, 251, 0.22)" stroke-width="0.7"');
+      out += poly(insetQ(faces.top, 0.1, 0.34, 0.26, 0.84), 'fill="rgba(230, 236, 251, 0.22)"');
+    }
+    return out;
+  }
+
+  var rooms = [
+    { id: 'galley', name: 'Cocina', x: 6, y: 4, w: 8, h: 9 },
+    { id: 'command', name: 'Mando', x: 17, y: 4, w: 8, h: 9 },
+    { id: 'medbay', name: 'Enfermería', x: 28, y: 4, w: 7, h: 9 },
+    { id: 'corridor', name: 'Pasillo', x: 4, y: 14, w: 32, h: 3 },
+    { id: 'engineering', name: 'Mecánica', x: 6, y: 18, w: 10, h: 9 },
+    { id: 'dorm', name: 'Dormitorios', x: 18, y: 18, w: 8, h: 9 },
+    { id: 'airlock', name: 'Esclusa', x: 28, y: 18, w: 7, h: 9 }
+  ];
+
+  var doors = [
+    { x: 10, y: 13 }, { x: 20, y: 13 }, { x: 31, y: 13 },
+    { x: 10, y: 17 }, { x: 21, y: 17 }, { x: 31, y: 17 }
+  ];
+
+  // Objetos con volumen: huella en casillas y altura en px de pantalla.
+  var objects = [
+    { id: 'fridge', label: 'Nevera', room: 'Cocina', kind: 'box', tone: 'ok', x: 6.9, y: 5.0, w: 1.6, d: 1.0, h: 52 },
+    { id: 'stove', label: 'Hornillo', room: 'Cocina', kind: 'grid', tone: 'warn', x: 10.4, y: 5.0, w: 1.6, d: 1.0, h: 34 },
+    { id: 'pantry', label: 'Cajas de raciones', room: 'Cocina', kind: 'box', tone: 'ok', x: 12.2, y: 9.6, w: 1.5, d: 1.0, h: 40 },
+    { id: 'comms', label: 'Consola de comunicaciones', room: 'Mando', kind: 'screen', tone: 'accent', x: 18.4, y: 5.6, w: 2.0, d: 1.1, h: 48 },
+    { id: 'telemetry', label: 'Telemetría', room: 'Mando', kind: 'screen', tone: 'accent', x: 22.4, y: 9.2, w: 1.6, d: 1.0, h: 34 },
+    { id: 'stretcher', label: 'Camilla', room: 'Enfermería', kind: 'bed', tone: 'accent-2', x: 29.2, y: 6.0, w: 2.0, d: 1.0, h: 22 },
+    { id: 'medkit', label: 'Botiquín', room: 'Enfermería', kind: 'box', tone: 'accent-2', x: 33.0, y: 10.4, w: 0.9, d: 0.7, h: 28 },
+    { id: 'panel', label: 'Panel eléctrico', room: 'Mecánica', kind: 'grid', tone: 'warn', x: 6.8, y: 19.4, w: 0.9, d: 1.6, h: 58 },
+    { id: 'pump', label: 'Bomba de agua', room: 'Mecánica', kind: 'pump', tone: 'critical', x: 10.6, y: 20.4, w: 1.2, d: 1.2, h: 38, near: true },
+    { id: 'battery', label: 'Banco de baterías', room: 'Mecánica', kind: 'grid', tone: 'warn', x: 13.0, y: 23.2, w: 1.6, d: 1.0, h: 46 },
+    { id: 'toolbox', label: 'Caja de herramientas', room: 'Mecánica', kind: 'box', tone: 'accent', x: 7.4, y: 24.4, w: 1.0, d: 0.7, h: 20 },
+    { id: 'locker', label: 'Taquilla de almacén', room: 'Pasillo', kind: 'box', tone: 'accent', x: 14.0, y: 15.2, w: 0.9, d: 0.9, h: 32 },
+    { id: 'bunk', label: 'Literas', room: 'Dormitorios', kind: 'bed', tone: 'accent', x: 18.8, y: 19.4, w: 1.8, d: 1.0, h: 36 },
+    { id: 'hatch', label: 'Escotilla exterior', room: 'Esclusa', kind: 'pump', tone: 'accent', x: 30.8, y: 24.2, w: 1.4, d: 1.4, h: 24 },
+    { id: 'sink', label: 'Fregadero', room: 'Cocina', kind: 'box', tone: 'accent', x: 8.6, y: 11.4, w: 1.3, d: 0.9, h: 26 },
+    { id: 'coffee', label: 'Cafetera', room: 'Cocina', kind: 'grid', tone: 'accent', x: 12.6, y: 5.2, w: 0.8, d: 0.8, h: 22 },
+    { id: 'navtable', label: 'Mesa de navegación', room: 'Mando', kind: 'bed', tone: 'accent', x: 21.4, y: 5.0, w: 1.7, d: 1.0, h: 24 },
+    { id: 'logbook', label: 'Cuaderno de bitácora', room: 'Mando', kind: 'box', tone: 'accent-2', x: 24.2, y: 6.2, w: 0.8, d: 0.6, h: 14 },
+    { id: 'pods', label: 'Cápsulas de medicación', room: 'Enfermería', kind: 'grid', tone: 'accent-2', x: 33.2, y: 6.2, w: 1.0, d: 0.9, h: 30 },
+    { id: 'welding', label: 'Banco de soldadura', room: 'Mecánica', kind: 'screen', tone: 'warn', x: 12.4, y: 19.2, w: 1.4, d: 0.9, h: 26 },
+    { id: 'valve', label: 'Válvula de presión', room: 'Mecánica', kind: 'pump', tone: 'accent', x: 8.0, y: 22.4, w: 0.9, d: 0.9, h: 30 },
+    { id: 'lamp', label: 'Lámpara de lectura', room: 'Dormitorios', kind: 'pump', tone: 'accent-2', x: 24.4, y: 19.4, w: 0.8, d: 0.8, h: 26 },
+    { id: 'sleep', label: 'Cápsulas de sueño', room: 'Dormitorios', kind: 'bed', tone: 'accent', x: 20.6, y: 23.6, w: 1.6, d: 1.0, h: 30 },
+    { id: 'extinguisher', label: 'Extintor', room: 'Pasillo', kind: 'pump', tone: 'critical', x: 5.4, y: 15.2, w: 0.6, d: 0.6, h: 22 },
+    { id: 'lights', label: 'Panel de luces', room: 'Pasillo', kind: 'grid', tone: 'accent', x: 24.2, y: 15.4, w: 0.8, d: 0.7, h: 20 },
+    { id: 'suit', label: 'Taquilla de trajes', room: 'Esclusa', kind: 'box', tone: 'accent', x: 33.0, y: 20.6, w: 1.2, d: 0.8, h: 34 }
+  ];
+
+  var players = [
+    { id: 'p1', label: 'P1', role: 'Ingeniero', x: 12.4, y: 21.4, tone: 'var(--accent)', sel: true },
+    { id: 'p2', label: 'P2', role: 'Médico/Cocina', x: 30.2, y: 8.0, tone: 'var(--accent-2)' },
+    { id: 'p3', label: 'P3', role: 'Científico', x: 18.4, y: 7.4, tone: 'var(--ok)' },
+    { id: 'p4', label: 'P4', role: 'Comunicaciones', x: 13.0, y: 15.6, tone: 'var(--critical)' }
+  ];
+
+  var toneVar = { ok: 'var(--ok)', warn: 'var(--warn)', critical: 'var(--critical)', accent: 'var(--accent)', 'accent-2': 'var(--accent-2)' };
+
+  function glyph(kind, cx, cy) {
+    var g = '<rect class="glyph" x="' + (cx - 6) + '" y="' + (cy - 3) + '" width="12" height="6" rx="0.6"></rect>';
+    if (kind === 'screen') g += '<line class="glyph" x1="' + (cx - 4) + '" y1="' + cy + '" x2="' + (cx + 2) + '" y2="' + cy + '"></line>';
+    if (kind === 'grid') g += '<line class="glyph" x1="' + cx + '" y1="' + (cy - 3) + '" x2="' + cx + '" y2="' + (cy + 3) + '"></line>';
+    if (kind === 'pump') g = '<circle class="glyph" cx="' + cx + '" cy="' + cy + '" r="3.6"></circle>' +
+      '<line class="glyph" x1="' + cx + '" y1="' + (cy - 5.4) + '" x2="' + cx + '" y2="' + (cy + 3.4) + '"></line>';
+    if (kind === 'bed') g = '<rect class="glyph" x="' + (cx - 7) + '" y="' + (cy - 3) + '" width="14" height="6" rx="1.2"></rect>' +
+      '<line class="glyph" x1="' + (cx - 2) + '" y1="' + (cy - 3) + '" x2="' + (cx - 2) + '" y2="' + (cy + 3) + '"></line>';
+    return g;
+  }
+
+  function tagFor(label, cx, cy) {
+    var w = label.length * 5.4 + 14;
+    var top = cy - 17;
+    return '<g class="tag" aria-hidden="true">' +
+      '<rect x="' + (cx - w / 2).toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + w.toFixed(1) + '" height="14" rx="2"></rect>' +
+      '<text x="' + cx.toFixed(1) + '" y="' + (top + 10.2).toFixed(1) + '">' + esc(label) + '</text>' +
+      '</g>';
+  }
+
+  function objectMarkup(o) {
+    var p0 = P(o.x, o.y), p1 = P(o.x + o.w, o.y), p2 = P(o.x + o.w, o.y + o.d), p3 = P(o.x, o.y + o.d);
+    var h = o.h;
+    var top = [ lift(p0, -h), lift(p1, -h), lift(p2, -h), lift(p3, -h) ];
+    var cx = (p0[0] + p2[0]) / 2, cy = (p0[1] + p2[1]) / 2 - h;
+    var accent = toneVar[o.tone] || 'var(--accent)';
+    var out = '<g class="obj' + (o.near ? ' is-near' : '') + '" data-id="' + o.id + '" tabindex="0" role="button" ' +
+      'aria-label="' + esc(o.label) + ', ' + esc(o.room) + '"><title>' + esc(o.label) + ' · ' + esc(o.room) + '</title>';
+    out += poly([ lift(p0, 4), lift(p1, 4), lift(p2, 4), lift(p3, 4) ], 'class="shadow"');
+    out += poly([ p3, p2, lift(p2, -h), lift(p3, -h) ], 'class="f-left"');
+    out += poly([ p3, p2, lift(p2, -h), lift(p3, -h) ], 'class="shade"');
+    out += poly([ p1, p2, lift(p2, -h), lift(p1, -h) ], 'class="f-right"');
+    out += poly(top, 'class="f-top"');
+    out += poly(top, 'class="warm"');
+    out += detail(o.kind, {
+      top: top,
+      left: [ p3, p2, lift(p2, -h), lift(p3, -h) ],
+      right: [ p1, p2, lift(p2, -h), lift(p1, -h) ]
+    });
+    out += '<polyline class="edge" points="' + pts([ top[0], top[1], top[2], top[3], top[0] ]) + '"></polyline>';
+    out += '<polyline class="rim" points="' + pts([ top[3], top[0], top[1] ]) + '"></polyline>';
+    out += glyph(o.kind, cx, cy);
+    if (o.near) {
+      out += '<ellipse class="ring" cx="' + cx.toFixed(1) + '" cy="' + (cy + h + 6).toFixed(1) + '" rx="' + (LW * 0.95) + '" ry="' + (LH * 0.95) + '"></ellipse>';
+    }
+    out += tagFor(o.label, cx, cy);
+    out += '</g>';
+    return out;
+  }
+
+  function playerMarkup(pl) {
+    var p = P(pl.x, pl.y);
+    var out = '<g class="player' + (pl.sel ? ' is-sel' : '') + '" data-id="' + pl.id + '">';
+    out += '<ellipse class="p-shadow" cx="' + (p[0] + 2).toFixed(1) + '" cy="' + (p[1] + 4).toFixed(1) + '" rx="10" ry="5"></ellipse>';
+    out += '<rect class="p-body" x="' + (p[0] - 5).toFixed(1) + '" y="' + (p[1] - 16).toFixed(1) + '" width="10" height="15" rx="3.5"></rect>';
+    out += '<circle class="p-head" cx="' + p[0].toFixed(1) + '" cy="' + (p[1] - 19.5).toFixed(1) + '" r="4" fill="' + pl.tone + '"></circle>';
+    out += '<g class="p-chip"><rect x="' + (p[0] - 16).toFixed(1) + '" y="' + (p[1] - 35).toFixed(1) + '" width="32" height="11" rx="2"></rect>' +
+      '<text x="' + p[0].toFixed(1) + '" y="' + (p[1] - 26.5).toFixed(1) + '">' + pl.label + '</text></g>';
+    out += '</g>';
+    return out;
+  }
+
+  var markup = '';
+  var labels = '';
+
+  rooms.forEach(function (r) {
+    var p0 = P(r.x, r.y), p1 = P(r.x + r.w, r.y), p2 = P(r.x + r.w, r.y + r.h), p3 = P(r.x, r.y + r.h);
+    markup += poly([ lift(p0, LIP + 3), lift(p1, LIP + 3), lift(p2, LIP + 9), lift(p3, LIP + 9) ], 'fill="rgba(0, 0, 0, 0.5)"');
+    markup += poly([ p3, p2, lift(p2, LIP), lift(p3, LIP) ], 'fill="var(--panel)" stroke="var(--line)" stroke-width="0.7"');
+    markup += poly([ p1, p2, lift(p2, LIP), lift(p1, LIP) ], 'fill="var(--bg-soft)" stroke="var(--line)" stroke-width="0.7"');
+    markup += poly([ p0, p1, p2, p3 ], 'fill="#0b1524" stroke="var(--line-strong)" stroke-width="1.1"');
+    markup += poly([ p0, p1, p2, p3 ], 'fill="rgba(230, 236, 251, 0.03)"');
+    var grid = '';
+    for (var gx = r.x; gx <= r.x + r.w; gx += 2) {
+      var a = P(gx, r.y), b = P(gx, r.y + r.h);
+      grid += '<line x1="' + a[0].toFixed(1) + '" y1="' + a[1].toFixed(1) + '" x2="' + b[0].toFixed(1) + '" y2="' + b[1].toFixed(1) + '"></line>';
+    }
+    for (var gy = r.y; gy <= r.y + r.h; gy += 2) {
+      var c = P(r.x, gy), d = P(r.x + r.w, gy);
+      grid += '<line x1="' + c[0].toFixed(1) + '" y1="' + c[1].toFixed(1) + '" x2="' + d[0].toFixed(1) + '" y2="' + d[1].toFixed(1) + '"></line>';
+    }
+    markup += '<g stroke="var(--line)" stroke-width="0.6" opacity="0.75">' + grid + '</g>';
+    var mid = P(r.x + r.w / 2, r.y - 0.9);
+    mid[0] = Math.min(Math.max(mid[0], 78), 906);
+    var lw = r.name.length * 6.4 + 14;
+    labels += '<g><rect x="' + (mid[0] - lw / 2).toFixed(1) + '" y="' + (mid[1] - 9).toFixed(1) + '" width="' + lw.toFixed(1) +
+      '" height="14" rx="2" fill="rgba(5, 7, 13, 0.8)" stroke="var(--line)"></rect>' +
+      '<text class="room-label" x="' + mid[0].toFixed(1) + '" y="' + (mid[1] + 1).toFixed(1) + '">' + esc(r.name) + '</text></g>';
+  });
+
+  doors.forEach(function (d) {
+    var q0 = P(d.x - 0.5, d.y - 0.5), q1 = P(d.x + 0.5, d.y - 0.5), q2 = P(d.x + 0.5, d.y + 0.5), q3 = P(d.x - 0.5, d.y + 0.5);
+    markup += poly([ q0, q1, q2, q3 ], 'fill="var(--panel-2)" stroke="var(--accent)" stroke-width="0.8" opacity="0.45"');
+  });
+
+  // Pasarelas de servicio entre módulos (detalle de cubierta).
+  markup += '<polyline points="' + pts([ P(10.2, 13.6), P(10.2, 16.4) ]) + '" stroke="rgba(111, 211, 199, 0.35)" stroke-width="1.2" stroke-dasharray="3 3"></polyline>';
+
+  // Pintado de lejos a cerca: mayor x+y queda más abajo en pantalla y tapa.
+  var sorted = objects.map(function (o) { return { depth: o.x + o.w / 2 + (o.y + o.d / 2), o: o }; })
+    .concat(players.map(function (p) { return { depth: p.x + p.y, p: p }; }))
+    .sort(function (a, b) { return a.depth - b.depth; });
+
+  sorted.forEach(function (item) {
+    if (item.o) markup += objectMarkup(item.o);
+    else markup += playerMarkup(item.p);
+  });
+  markup += labels;
+
+  svg.innerHTML = markup;
+
+  // Al pasar el cursor o enfocar con el teclado, el objeto sube al final del
+  // orden de pintado para que su etiqueta nunca quede tapada por otro objeto.
+  function raise(event) {
+    var g = event.target.closest ? event.target.closest('.obj') : null;
+    if (g && g.parentNode === svg) svg.appendChild(g);
+  }
+  svg.addEventListener('mouseover', raise);
+  svg.addEventListener('focusin', raise);
+})();
+</script>
+</body>
+</html>

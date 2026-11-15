@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Viaje · cubierta holográfica</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #070910;
+    --bg-soft: #0d1220;
+    --panel: #111a2b;
+    --panel-2: #16223a;
+    --line: #26365a;
+    --line-strong: #3d5687;
+    --text: #e6ecfb;
+    --text-dim: #a9b6d3;
+    --text-faint: #7d8bab;
+    --accent: #6fd3c7;
+    --accent-2: #ffcf6b;
+    --ok: #6fd98a;
+    --warn: #ffcf6b;
+    --critical: #ff7a7a;
+    --focus: #ffe082;
+    --radius: 0.5rem;
+    --gap: 0.75rem;
+    --pad: 0.9rem;
+    --font: ui-monospace, SFMono-Regular, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: #04060b; }
+  body {
+    position: relative; width: 1440px; height: 900px; overflow: hidden;
+    font-family: var(--font); font-size: 16px; line-height: 1.35; color: var(--text);
+    background:
+      radial-gradient(ellipse at 42% 46%, rgba(111, 211, 199, 0.1), transparent 58%),
+      radial-gradient(ellipse at 50% 50%, #0a1420 0%, #04060b 70%);
+  }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  h1, h2, h3 { margin: 0; font-weight: 700; line-height: 1.2; letter-spacing: 0.02em; }
+  p { margin: 0; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  /* ---------- visor a pantalla completa ---------- */
+  #holo { position: absolute; inset: 0; width: 100%; height: 100%; display: block; font-family: var(--font); }
+
+  .plate { fill: rgba(111, 211, 199, 0.045); stroke: rgba(111, 211, 199, 0.42); stroke-width: 1; }
+  .plate-side { fill: rgba(111, 211, 199, 0.09); stroke: rgba(111, 211, 199, 0.22); stroke-width: 0.7; }
+  .deck-grid { stroke: rgba(111, 211, 199, 0.16); stroke-width: 0.6; }
+  .room-label { fill: rgba(111, 211, 199, 0.72); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; text-anchor: middle; }
+  .door { fill: rgba(111, 211, 199, 0.16); stroke: var(--accent); stroke-width: 0.9; }
+
+  .obj { cursor: pointer; }
+  .obj .o-top { fill: rgba(111, 211, 199, 0.14); stroke: rgba(111, 211, 199, 0.55); stroke-width: 0.9; transition: fill 120ms linear; }
+  .obj .o-left { fill: rgba(111, 211, 199, 0.05); stroke: rgba(111, 211, 199, 0.3); stroke-width: 0.7; }
+  .obj .o-right { fill: rgba(13, 18, 32, 0.55); stroke: rgba(111, 211, 199, 0.3); stroke-width: 0.7; }
+  .obj .o-line { stroke: rgba(230, 236, 251, 0.28); stroke-width: 1; fill: none; }
+  .obj .o-tag { opacity: 0; transition: opacity 120ms linear; }
+  .obj .o-tag rect { fill: rgba(5, 7, 13, 0.88); stroke: var(--focus); stroke-width: 1; }
+  .obj .o-tag text { fill: var(--text); font-size: 10px; text-anchor: middle; }
+  .obj:hover .o-top, .obj:focus .o-top, .obj.is-near .o-top { fill: rgba(111, 211, 199, 0.36); }
+  .obj:hover .o-tag, .obj:focus .o-tag, .obj.is-near .o-tag { opacity: 1; }
+  .obj:focus-visible .o-top { stroke: var(--focus); stroke-width: 2; }
+
+  .player .p-body { fill: rgba(111, 211, 199, 0.2); stroke: var(--accent); stroke-width: 1.2; }
+  .player .p-head { fill: var(--accent); }
+  .player .p-shadow { fill: rgba(0, 0, 0, 0.4); }
+  .player .p-chip rect { fill: rgba(5, 7, 13, 0.85); stroke: var(--accent); }
+  .player .p-chip text { fill: var(--accent); font-size: 9px; text-anchor: middle; letter-spacing: 0.08em; }
+
+  .radial-ring { fill: none; stroke: rgba(111, 211, 199, 0.5); stroke-width: 1; stroke-dasharray: 3 5; }
+  .radial-tick { stroke: rgba(111, 211, 199, 0.7); stroke-width: 1.2; }
+  .leader { stroke: rgba(111, 211, 199, 0.62); stroke-width: 1; stroke-dasharray: 2 3; }
+  .scan { fill: none; stroke: rgba(111, 211, 199, 0.18); stroke-width: 1; }
+
+  /* ---------- HUD flotante ---------- */
+  .hud { position: absolute; z-index: 3; }
+  .hud-plate {
+    border: 1px solid rgba(111, 211, 199, 0.4);
+    background: rgba(5, 9, 16, 0.62);
+    border-radius: 2px;
+    padding: 5px 7px;
+    backdrop-filter: blur(1px);
+  }
+  .hud-plate > h2 {
+    font-size: 0.56rem; letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(111, 211, 199, 0.85); margin-bottom: 4px;
+  }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .hud-clock { top: 18px; left: 18px; display: flex; align-items: stretch; gap: 8px; }
+  .hud-clock .big { font-size: 1.5rem; letter-spacing: 0.08em; color: var(--accent); line-height: 1.1; }
+  .hud-clock .sub { font-size: 0.54rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-faint); }
+  .hud-clock .speed { display: flex; gap: 2px; align-items: center; }
+  .hud-clock .speed button {
+    font: inherit; font-size: 0.58rem; min-height: 20px; padding: 1px 5px; cursor: pointer;
+    color: var(--text-dim); background: rgba(5, 9, 16, 0.6); border: 1px solid rgba(111, 211, 199, 0.35);
+    border-radius: 2px;
+  }
+  .hud-clock .speed button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #04120f; font-weight: 700; }
+
+  .hud-crew { top: 18px; left: 50%; transform: translateX(-50%); display: grid; grid-template-columns: repeat(4, 158px); gap: 6px; }
+  .crew {
+    display: flex; flex-direction: column; gap: 3px; padding: 5px 7px;
+    border: 1px solid rgba(111, 211, 199, 0.32); border-radius: 2px;
+    background: rgba(5, 9, 16, 0.55);
+  }
+  .crew.is-active { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(111, 211, 199, 0.35); }
+  .crew .top { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+  .crew .top b { font-size: 0.6rem; letter-spacing: 0.04em; }
+  .crew .top span { font-size: 0.5rem; color: var(--accent); letter-spacing: 0.1em; }
+  .crew .needs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+  .crew .needs span { display: block; height: 4px; border-radius: 2px; background: rgba(111, 211, 199, 0.16); overflow: hidden; }
+  .crew .needs span i { display: block; height: 100%; background: var(--accent); }
+  .crew .needs span.w i { background: var(--warn); }
+  .crew .needs span.c i { background: var(--critical); }
+  .crew .legend { display: flex; justify-content: space-between; font-size: 0.5rem; letter-spacing: 0.06em; color: var(--text-faint); }
+
+  .hud-objective { top: 18px; right: 18px; width: 196px; }
+  .hud-objective .line { display: flex; justify-content: space-between; font-size: 0.58rem; color: var(--text-dim); margin-top: 3px; }
+  .hud-objective .line b { color: var(--text); }
+  .thinbar { height: 4px; border-radius: 2px; background: rgba(111, 211, 199, 0.14); overflow: hidden; margin-top: 2px; }
+  .thinbar > i { display: block; height: 100%; background: var(--accent); }
+
+  .hud-tape { left: 18px; top: 168px; width: 168px; }
+  .hud-tape ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  .hud-tape li { border-left: 2px solid var(--accent-2); padding-left: 5px; }
+  .hud-tape li b { display: block; font-size: 0.58rem; font-weight: 600; }
+  .hud-tape li span { font-size: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-2); }
+
+  .hud-systems { right: 18px; top: 190px; width: 168px; }
+  .hud-systems ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .hud-systems li { display: grid; grid-template-columns: 1fr auto; gap: 1px 4px; align-items: center; }
+  .hud-systems b { font-size: 0.56rem; color: var(--text-dim); font-weight: 400; }
+  .hud-systems i { font-style: normal; font-size: 0.52rem; color: var(--text-faint); }
+  .hud-systems .thinbar { grid-column: 1 / -1; margin-top: 0; }
+  .hud-systems .is-warn > i { background: var(--warn); }
+
+  .hud-link { right: 18px; bottom: 20px; width: 214px; }
+  .hud-link .state { display: flex; align-items: center; gap: 5px; font-size: 0.62rem; }
+  .hud-link .state b { color: var(--ok); }
+  .led { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 6px rgba(111, 217, 138, 0.9); }
+
+  .hud-inventory { left: 18px; bottom: 20px; width: 196px; }
+  .hud-inventory .slots { display: flex; gap: 5px; }
+  .hud-inventory .slot {
+    flex: 1 1 0; padding: 3px 5px; border: 1px solid rgba(111, 211, 199, 0.28); border-radius: 2px;
+    font-size: 0.56rem; color: var(--text-dim);
+  }
+  .hud-inventory .slot b { display: block; font-size: 0.6rem; color: var(--text); }
+  .hud-inventory .slot.is-empty { border-style: dashed; color: var(--text-faint); }
+
+  .hud-hint { bottom: 22px; left: 50%; transform: translateX(-50%); font-size: 0.56rem; color: var(--text-faint); letter-spacing: 0.06em; }
+  .hud-hint b { color: var(--text-dim); }
+
+  /* ---------- acciones radiales junto al jugador ---------- */
+  .radial { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+  .radial > * { pointer-events: auto; }
+  .radial-action {
+    position: absolute; width: 196px; font: inherit; text-align: left; cursor: pointer;
+    border: 1px solid rgba(111, 211, 199, 0.45); border-radius: 2px;
+    background: rgba(6, 12, 20, 0.78); color: var(--text);
+    padding: 4px 7px; display: flex; flex-direction: column; gap: 1px;
+    box-shadow: 0 0 0 1px rgba(5, 7, 13, 0.6);
+    transition: border-color 120ms linear, background 120ms linear;
+  }
+  .radial-action:hover { border-color: var(--accent); background: rgba(111, 211, 199, 0.14); }
+  .radial-action b { font-size: 0.62rem; }
+  .radial-action span { font-size: 0.52rem; color: var(--text-dim); }
+  .radial-action.is-target { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); }
+
+  .object-chip {
+    position: absolute; z-index: 4; transform: translate(-50%, -50%); white-space: nowrap;
+    display: flex; align-items: center; gap: 5px; padding: 2px 7px;
+    border: 1px solid var(--focus); border-radius: 999px; background: rgba(5, 9, 16, 0.9);
+    font-size: 0.56rem; color: var(--text);
+  }
+  .object-chip kbd {
+    font: inherit; font-size: 0.52rem; border: 1px solid var(--line-strong); border-radius: 2px;
+    padding: 0 3px; color: var(--focus);
+  }
+
+  /* ---------- esquinas del visor ---------- */
+  .bracket { position: absolute; width: 46px; height: 46px; border: 1px solid rgba(111, 211, 199, 0.55); z-index: 2; }
+  .bracket.tl { top: 10px; left: 10px; border-right: 0; border-bottom: 0; }
+  .bracket.tr { top: 10px; right: 10px; border-left: 0; border-bottom: 0; }
+  .bracket.bl { bottom: 10px; left: 10px; border-right: 0; border-top: 0; }
+  .bracket.br { bottom: 10px; right: 10px; border-left: 0; border-top: 0; }
+
+  .scanline {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(111, 211, 199, 0.045) 0 1px, transparent 1px 4px);
+    opacity: 0.7;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important; animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+<p class="visually-hidden">Vista holográfica de la nave con las acciones disponibles junto al jugador seleccionado. Los objetos se pueden recorrer con el tabulador.</p>
+
+<svg id="holo" viewBox="0 0 1440 900" role="group" aria-label="Cubierta de la nave en vista isométrica"></svg>
+
+<div class="scanline" aria-hidden="true"></div>
+<span class="bracket tl" aria-hidden="true"></span>
+<span class="bracket tr" aria-hidden="true"></span>
+<span class="bracket bl" aria-hidden="true"></span>
+<span class="bracket br" aria-hidden="true"></span>
+
+<!-- reloj y velocidad, arriba a la izquierda -->
+<section class="hud hud-clock hud-plate" aria-label="Reloj de misión y velocidad">
+  <div>
+    <p class="sub">día de misión</p>
+    <p class="big num">14 · 06:40</p>
+    <p class="sub">vida útil 62 d · eclipse 1 h 20</p>
+  </div>
+  <div class="speed" role="group" aria-label="Velocidad del reloj">
+    <button type="button" aria-pressed="false" aria-label="Pausar">⏸</button>
+    <button type="button" aria-pressed="false">×1</button>
+    <button type="button" aria-pressed="true">×2</button>
+    <button type="button" aria-pressed="false">×4</button>
+  </div>
+</section>
+
+<!-- tripulación en una tira superior -->
+<section class="hud hud-crew" aria-label="Tripulación">
+  <article class="crew is-active">
+    <div class="top"><b>P1 · Ingeniero</b><span>activo</span></div>
+    <div class="needs" role="img" aria-label="Salud 82, estrés 41, hambre 63, sed 55, sueño 48">
+      <span><i style="width: 82%"></i></span>
+      <span><i style="width: 41%"></i></span>
+      <span><i style="width: 63%"></i></span>
+      <span><i style="width: 55%"></i></span>
+      <span><i style="width: 48%"></i></span>
+    </div>
+    <div class="legend"><span>sal</span><span>est</span><span>ham</span><span>sed</span><span>sue</span></div>
+  </article>
+  <article class="crew">
+    <div class="top"><b>P2 · Médico</b></div>
+    <div class="needs" role="img" aria-label="Salud 91, estrés 28, hambre 44, sed 39, sueño 72">
+      <span><i style="width: 91%"></i></span>
+      <span><i style="width: 28%"></i></span>
+      <span><i style="width: 44%"></i></span>
+      <span><i style="width: 39%"></i></span>
+      <span><i style="width: 72%"></i></span>
+    </div>
+    <div class="legend"><span>sal</span><span>est</span><span>ham</span><span>sed</span><span>sue</span></div>
+  </article>
+  <article class="crew">
+    <div class="top"><b>P3 · Científico</b></div>
+    <div class="needs" role="img" aria-label="Salud 76, estrés 58, hambre 71, sed 62, sueño 33">
+      <span><i style="width: 76%"></i></span>
+      <span><i style="width: 58%"></i></span>
+      <span class="w"><i style="width: 71%"></i></span>
+      <span><i style="width: 62%"></i></span>
+      <span class="c"><i style="width: 33%"></i></span>
+    </div>
+    <div class="legend"><span>sal</span><span>est</span><span>ham</span><span>sed</span><span>sue</span></div>
+  </article>
+  <article class="crew">
+    <div class="top"><b>P4 · Comunic.</b></div>
+    <div class="needs" role="img" aria-label="Salud 88, estrés 35, hambre 52, sed 47, sueño 61">
+      <span><i style="width: 88%"></i></span>
+      <span><i style="width: 35%"></i></span>
+      <span><i style="width: 52%"></i></span>
+      <span><i style="width: 47%"></i></span>
+      <span><i style="width: 61%"></i></span>
+    </div>
+    <div class="legend"><span>sal</span><span>est</span><span>ham</span><span>sed</span><span>sue</span></div>
+  </article>
+</section>
+
+<!-- objetivo, arriba a la derecha -->
+<section class="hud hud-objective hud-plate" aria-label="Objetivo de la misión">
+  <h2>Objetivo</h2>
+  <p style="font-size: 0.6rem; color: var(--text)">Cartografiar una región</p>
+  <p class="line"><span>Datos</span><b class="num">18 / 50 KB</b></p>
+  <div class="thinbar" role="img" aria-label="18 de 50 kilobytes"><i style="width: 36%"></i></div>
+  <p class="line"><span>Cobertura</span><b class="num">70 %</b></p>
+  <div class="thinbar" role="img" aria-label="Cobertura del 70 por ciento"><i style="width: 70%"></i></div>
+</section>
+
+<!-- consecuencias, cinta lateral -->
+<section class="hud hud-tape" aria-label="Consecuencias pendientes">
+  <div class="hud-plate">
+    <h2>Consecuencias · 2</h2>
+    <ol>
+      <li><b>La bomba de agua falla tras la revisión.</b><span>en 4 días</span></li>
+      <li><b>Médico puede enfermar por comida en mal estado.</b><span>en 2 días · 35 %</span></li>
+    </ol>
+  </div>
+</section>
+
+<!-- sistemas, columna compacta a la derecha -->
+<section class="hud hud-systems" aria-label="Sistemas de la nave">
+  <div class="hud-plate">
+    <h2>Sistemas</h2>
+    <ul>
+      <li><b>Soporte vital</b><i class="num">86 %</i><div class="thinbar"><i style="width: 86%"></i></div></li>
+      <li><b>Energía</b><i class="num">74 %</i><div class="thinbar"><i style="width: 74%"></i></div></li>
+      <li><b>Térmico</b><i class="num">91 %</i><div class="thinbar"><i style="width: 91%"></i></div></li>
+      <li class="is-warn"><b>Comunicaciones</b><i class="num">62 %</i><div class="thinbar"><i style="width: 62%"></i></div></li>
+      <li><b>Instrumentos</b><i class="num">78 %</i><div class="thinbar"><i style="width: 78%"></i></div></li>
+      <li><b>Actitud</b><i class="num">95 %</i><div class="thinbar"><i style="width: 95%"></i></div></li>
+    </ul>
+  </div>
+</section>
+
+<section class="hud hud-link hud-plate" aria-label="Enlace con la Tierra">
+  <h2>Enlace</h2>
+  <p class="state"><i class="led" aria-hidden="true"></i><b>abierto</b> · 12 KB · se cierra en 6 min</p>
+</section>
+
+<section class="hud hud-inventory hud-plate" aria-label="Inventario">
+  <h2>Inventario · 1 de 2</h2>
+  <div class="slots">
+    <div class="slot"><b>Botiquín</b>2 usos</div>
+    <div class="slot is-empty"><b>libre</b>sin objeto</div>
+  </div>
+</section>
+
+<p class="hud hud-hint"><b>WASD</b> mover · <b>E</b> interactuar · <b>1–4</b> cambiar de jugador</p>
+
+<!-- acciones radiales junto al jugador -->
+<div class="radial" aria-label="Acciones del objeto al alcance">
+  <span class="object-chip" id="chip"><kbd>E</kbd>interactuar</span>
+  <button type="button" class="radial-action is-target" data-slot="a">
+    <b>Revisar la bomba a fondo</b>
+    <span>Fiabilidad +12 · presupuesto −6 · revisión en 4 días</span>
+  </button>
+  <button type="button" class="radial-action" data-slot="b">
+    <b>Cebar la bomba</b>
+    <span>Soporte vital +8 · su fiabilidad −2</span>
+  </button>
+  <button type="button" class="radial-action" data-slot="c">
+    <b>Canibalizar la batería</b>
+    <span>Estado ahora, fiabilidad −15…−25</span>
+  </button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // Misma proyección que la cubierta de vuelo, cámara más amplia y trazo holográfico.
+  var LW = 54, LH = 22, OX = 560, OY = 65, LIP = 9;
+  var svg = document.getElementById('holo');
+
+  function P(x, y) { return [ (x - y) * (LW / 2) + OX, (x + y) * (LH / 2) + OY ]; }
+  function pts(list) { return list.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '); }
+  function poly(list, attrs) { return '<polygon points="' + pts(list) + '" ' + attrs + '></polygon>'; }
+  function lift(p, dy) { return [ p[0], p[1] + dy ]; }
+  function esc(v) { return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+
+  var rooms = [
+    { name: 'Cocina', x: 6, y: 4, w: 8, h: 9 },
+    { name: 'Mando', x: 17, y: 4, w: 8, h: 9 },
+    { name: 'Enfermería', x: 28, y: 4, w: 7, h: 9 },
+    { name: 'Pasillo', x: 4, y: 14, w: 32, h: 3 },
+    { name: 'Mecánica', x: 6, y: 18, w: 10, h: 9 },
+    { name: 'Dormitorios', x: 18, y: 18, w: 8, h: 9 },
+    { name: 'Esclusa', x: 28, y: 18, w: 7, h: 9 }
+  ];
+
+  var doors = [ { x: 10, y: 13 }, { x: 20, y: 13 }, { x: 31, y: 13 }, { x: 10, y: 17 }, { x: 21, y: 17 }, { x: 31, y: 17 } ];
+
+  var objects = [
+    { label: 'Nevera', x: 6.9, y: 5.0, w: 1.6, d: 1.0, h: 46 },
+    { label: 'Hornillo', x: 10.4, y: 5.0, w: 1.6, d: 1.0, h: 30 },
+    { label: 'Cajas de raciones', x: 12.2, y: 9.6, w: 1.5, d: 1.0, h: 34 },
+    { label: 'Consola de comunicaciones', x: 18.4, y: 5.6, w: 2.0, d: 1.1, h: 42 },
+    { label: 'Telemetría', x: 22.4, y: 9.2, w: 1.6, d: 1.0, h: 30 },
+    { label: 'Camilla', x: 29.2, y: 6.0, w: 2.0, d: 1.0, h: 20 },
+    { label: 'Botiquín', x: 33.0, y: 10.4, w: 0.9, d: 0.7, h: 24 },
+    { label: 'Panel eléctrico', x: 6.8, y: 19.4, w: 0.9, d: 1.6, h: 52 },
+    { label: 'Bomba de agua', x: 10.6, y: 20.4, w: 1.2, d: 1.2, h: 34, near: true },
+    { label: 'Banco de baterías', x: 13.0, y: 23.2, w: 1.6, d: 1.0, h: 40 },
+    { label: 'Caja de herramientas', x: 7.4, y: 24.4, w: 1.0, d: 0.7, h: 18 },
+    { label: 'Taquilla de almacén', x: 14.0, y: 15.2, w: 0.9, d: 0.9, h: 28 },
+    { label: 'Literas', x: 18.8, y: 19.4, w: 1.8, d: 1.0, h: 30 },
+    { label: 'Cápsulas de sueño', x: 20.6, y: 23.6, w: 1.6, d: 1.0, h: 28 },
+    { label: 'Escotilla exterior', x: 30.8, y: 24.2, w: 1.4, d: 1.4, h: 22 },
+    { label: 'Taquilla de trajes', x: 33.0, y: 20.6, w: 1.2, d: 0.8, h: 32 }
+  ];
+
+  var players = [
+    { label: 'P1', x: 12.4, y: 21.4, sel: true },
+    { label: 'P2', x: 30.2, y: 8.0 },
+    { label: 'P3', x: 18.4, y: 7.4 },
+    { label: 'P4', x: 13.0, y: 15.6 }
+  ];
+
+  var markup = '';
+  var labels = '';
+
+  rooms.forEach(function (r) {
+    var p0 = P(r.x, r.y), p1 = P(r.x + r.w, r.y), p2 = P(r.x + r.w, r.y + r.h), p3 = P(r.x, r.y + r.h);
+    markup += poly([ p3, p2, lift(p2, LIP), lift(p3, LIP) ], 'class="plate-side"');
+    markup += poly([ p1, p2, lift(p2, LIP), lift(p1, LIP) ], 'class="plate-side"');
+    markup += poly([ p0, p1, p2, p3 ], 'class="plate"');
+    var grid = '';
+    for (var gx = r.x; gx <= r.x + r.w; gx += 2) {
+      var a = P(gx, r.y), b = P(gx, r.y + r.h);
+      grid += '<line x1="' + a[0].toFixed(1) + '" y1="' + a[1].toFixed(1) + '" x2="' + b[0].toFixed(1) + '" y2="' + b[1].toFixed(1) + '"></line>';
+    }
+    for (var gy = r.y; gy <= r.y + r.h; gy += 2) {
+      var c = P(r.x, gy), d = P(r.x + r.w, gy);
+      grid += '<line x1="' + c[0].toFixed(1) + '" y1="' + c[1].toFixed(1) + '" x2="' + d[0].toFixed(1) + '" y2="' + d[1].toFixed(1) + '"></line>';
+    }
+    markup += '<g class="deck-grid">' + grid + '</g>';
+    var mid = P(r.x + r.w / 2, r.y - 1.4);
+    mid[0] = Math.min(Math.max(mid[0], 88), 1352);
+    var lw = r.name.length * 7.4 + 12;
+    labels += '<g><rect x="' + (mid[0] - lw / 2).toFixed(1) + '" y="' + (mid[1] - 10).toFixed(1) + '" width="' + lw.toFixed(1) +
+      '" height="14" rx="2" fill="rgba(4, 7, 12, 0.72)" stroke="rgba(111, 211, 199, 0.25)"></rect>' +
+      '<text class="room-label" x="' + mid[0].toFixed(1) + '" y="' + (mid[1] + 1).toFixed(1) + '">' + esc(r.name) + '</text></g>';
+  });
+
+  doors.forEach(function (d) {
+    var q0 = P(d.x - 0.5, d.y - 0.5), q1 = P(d.x + 0.5, d.y - 0.5), q2 = P(d.x + 0.5, d.y + 0.5), q3 = P(d.x - 0.5, d.y + 0.5);
+    markup += poly([ q0, q1, q2, q3 ], 'class="door"');
+  });
+
+  // anillo de acciones alrededor del jugador seleccionado
+  var sel = players[0];
+  var sp = P(sel.x, sel.y);
+  markup += '<circle class="radial-ring" cx="' + sp[0].toFixed(1) + '" cy="' + (sp[1] - 16).toFixed(1) + '" r="64"></circle>';
+  for (var t = 0; t < 12; t++) {
+    var ang = (t / 12) * Math.PI * 2;
+    var x1 = sp[0] + Math.cos(ang) * 58, y1 = sp[1] - 16 + Math.sin(ang) * 58;
+    var x2 = sp[0] + Math.cos(ang) * 64, y2 = sp[1] - 16 + Math.sin(ang) * 64;
+    markup += '<line class="radial-tick" x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '"></line>';
+  }
+
+  function tag(label, cx, cy) {
+    var w = label.length * 5.6 + 14;
+    return '<g class="o-tag" aria-hidden="true"><rect x="' + (cx - w / 2).toFixed(1) + '" y="' + (cy - 18).toFixed(1) +
+      '" width="' + w.toFixed(1) + '" height="14" rx="2"></rect><text x="' + cx.toFixed(1) + '" y="' + (cy - 7.8).toFixed(1) + '">' + esc(label) + '</text></g>';
+  }
+
+  function objectMarkup(o) {
+    var p0 = P(o.x, o.y), p1 = P(o.x + o.w, o.y), p2 = P(o.x + o.w, o.y + o.d), p3 = P(o.x, o.y + o.d);
+    var h = o.h, top = [ lift(p0, -h), lift(p1, -h), lift(p2, -h), lift(p3, -h) ];
+    var cx = (p0[0] + p2[0]) / 2, cy = (p0[1] + p2[1]) / 2 - h;
+    var out = '<g class="obj' + (o.near ? ' is-near' : '') + '" tabindex="0" role="button" aria-label="' + esc(o.label) + '">' +
+      '<title>' + esc(o.label) + '</title>';
+    out += poly([ p3, p2, lift(p2, -h), lift(p3, -h) ], 'class="o-left"');
+    out += poly([ p1, p2, lift(p2, -h), lift(p1, -h) ], 'class="o-right"');
+    out += poly(top, 'class="o-top"');
+    out += '<polyline class="o-line" points="' + pts([ top[0], top[1], top[2], top[3], top[0] ]) + '"></polyline>';
+    out += '<line class="o-line" x1="' + cx.toFixed(1) + '" y1="' + (cy + 6).toFixed(1) + '" x2="' + cx.toFixed(1) + '" y2="' + (cy + 12).toFixed(1) + '"></line>';
+    out += tag(o.label, cx, cy);
+    out += '</g>';
+    return out;
+  }
+
+  function playerMarkup(pl) {
+    var p = P(pl.x, pl.y);
+    var out = '<g class="player">';
+    out += '<ellipse class="p-shadow" cx="' + (p[0] + 2).toFixed(1) + '" cy="' + (p[1] + 4).toFixed(1) + '" rx="10" ry="5"></ellipse>';
+    out += '<rect class="p-body" x="' + (p[0] - 5).toFixed(1) + '" y="' + (p[1] - 16).toFixed(1) + '" width="10" height="15" rx="3.5"></rect>';
+    out += '<circle class="p-head" cx="' + p[0].toFixed(1) + '" cy="' + (p[1] - 19.5).toFixed(1) + '" r="4"></circle>';
+    out += '<g class="p-chip"><rect x="' + (p[0] - 16).toFixed(1) + '" y="' + (p[1] - 36).toFixed(1) + '" width="32" height="11" rx="2"></rect>' +
+      '<text x="' + p[0].toFixed(1) + '" y="' + (p[1] - 27.5).toFixed(1) + '">' + pl.label + '</text></g></g>';
+    return out;
+  }
+
+  var sorted = objects.map(function (o) { return { depth: o.x + o.w / 2 + (o.y + o.d / 2), o: o }; })
+    .concat(players.map(function (p) { return { depth: p.x + p.y, p: p }; }))
+    .sort(function (a, b) { return a.depth - b.depth; });
+
+  sorted.forEach(function (item) {
+    markup += item.o ? objectMarkup(item.o) : playerMarkup(item.p);
+  });
+
+  // Las tres acciones se colocan alrededor del jugador y las guías salen del
+  // anillo: así el radial queda anclado al personaje y no al azar del encuadre.
+  var slots = { a: [ 0, -150 ], b: [ -158, 66 ], c: [ 158, 66 ] };
+  var ringY = sp[1] - 16;
+  var leaders = '';
+  Object.keys(slots).forEach(function (key) {
+    var dx = slots[key][0], dy = slots[key][1];
+    var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    var ux = dx / dist, uy = dy / dist;
+    var cx = sp[0] + dx, cy = sp[1] + dy;
+    leaders += '<line class="leader" x1="' + (sp[0] + ux * 70).toFixed(1) + '" y1="' + (ringY + uy * 70).toFixed(1) +
+      '" x2="' + (cx - ux * 24).toFixed(1) + '" y2="' + (cy - uy * 24).toFixed(1) + '"></line>';
+    var btn = document.querySelector('.radial-action[data-slot="' + key + '"]');
+    btn.style.left = (cx - 98) + 'px';
+    btn.style.top = (cy - 21) + 'px';
+  });
+
+  var chip = document.getElementById('chip');
+  chip.style.left = sp[0] + 'px';
+  chip.style.top = (ringY - 78) + 'px';
+
+  svg.innerHTML = markup + labels + leaders;
+
+  function raise(event) {
+    var g = event.target.closest ? event.target.closest('.obj') : null;
+    if (g && g.parentNode === svg) svg.appendChild(g);
+  }
+  svg.addEventListener('mouseover', raise);
+  svg.addEventListener('focusin', raise);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Sistema de diseño · The Last Expedition</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #070910;
+    --bg-soft: #0d1220;
+    --panel: #111a2b;
+    --panel-2: #16223a;
+    --line: #26365a;
+    --line-strong: #3d5687;
+    --text: #e6ecfb;
+    --text-dim: #a9b6d3;
+    --text-faint: #7d8bab;
+    --accent: #6fd3c7;
+    --accent-2: #ffcf6b;
+    --ok: #6fd98a;
+    --warn: #ffcf6b;
+    --critical: #ff7a7a;
+    --focus: #ffe082;
+    --radius: 0.5rem;
+    --gap: 0.75rem;
+    --pad: 0.9rem;
+    --font: ui-monospace, SFMono-Regular, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  body {
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(111, 211, 199, 0.09), transparent 45%),
+      radial-gradient(circle at 90% 10%, rgba(255, 207, 107, 0.07), transparent 40%);
+  }
+
+  .sheet { width: 1440px; margin: 0 auto; padding: 1.5rem 2rem 2.5rem; }
+
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  h1, h2, h3 { margin: 0; line-height: 1.2; letter-spacing: 0.02em; font-weight: 700; }
+  h1 { font-size: 1.8rem; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.05rem; color: var(--accent); }
+  p { margin: 0; }
+
+  .masthead {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: var(--gap); flex-wrap: wrap;
+    border-bottom: 1px solid var(--line-strong);
+    padding-bottom: 0.75rem; margin-bottom: 1.25rem;
+  }
+  .masthead .source { color: var(--text-dim); font-size: 0.85rem; max-width: 46rem; }
+  .masthead .tag {
+    border: 1px solid var(--line-strong); border-radius: 999px;
+    padding: 0.1rem 0.55rem; font-size: 0.8rem; color: var(--text-dim); background: var(--bg-soft);
+  }
+
+  section { margin-bottom: 1.5rem; }
+  section > header {
+    display: flex; align-items: baseline; gap: 0.6rem;
+    border-bottom: 1px dashed var(--line); padding-bottom: 0.3rem; margin-bottom: 0.75rem;
+  }
+  section > header .hint { color: var(--text-faint); font-size: 0.85rem; }
+
+  .panel {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--panel), var(--bg-soft));
+    padding: var(--pad);
+  }
+
+  .swatches { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--gap); }
+  .swatch { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--bg-soft); }
+  .swatch .chip-color { height: 62px; border-bottom: 1px solid var(--line); display: block; box-shadow: inset 0 0 0 1px rgba(230, 236, 251, 0.09); }
+  .swatch .meta { padding: 0.45rem 0.55rem; display: flex; flex-direction: column; gap: 0.15rem; }
+  .swatch code { color: var(--text); font-size: 0.8rem; }
+  .swatch .hex { color: var(--text-dim); font-size: 0.78rem; }
+  .swatch .use { color: var(--text-faint); font-size: 0.75rem; }
+
+  .scale { display: grid; grid-template-columns: 9rem minmax(0, 1fr) 12rem; gap: 0.4rem var(--gap); align-items: baseline; }
+  .scale .spec { color: var(--text-faint); font-size: 0.8rem; }
+  .scale .label { color: var(--text-dim); font-size: 0.8rem; }
+
+  .spacing-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+  .spacing-row .bar { height: 12px; background: var(--accent); border-radius: 2px; flex: 0 0 auto; }
+  .spacing-row .bar.dim { background: var(--line-strong); }
+  .spacing-row code { font-size: 0.82rem; color: var(--text); min-width: 6rem; }
+  .spacing-row .note { color: var(--text-faint); font-size: 0.8rem; }
+
+  .radii { display: flex; flex-wrap: wrap; gap: 1rem; }
+  .radii .specimen {
+    width: 118px; height: 74px; background: var(--panel-2); border: 1px solid var(--line-strong);
+    display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 0.78rem;
+  }
+  .radii .r-token { border-radius: var(--radius); }
+  .radii .r-pill { border-radius: 999px; }
+  .radii .r-square { border-radius: 2px; }
+  .radii .r-circle { border-radius: 50%; width: 74px; }
+
+  .shadow-row { display: flex; gap: var(--gap); flex-wrap: wrap; }
+  .shadow-row .plate {
+    flex: 1 1 12rem; background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 0.6rem 0.7rem; font-size: 0.8rem; color: var(--text-dim);
+  }
+  .shadow-row .plate strong { color: var(--text); display: block; font-size: 0.82rem; }
+  .s-tutorial { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); border-color: var(--focus); }
+  .s-toast { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
+  .s-tooltip { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55); }
+  .s-selected { box-shadow: inset 0 0 0 1px var(--accent); border-color: var(--accent); color: var(--text); }
+
+  .components { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); }
+  .demo { border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-soft); padding: var(--pad); display: flex; flex-direction: column; gap: 0.55rem; }
+  .demo > h3 { margin-bottom: 0.1rem; }
+  .demo .caption { color: var(--text-faint); font-size: 0.78rem; }
+  .demo .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+
+  button {
+    font: inherit; color: inherit; min-height: 2.4rem; padding: 0.4rem 0.8rem;
+    border: 1px solid var(--line-strong); border-radius: var(--radius);
+    background: var(--panel-2); cursor: pointer; text-align: left;
+    transition: background 120ms linear, border-color 120ms linear;
+  }
+  button:hover { background: #1d2c4a; border-color: var(--accent); }
+  button:disabled { opacity: 0.55; cursor: not-allowed; }
+  button[aria-pressed="true"] {
+    border-color: var(--accent); background: rgba(111, 211, 199, 0.16);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #04120f; font-weight: 700; }
+  button.danger { border-color: var(--critical); color: var(--critical); background: none; }
+  button.ghost { background: none; border-color: transparent; }
+  button.icon { min-width: 2.4rem; text-align: center; padding: 0.3rem; }
+
+  label { display: block; font-size: 0.9rem; color: var(--text-dim); margin-bottom: 0.2rem; }
+  select, input[type="text"] {
+    min-height: 2.2rem; padding: 0.3rem 0.5rem; border: 1px solid var(--line-strong);
+    border-radius: var(--radius); background: var(--bg-soft); color: var(--text);
+    font: inherit; width: 100%;
+  }
+
+  .card { border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(180deg, var(--panel), var(--bg-soft)); padding: var(--pad); }
+  .card h3 { margin-bottom: 0.25rem; }
+  .card p { color: var(--text-dim); font-size: 0.88rem; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 0.35rem; border: 1px solid var(--line-strong);
+    border-radius: 999px; padding: 0.1rem 0.55rem; font-size: 0.8rem; color: var(--text-dim); background: var(--bg-soft);
+  }
+
+  .status-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .status-line { display: grid; grid-template-columns: 1.1rem 1.1rem minmax(0, 1fr) auto; gap: 0.5rem; align-items: center; font-size: 0.82rem; }
+  .shape { display: inline-block; width: 0.9rem; height: 0.9rem; background: currentColor; flex: 0 0 auto; }
+  .shape--square { border-radius: 2px; }
+  .shape--circle { border-radius: 50%; }
+  .shape--triangle { clip-path: polygon(50% 0%, 100% 100%, 0% 100%); }
+  .shape--diamond { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+  .status--ok { color: var(--ok); }
+  .status--warn { color: var(--warn); }
+  .status--critical { color: var(--critical); }
+  .status-line .glyph { color: var(--text-dim); }
+  .status-line .name { color: var(--text); }
+  .status-line .state { color: var(--text-dim); font-size: 0.78rem; }
+
+  .bar { position: relative; height: 0.55rem; border-radius: 999px; background: #0a1322; border: 1px solid var(--line); overflow: hidden; }
+  .bar > span { display: block; height: 100%; background: var(--ok); }
+  .bar.is-warn > span { background: var(--warn); }
+  .bar.is-critical > span { background: var(--critical); }
+  .bar-label { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-dim); margin-bottom: 0.2rem; }
+
+  .focus-demo { display: inline-block; }
+  .focus-demo button { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  .proposal {
+    border: 1px dashed var(--accent-2);
+    border-radius: var(--radius);
+    background: rgba(255, 207, 107, 0.06);
+    padding: var(--pad);
+  }
+  .proposal h3 { color: var(--accent-2); }
+  .proposal table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .proposal th, .proposal td { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .proposal th { color: var(--text-dim); font-weight: 600; }
+  .proposal code { color: var(--text); }
+
+  footer.notes { border-top: 1px solid var(--line-strong); margin-top: 1.5rem; padding-top: 0.75rem; color: var(--text-dim); font-size: 0.82rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+<main class="sheet">
+
+  <header class="masthead">
+    <div>
+      <p class="tag">design/system.html · 1440 px</p>
+      <h1>Sistema de diseño</h1>
+      <p class="source">Tokens leídos de <code>css/main.css</code>; componentes y reglas de
+        <code>css/design.css</code>, <code>css/travel.css</code> y <code>css/overlays.css</code>.
+        Nada de esta hoja inventa un valor: lo que no existe está al pie como propuesta.</p>
+    </div>
+    <p class="tag">Tema: consola de misión oscura · 1 familia monoespaciada</p>
+  </header>
+
+  <section aria-labelledby="s-color">
+    <header>
+      <h2 id="s-color">Color base</h2>
+      <span class="hint">15 tokens · <code>css/main.css:14-28</code> · contraste AA medido sobre <code>--panel</code></span>
+    </header>
+    <div class="swatches">
+      <article class="swatch"><span class="chip-color" style="background: var(--bg)"></span><div class="meta"><code>--bg</code><span class="hex">#070910</span><span class="use">Fondo de ventana y chasis</span></div></article>
+      <article class="swatch"><span class="chip-color" style="background: var(--bg-soft)"></span><div class="meta"><code>--bg-soft</code><span class="hex">#0d1220</span><span class="use">Campos y filas internas</span></div></article>
+      <article class="swatch"><span class="chip-color" style="background: var(--panel)"></span><div class="meta"><code>--panel</code><span class="hex">#111a2b</span><span class="use">Superficie de panel</span></div></article>
+      <article class="swatch"><span class="chip-color" style="background: var(--panel-2)"></span><div class="meta"><code>--panel-2</code><span class="hex">#16223a</span><span class="use">Cara superior de tarjeta</span></div></article>
+      <article class="swatch"><span class="chip-color" style="background: var(--line)"></span><div class="meta"><code>--line</code><span class="hex">#26365a</span><span class="use">Separadores (1.5:1, decorativo)</span></div></article>
+      <article class="swatch"><span class="chip-color" style="background: var(--line-strong)"></span><div class="meta"><code>--line-strong</code><span class="hex">#3d5687</span><span class="use">Borde de control (2.4:1)</span></div></article>
+      <article class="swatch"><span class="chip-color" style="background: var(--text)"></span><div class="meta"><code>--text</code><span class="hex">#e6ecfb</span><span class="use">Texto principal · 14.7:1</span></div></article>
+      <article class="swatch"><span class="chip-color" style="background: var(--text-dim)"></span><div class="meta"><code>--text-dim</code><span class="hex">#a9b6d3</span><span class="use">Etiquetas · 8.6:1</span></div></article>
+      <article class="swatch"><span class="chip-color" style="background: var(--text-faint)"></span><div class="meta"><code>--text-faint</code><span class="hex">#7d8bab</span><span class="use">Terciario · 5.1:1</span></div></article>
+      <article class="swatch"><span class="chip-color" style="background: var(--accent)"></span><div class="meta"><code>--accent</code><span class="hex">#6fd3c7</span><span class="use">Énfasis y selección · 9.8:1</span></div></article>
+      <article class="swatch"><span class="chip-color" style="background: var(--accent-2)"></span><div class="meta"><code>--accent-2</code><span class="hex">#ffcf6b</span><span class="use">Segundo énfasis · 11.9:1</span></div></article>
+      <article class="swatch"><span class="chip-color" style="background: var(--ok)"></span><div class="meta"><code>--ok</code><span class="hex">#6fd98a</span><span class="use">Nominal · 9.9:1</span></div></article>
+      <article class="swatch"><span class="chip-color" style="background: var(--warn)"></span><div class="meta"><code>--warn</code><span class="hex">#ffcf6b</span><span class="use">Aviso · 11.9:1</span></div></article>
+      <article class="swatch"><span class="chip-color" style="background: var(--critical)"></span><div class="meta"><code>--critical</code><span class="hex">#ff7a7a</span><span class="use">Crítico · 6.9:1</span></div></article>
+      <article class="swatch"><span class="chip-color" style="background: var(--focus)"></span><div class="meta"><code>--focus</code><span class="hex">#ffe082</span><span class="use">Anillo de foco · 13.5:1</span></div></article>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-type">
+    <header>
+      <h2 id="s-type">Escala tipográfica</h2>
+      <span class="hint">una familia: <code>--font</code> · tamaños en <code>rem</code> para 100/125/150 %</span>
+    </header>
+    <div class="panel scale">
+      <p class="spec"><code>--font</code></p>
+      <p style="font-size: 0.9rem">ui-monospace, SFMono-Regular, Cascadia Mono, Segoe UI Mono, Menlo, Consolas</p>
+      <p class="label">Familia única del sistema; sin fuentes remotas.</p>
+
+      <p class="spec">2.2rem / 700</p>
+      <p style="font-size: 2.2rem; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.2">La última expedición</p>
+      <p class="label">Título de pantalla (<code>css/main.css:446</code>), mayúsculas y 0.08em.</p>
+
+      <p class="spec">1.8rem / 700</p>
+      <p style="font-size: 1.8rem; line-height: 1.2">Censo de Ceres</p>
+      <p class="label"><code>h1</code> (<code>css/main.css:111</code>).</p>
+
+      <p class="spec">1.25rem / 700</p>
+      <p style="font-size: 1.25rem; line-height: 1.2">Mesa de instrumentos</p>
+      <p class="label"><code>h2</code> (<code>css/main.css:115</code>).</p>
+
+      <p class="spec">1.05rem / 700</p>
+      <p style="font-size: 1.05rem; line-height: 1.2; color: var(--accent)">Recursos</p>
+      <p class="label"><code>h3</code> en <code>--accent</code> (<code>css/main.css:119</code>).</p>
+
+      <p class="spec">1rem / 1.5</p>
+      <p>Cada grupo tiene una versión simple y una avanzada. La avanzada suele dar más rendimiento y también más masa, potencia y coste.</p>
+      <p class="label">Cuerpo (<code>css/main.css:75-76</code>).</p>
+
+      <p class="spec">0.9rem</p>
+      <p style="font-size: 0.9rem; color: var(--text-dim)">Etiqueta de campo: Órbita</p>
+      <p class="label"><code>label</code> en <code>--text-dim</code> (<code>css/main.css:260</code>).</p>
+
+      <p class="spec">0.85rem</p>
+      <p style="font-size: 0.85rem; color: var(--text-faint)">La radiación más alta de las cuatro; planifica cada contacto.</p>
+      <p class="label"><code>.faint</code> en <code>--text-faint</code> (<code>css/main.css:330</code>).</p>
+
+      <p class="spec">0.8rem</p>
+      <p><span class="badge">Datos críticos</span></p>
+      <p class="label">Badge y chip (<code>css/main.css:340</code>).</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-space">
+    <header>
+      <h2 id="s-space">Espaciado</h2>
+      <span class="hint"><code>--gap</code> y <code>--pad</code> son tokens; el resto son literales repetidos en los CSS</span>
+    </header>
+    <div class="panel">
+      <div class="spacing-row"><code>--gap</code><span class="bar" style="width: 0.75rem"></span><span class="note">0.75rem · separación entre paneles</span></div>
+      <div class="spacing-row"><code>--pad</code><span class="bar" style="width: 0.9rem"></span><span class="note">0.9rem · relleno de panel y tarjeta</span></div>
+      <div class="spacing-row"><code>0.5rem</code><span class="bar dim" style="width: 0.5rem"></span><span class="note">filas, sub-columnas y grupos de botones</span></div>
+      <div class="spacing-row"><code>0.4rem</code><span class="bar dim" style="width: 0.4rem"></span><span class="note">relleno de botón y listas</span></div>
+      <div class="spacing-row"><code>0.3rem</code><span class="bar dim" style="width: 0.3rem"></span><span class="note">rejilla compacta y botón icono</span></div>
+      <div class="spacing-row"><code>1rem</code><span class="bar dim" style="width: 1rem"></span><span class="note">margen del tutorial flotante</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-radius">
+    <header>
+      <h2 id="s-radius">Radios y elevación</h2>
+      <span class="hint"><code>--radius</code> 0.5rem · píldora 999px · cuadrado 2px · círculo 50 %</span>
+    </header>
+    <div class="panel radii">
+      <div class="specimen r-token">--radius</div>
+      <div class="specimen r-pill">999px</div>
+      <div class="specimen r-square">2px</div>
+      <div class="specimen r-circle">50%</div>
+    </div>
+    <div class="panel shadow-row" style="margin-top: var(--gap)">
+      <div class="plate s-tutorial"><strong>Tutorial · 0 8px 24px / 50 %</strong>Borde <code>--focus</code>, el elemento que pide una decisión.</div>
+      <div class="plate s-toast"><strong>Aviso · 0 4px 16px / 45 %</strong>Borde izquierdo de color según el tipo de aviso.</div>
+      <div class="plate s-tooltip"><strong>Tooltip · 0 6px 20px / 55 %</strong>Fondo <code>#04060c</code>, texto <code>--text</code>.</div>
+      <div class="plate s-selected"><strong>Seleccionado</strong><code>inset 0 0 0 1px var(--accent)</code> sobre relleno al 16 %.</div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-comp">
+    <header>
+      <h2 id="s-comp">Componentes base</h2>
+      <span class="hint">botón, tarjeta, campo, indicador de estado (forma + icono) y barra de progreso</span>
+    </header>
+    <div class="components">
+      <article class="demo">
+        <h3>Botón</h3>
+        <div class="row">
+          <button type="button" class="primary">Lanzar misión</button>
+          <button type="button" aria-pressed="true">Órbita media</button>
+        </div>
+        <div class="row">
+          <button type="button">Guardar diseño</button>
+          <button type="button" class="danger">Descartar</button>
+          <button type="button" class="ghost">Volver</button>
+        </div>
+        <div class="row">
+          <button type="button" disabled>Bloqueado: falta potencia</button>
+        </div>
+        <p class="caption">Altura mínima 2.4rem. Deshabilitado al 55 %; el motivo va siempre escrito, nunca solo atenuado.</p>
+      </article>
+
+      <article class="demo">
+        <h3>Campo</h3>
+        <div>
+          <label for="orbita">Órbita</label>
+          <select id="orbita">
+            <option>Órbita baja · cobertura 55 %</option>
+            <option selected>Órbita media · cobertura 70 %</option>
+            <option>Órbita alta · cobertura 45 %</option>
+          </select>
+        </div>
+        <div>
+          <label for="nombre">Nombre del diseño</label>
+          <input id="nombre" type="text" value="Ceres · radar y memoria">
+        </div>
+        <p class="caption">Etiqueta arriba, control con borde <code>--line-strong</code> y fondo <code>--bg-soft</code>.</p>
+      </article>
+
+      <article class="demo">
+        <h3>Tarjeta</h3>
+        <div class="card">
+          <h3>Nevera</h3>
+          <p>Mantiene las raciones frías; cada apertura cuesta frescura. La revisión de la junta sube la fiabilidad del soporte vital.</p>
+          <span class="badge">Frescura 88 %</span>
+        </div>
+        <p class="caption">Borde <code>--line</code>, degradado <code>--panel → --bg-soft</code>, relleno <code>--pad</code>.</p>
+      </article>
+
+      <article class="demo">
+        <h3>Estado: forma + icono + palabra</h3>
+        <div class="status-list">
+          <div class="status-line">
+            <span class="shape shape--circle status--ok" aria-hidden="true"></span>
+            <span class="glyph status--ok" aria-hidden="true">●</span>
+            <span class="name">Datos · 42 de 50 KB</span>
+            <span class="state">Nominal</span>
+          </div>
+          <div class="status-line">
+            <span class="shape shape--triangle status--warn" aria-hidden="true"></span>
+            <span class="glyph status--warn" aria-hidden="true">▲</span>
+            <span class="name">Potencia · 240 de 300 W</span>
+            <span class="state">Justo</span>
+          </div>
+          <div class="status-line">
+            <span class="shape shape--diamond status--critical" aria-hidden="true"></span>
+            <span class="glyph status--critical" aria-hidden="true">◆</span>
+            <span class="name">Presupuesto · 12 M€ restantes</span>
+            <span class="state">Crítico</span>
+          </div>
+        </div>
+        <p class="caption">El estado nunca depende solo del color (S29): forma fija por recurso (C-6), glifo y palabra.</p>
+      </article>
+
+      <article class="demo">
+        <h3>Barra de progreso</h3>
+        <div>
+          <p class="bar-label"><span>Soporte vital</span><span>86 %</span></p>
+          <div class="bar" role="img" aria-label="Soporte vital al 86 por ciento"><span style="width: 86%"></span></div>
+        </div>
+        <div>
+          <p class="bar-label"><span>Energía</span><span>38 %</span></p>
+          <div class="bar is-warn" role="img" aria-label="Energía al 38 por ciento"><span style="width: 38%"></span></div>
+        </div>
+        <div>
+          <p class="bar-label"><span>Bomba de agua</span><span>11 %</span></p>
+          <div class="bar is-critical" role="img" aria-label="Bomba de agua al 11 por ciento"><span style="width: 11%"></span></div>
+        </div>
+        <p class="caption">Alto 0.55rem, píldora, pista <code>#0a1322</code>; el estado se repite con texto.</p>
+      </article>
+
+      <article class="demo">
+        <h3>Foco de teclado</h3>
+        <div class="row">
+          <span class="focus-demo"><button type="button">Revisar la bomba</button></span>
+        </div>
+        <p class="caption">Anillo de 3 px en <code>--focus</code> con 2 px de separación. El foco no se confunde con la selección, que usa borde y relleno de acento.</p>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-prop">
+    <header>
+      <h2 id="s-prop">Propuestas</h2>
+      <span class="hint">no existen en <code>css/*.css</code>; los artboards no las usan</span>
+    </header>
+    <div class="proposal">
+      <h3>Candidatas a token</h3>
+      <table>
+        <thead><tr><th>Token</th><th>Valor propuesto</th><th>Para qué</th></tr></thead>
+        <tbody>
+          <tr><td><code>--bevel-hi</code></td><td><code>rgba(230, 236, 251, 0.14)</code></td><td>Arista iluminada del bisel de chasis, hoy literal en los artboards</td></tr>
+          <tr><td><code>--bevel-lo</code></td><td><code>rgba(0, 0, 0, 0.55)</code></td><td>Arista en sombra del mismo bisel</td></tr>
+          <tr><td><code>--scanline</code></td><td><code>repeating-linear-gradient(0deg, rgba(230, 236, 251, 0.03) 0 1px, transparent 1px 3px)</code></td><td>Textura de pantalla de la consola</td></tr>
+          <tr><td><code>--hinge</code></td><td><code>0.9rem</code></td><td>Bisagra que une el visor con el chasis</td></tr>
+          <tr><td><code>--screw</code></td><td><code>10px</code></td><td>Diámetro del tornillo del chasis</td></tr>
+          <tr><td><code>--stamp</code></td><td><code>-4deg</code></td><td>Inclinación del sello de autorización de lanzamiento</td></tr>
+          <tr><td><code>--gauge-track</code></td><td><code>var(--line)</code></td><td>Pista de los gauges, hoy <code>#0a1322</code> de <code>.bar</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="notes">
+    Autochequeo: 15 tokens base, una familia tipográfica, radios de §5 y sombras de §6; sin URL
+    externa, sin imagen y sin fuente remota. El contraste de cada token está medido sobre
+    <code>--panel</code>; <code>--line</code> y <code>--line-strong</code> no llegan a 3:1 como
+    borde único, por eso los controles de los artboards suman un filete derivado de
+    <code>--text-faint</code> (ver <code>design/system.md</code> §9).
+  </footer>
+
+</main>
+</body>
+</html>

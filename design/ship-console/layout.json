@@ -1,0 +1,21 @@
+{
+  "arrangement": "free",
+  "positions": {
+    "system": {
+      "x": 382,
+      "y": 142
+    },
+    "01-mission-console.html": {
+      "x": 1885,
+      "y": 71
+    },
+    "02-flight-deck.html": {
+      "x": 3405,
+      "y": 71
+    },
+    "03-flight-deck-holo.html": {
+      "x": 4891,
+      "y": 92
+    }
+  }
+}

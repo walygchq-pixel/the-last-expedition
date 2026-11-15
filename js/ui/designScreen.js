@@ -4,8 +4,13 @@
  * La pantalla no guarda estado propio: el diseño vive en `shell.state.design`,
  * así que cambiar de idioma o re-renderizar no pierde ninguna elección (I-2).
  * Cada cambio de pieza llama a `mission/design`, que recalcula los totales, y la
- * pantalla sólo vuelve a pintar las secciones derivadas: recursos, lista
- * verificable y panel de lanzamiento (DM-5, DM-2, DM-11).
+ * pantalla sólo vuelve a pintar las secciones derivadas: telemetría, lista
+ * verificable y permiso de despegue (DM-5, DM-2, DM-11).
+ *
+ * La composición es un chasis de consola de nave: cabecera de instrumentación,
+ * tres columnas densas con scroll propio y franja de autorización al pie. No usa
+ * anchos fijos en píxeles: todo va en `rem` para que 100/125/150 % escale junto
+ * (I-14, S82).
  */
 (function (global, factory) {
   'use strict';
@@ -39,6 +44,10 @@
     return tr.formatPercent(isFinite(value) ? value / 100 : 0, 0);
   }
 
+  function pad2(value) {
+    return value < 10 ? '0' + value : String(value);
+  }
+
   /**
    * Pantalla completa de diseño. Devuelve `{id, node}` para el router.
    * @param {Object} ctx ayudantes y estado de `js/ui/shell`
@@ -65,6 +74,10 @@
 
     /* --- Ayudantes de formato ---------------------------------------- */
 
+    function totalsOf() {
+      return design.totals && design.totals.mass !== undefined ? design.totals : designModule.refresh(design);
+    }
+
     function statsTooltip(part) {
       return t('design.part_stats', {
         mass: tr.formatUnit(part.mass || 0, 'unit.kg'),
@@ -90,218 +103,605 @@
       var wrap = ctx.el('div', { class: 'science-tags' });
       Object.keys(instrument.science || {}).forEach(function (tag) {
         wrap.appendChild(
-          ctx.el('span', { class: 'chip', text: t('design.science_chip', { tag: t('science.tag.' + tag), value: instrument.science[tag] }) })
+          ctx.el('span', {
+            class: 'chip',
+            text: t('design.science_chip', {
+              tag: t('science.tag.' + tag),
+              value: instrument.science[tag]
+            })
+          })
         );
       });
       return wrap;
     }
 
-    /* --- Cabecera y objetivo ----------------------------------------- */
+    function partMetrics(part) {
+      return (
+        tr.formatUnit(part.mass || 0, 'unit.kg') +
+        ' · ' +
+        tr.formatUnit(part.cost || 0, 'unit.meur') +
+        ' · ' +
+        percent(tr, part.reliability)
+      );
+    }
 
-    function buildHeader() {
-      var head = ctx.el('div', { class: 'design-header' });
-      var titles = ctx.el('div', { class: 'stack' }, [
-        ctx.el('h1', { text: t('design.title') }),
-        ctx.el('div', { class: 'row tight' }, [
-          ctx.el('span', { class: 'badge', text: t(scenario.nameKey || 'scenario.' + design.scenarioId + '.name') }),
-          ctx.el('span', { class: 'badge', text: t('diff.' + design.difficultyId + '.name') }),
-          ctx.el('span', { class: 'badge', text: t('mode.' + design.mode + '.name') }),
-          ctx.el('span', { class: 'badge', text: t('design.budget_badge', { budget: tr.formatUnit(design.budget, 'unit.meur') }) })
-        ])
-      ]);
-      var actions = ctx.el('div', { class: 'row tight' }, [
-        ctx.el('button', { type: 'button', text: t('common.save'), onclick: saveDesign }),
-        ctx.el('button', { type: 'button', text: t('design.load'), onclick: toggleSaved }),
-        ctx.el('button', { type: 'button', text: t('common.export'), onclick: exportDesign }),
-        ctx.el('button', { type: 'button', text: t('common.import'), onclick: importDesign }),
-        ctx.el('button', {
-          type: 'button',
-          class: 'ghost',
-          text: t('common.back'),
-          onclick: function () {
-            ctx.back();
-          }
-        })
-      ]);
-      head.appendChild(titles);
-      head.appendChild(actions);
-      return head;
+    function launchState() {
+      return designModule.validateLaunch(design);
+    }
+
+    /* --- Chasis y cabecera de estado --------------------------------- */
+
+    // Tornillos del marco: decorativos, fuera del flujo de la rejilla.
+    function buildScrews() {
+      return ['tl', 'tr', 'bl', 'br'].map(function (corner) {
+        return ctx.el('span', {
+          class: 'console-screw console-screw--' + corner,
+          'aria-hidden': 'true'
+        });
+      });
     }
 
     function buildObjective() {
-      var card = ctx.el('article', { id: 'design-objective', class: 'card objective-card' }, [
-        ctx.el('h2', { text: t('design.objective') })
-      ]);
+      var box = ctx.el('div', {
+        id: 'design-objective',
+        class: 'console-objective',
+        'data-tutorial': 'design-objective',
+        tabindex: '0'
+      });
+      box.appendChild(ctx.el('span', { class: 'console-objective__label', text: t('design.objective') }));
       if (objective) {
-        card.appendChild(ctx.el('h3', { text: t(objective.nameKey) }));
-        card.appendChild(ctx.el('p', { text: t(objective.descKey) }));
+        box.appendChild(ctx.el('strong', { class: 'console-objective__name', text: t(objective.nameKey) }));
       } else {
-        card.appendChild(ctx.el('p', { class: 'muted', text: t('common.none') }));
+        box.appendChild(ctx.el('strong', { class: 'console-objective__name', text: t('common.none') }));
       }
-      if (scenario.briefKey) card.appendChild(ctx.el('p', { class: 'brief', text: t(scenario.briefKey) }));
-      card.appendChild(
-        ctx.el('p', {
-          class: 'faint',
+      box.appendChild(
+        ctx.el('span', {
+          class: 'console-objective__meta',
           text: t('design.objective_meta', {
             critical: t('res.critical', { resource: t('res.' + (scenario.critical || 'power') + '.name') }),
             amount: tr.formatUnit(scenario.requiredData || 0, 'unit.kb')
           })
         })
       );
-      return card;
+      // La descripción completa y el informe del escenario quedan a un foco o
+      // un hover: la franja de estado muestra lo accionable y no se come el mazo.
+      var details = [];
+      if (objective) details.push(t(objective.descKey));
+      if (scenario.briefKey) details.push(t(scenario.briefKey));
+      if (details.length > 0) {
+        ctx.tooltip(box, function () {
+          return details.join(' ');
+        });
+      }
+      return box;
     }
 
-    /* --- Componentes e instrumentos ---------------------------------- */
+    function buildActions() {
+      return ctx.el('div', { class: 'console-actions' }, [
+        ctx.el('button', { type: 'button', class: 'console-action', text: t('common.save'), onclick: saveDesign }),
+        ctx.el('button', { type: 'button', class: 'console-action', text: t('design.load'), onclick: toggleSaved }),
+        ctx.el('button', { type: 'button', class: 'console-action', text: t('common.export'), onclick: exportDesign }),
+        ctx.el('button', { type: 'button', class: 'console-action', text: t('common.import'), onclick: importDesign }),
+        ctx.el('button', {
+          type: 'button',
+          class: 'console-action console-action--back',
+          text: t('common.back'),
+          onclick: function () {
+            ctx.back();
+          }
+        })
+      ]);
+    }
+
+    function buildHeader() {
+      var totals = totalsOf();
+      var launch = launchState();
+      var head = ctx.el('header', { class: 'console-status' }, [
+        ctx.el('div', { class: 'console-brand' }, [
+          ctx.el('h1', { class: 'console-brand__name', text: t('app.title') }),
+          ctx.el('span', { class: 'console-brand__unit', text: t('design.title') })
+        ]),
+        ctx.el('div', { class: 'console-mission__id' }, [
+          ctx.el('strong', {
+            class: 'console-scenario',
+            text: t(scenario.nameKey || 'scenario.' + design.scenarioId + '.name')
+          }),
+          ctx.el('span', { class: 'console-chip', text: t('diff.' + design.difficultyId + '.name') }),
+          ctx.el('span', { class: 'console-chip', text: t('mode.' + design.mode + '.name') })
+        ]),
+        ctx.el('div', { class: 'console-readouts' }, [
+          ctx.el('div', { class: 'console-readout' }, [
+            ctx.el('b', { text: t('design.phase_design') }),
+            ctx.el('span', { text: t('design.phase') })
+          ]),
+          ctx.el('div', { class: 'console-readout' }, [
+            ctx.el('b', { id: 'design-readout-mass', text: tr.formatUnit(totals.mass, 'unit.kg') }),
+            ctx.el('span', { text: t('res.mass.name') })
+          ]),
+          ctx.el('div', { class: 'console-readout' }, [
+            ctx.el('b', { text: tr.formatUnit(design.budget, 'unit.meur') }),
+            ctx.el('span', { text: t('res.budget.name') })
+          ]),
+          ctx.el('div', { class: 'console-readout' }, [
+            ctx.el('b', { id: 'design-readout-cost', text: tr.formatUnit(totals.cost, 'unit.meur') }),
+            ctx.el('span', { text: t('design.cost') })
+          ]),
+          ctx.el('span', {
+            id: 'design-readout-state',
+            class: 'console-led ' + (launch.ok ? 'is-ready' : 'is-blocked'),
+            text: t(launch.ok ? 'design.launch_ready' : 'design.launch_blocked')
+          })
+        ]),
+        buildObjective(),
+        buildActions()
+      ]);
+      return head;
+    }
+
+    /* --- Columna izquierda: 12 grupos con palanca simple/avanzada ---- */
 
     function buildParts() {
-      var card = ctx.el('section', { id: 'design-parts', class: 'card' }, [
-        ctx.el('h2', { text: t('design.parts') }),
-        ctx.el('p', { class: 'faint', text: t('design.parts_hint') })
-      ]);
-      var groups = ctx.el('div', { class: 'part-groups' });
-      catalog.partGroups().forEach(function (group) {
-        var box = ctx.el('div', { class: 'part-group', 'data-group': group.id });
-        var head = ctx.el('div', { class: 'part-group__head' }, [
-          ctx.el('strong', { text: t(group.nameKey) })
-        ]);
-        box.appendChild(head);
-        box.appendChild(ctx.el('p', { class: 'part-group__desc', text: t(group.descKey) }));
-        var toggle = ctx.el('div', { class: 'version-toggle' });
-        catalog.partsForGroup(group.id).forEach(function (part) {
-          var button = ctx.el('button', {
-            type: 'button',
-            'data-group': group.id,
-            'data-version': part.version,
-            'aria-pressed': design.groups[group.id] === part.id ? 'true' : 'false',
-            text: t('design.part_option', {
-              name: t(part.nameKey),
-              version: t(part.version === 'advanced' ? 'design.advanced' : 'design.simple')
-            }),
-            onclick: function () {
-              designModule.setPartVersion(design, group.id, part.version);
-              syncSelections();
-              refreshDerived();
-            }
-          });
-          ctx.tooltip(button, function () {
-            return t('design.part_tooltip', { stats: statsTooltip(part), description: t(part.descKey) });
-          });
-          toggle.appendChild(button);
-        });
-        box.appendChild(toggle);
-        groups.appendChild(box);
+      var panel = ctx.el('section', {
+        id: 'design-parts',
+        class: 'console-panel console-panel--parts',
+        'aria-labelledby': 'design-parts-title'
       });
-      card.appendChild(groups);
-      return card;
+      panel.appendChild(
+        ctx.el('h2', { id: 'design-parts-title' }, [
+          ctx.el('span', { text: t('design.parts') }),
+          ctx.el('em', { text: pad2(catalog.partGroups().length) })
+        ])
+      );
+      panel.appendChild(ctx.el('p', { class: 'console-hint', text: t('design.parts_hint') }));
+
+      var rack = ctx.el('ol', { class: 'part-rack' });
+      catalog.partGroups().forEach(function (group, index) {
+        rack.appendChild(buildPartUnit(group, index));
+      });
+      panel.appendChild(rack);
+      return panel;
     }
 
-    function buildInstruments() {
-      var card = ctx.el('section', { class: 'card' }, [
-        ctx.el('h2', { text: t('design.instruments') }),
-        ctx.el('p', { class: 'faint', text: t('design.instruments_hint') })
-      ]);
-      var list = ctx.el('div', { class: 'instrument-list' });
-      catalog.instrumentEntries().forEach(function (entry) {
-        var cardBox = ctx.el('div', { class: 'instrument-card', 'data-instrument': entry.id });
-        cardBox.appendChild(ctx.el('strong', { text: t(entry.nameKey) }));
-        cardBox.appendChild(ctx.el('p', { class: 'faint', text: t(entry.descKey) }));
-        var selected = designModule.instrumentVersion(design, entry.id);
-        cardBox.classList.toggle('is-on', !!selected);
-        var choices = ctx.el('div', { class: 'version-toggle' });
-        [
-          { version: null, labelKey: 'common.none' },
-          { version: 'simple', labelKey: 'design.simple' },
-          { version: 'advanced', labelKey: 'design.advanced' }
-        ].forEach(function (choice) {
-          var button = ctx.el('button', {
-            type: 'button',
-            'aria-pressed': (selected || null) === choice.version ? 'true' : 'false',
-            text: t(choice.labelKey),
-            onclick: function () {
-              designModule.setInstrument(design, entry.id, choice.version);
-              ctx.rerender();
-            }
-          });
-          if (choice.version) {
-            var versionData = entry.versions[choice.version];
-            ctx.tooltip(button, function () {
-              return instrumentStats(versionData);
-            });
-          }
-          choices.appendChild(button);
-        });
-        cardBox.appendChild(choices);
-        if (selected && entry.versions[selected]) cardBox.appendChild(scienceChips(entry.versions[selected]));
-        list.appendChild(cardBox);
+    function buildPartUnit(group, index) {
+      var chosen = catalog.findPart(design.groups[group.id]);
+      var unit = ctx.el('li', { class: 'part-unit', 'data-group': group.id });
+      unit.appendChild(ctx.el('span', { class: 'part-unit__idx', 'aria-hidden': 'true', text: pad2(index + 1) }));
+      unit.appendChild(
+        ctx.el('span', { class: 'part-unit__what' }, [
+          ctx.el('strong', { class: 'part-unit__name', text: t(group.nameKey) }),
+          ctx.el('span', {
+            class: 'part-unit__metrics',
+            'data-part-metrics': group.id,
+            text: chosen ? partMetrics(chosen) : t('common.none')
+          })
+        ])
+      );
+
+      var lever = ctx.el('span', {
+        class: 'part-lever',
+        role: 'group',
+        'aria-label': t(group.nameKey)
       });
-      card.appendChild(list);
-      return card;
-    }
-
-    /* --- Lanzador y órbita ------------------------------------------- */
-
-    function buildLaunchers() {
-      var card = ctx.el('section', { class: 'card' }, [ctx.el('h2', { text: t('design.launcher') })]);
-      var list = ctx.el('div', { class: 'launcher-list' });
-      catalog.launchers().forEach(function (launcher) {
-        var selected = design.launcherId === launcher.id;
+      catalog.partsForGroup(group.id).forEach(function (part) {
+        var versionKey = part.version === 'advanced' ? 'design.advanced' : 'design.simple';
         var button = ctx.el('button', {
           type: 'button',
-          class: 'launcher-card' + (selected ? ' is-selected' : ''),
-          'aria-pressed': selected ? 'true' : 'false',
+          class: 'console-switch',
+          'data-group': group.id,
+          'data-version': part.version,
+          'data-tutorial': 'design-component',
+          'aria-pressed': design.groups[group.id] === part.id ? 'true' : 'false',
+          text: t(versionKey),
           onclick: function () {
-            designModule.setLauncher(design, selected ? null : launcher.id);
+            designModule.setPartVersion(design, group.id, part.version);
+            syncSelections();
+            refreshDerived();
+          }
+        });
+        ctx.tooltip(button, function () {
+          return t(group.descKey) + ' ' + t('design.part_tooltip', {
+            stats: statsTooltip(part),
+            description: t(part.descKey)
+          });
+        });
+        lever.appendChild(button);
+      });
+      unit.appendChild(lever);
+      return unit;
+    }
+
+    /* --- Columna central: mesa de instrumentos ----------------------- */
+
+    function buildInstruments() {
+      var panel = ctx.el('section', {
+        class: 'console-panel console-panel--bench',
+        'data-tutorial': 'design-instruments',
+        'aria-labelledby': 'design-bench-title'
+      });
+      panel.appendChild(
+        ctx.el('h2', { id: 'design-bench-title' }, [
+          ctx.el('span', { text: t('design.instruments') }),
+          ctx.el('em', { text: t('design.bench') + ' · ' + pad2(catalog.instrumentEntries().length) })
+        ])
+      );
+      panel.appendChild(ctx.el('p', { class: 'console-hint', text: t('design.instruments_hint') }));
+
+      var bench = ctx.el('div', { class: 'bench', role: 'list' });
+      catalog.instrumentEntries().forEach(function (entry) {
+        bench.appendChild(buildInstrumentRow(entry));
+      });
+      panel.appendChild(bench);
+      return panel;
+    }
+
+    function buildInstrumentRow(entry) {
+      var selected = designModule.instrumentVersion(design, entry.id);
+      var data = selected ? entry.versions[selected] : null;
+      var row = ctx.el('div', {
+        class: 'bench-row' + (data ? ' is-on' : ''),
+        'data-instrument': entry.id,
+        role: 'listitem'
+      });
+
+      var ident = ctx.el('div', { class: 'bench-row__ident' }, [
+        ctx.el('strong', { class: 'bench-row__name', text: t(entry.nameKey) }),
+        ctx.el('span', { class: 'bench-row__desc', text: t(entry.descKey) })
+      ]);
+      row.appendChild(ident);
+
+      var readout = ctx.el('div', { class: 'bench-row__readout' });
+      if (data) {
+        [
+          tr.formatUnit(data.mass || 0, 'unit.kg'),
+          tr.formatUnit(data.powerDraw || 0, 'unit.w'),
+          tr.formatUnit(data.cost || 0, 'unit.meur'),
+          tr.formatUnit(data.dataRate || 0, 'unit.kb'),
+          percent(tr, data.reliability)
+        ].forEach(function (text) {
+          readout.appendChild(ctx.el('span', { text: text }));
+        });
+        readout.appendChild(scienceChips(data));
+        ctx.tooltip(readout, function () {
+          return instrumentStats(data);
+        });
+      } else {
+        readout.appendChild(ctx.el('span', { class: 'faint', text: '\u2014' }));
+      }
+      row.appendChild(readout);
+
+      var lever = ctx.el('span', {
+        class: 'part-lever part-lever--instrument',
+        role: 'group',
+        'aria-label': t(entry.nameKey)
+      });
+      [
+        { version: null, labelKey: 'common.none' },
+        { version: 'simple', labelKey: 'design.simple' },
+        { version: 'advanced', labelKey: 'design.advanced' }
+      ].forEach(function (choice) {
+        var button = ctx.el('button', {
+          type: 'button',
+          class: 'console-switch',
+          'data-instrument-version': choice.version || 'none',
+          'aria-pressed': (selected || null) === choice.version ? 'true' : 'false',
+          text: t(choice.labelKey),
+          onclick: function () {
+            designModule.setInstrument(design, entry.id, choice.version);
             ctx.rerender();
           }
-        }, [
-          ctx.el('strong', { text: t(launcher.nameKey) }),
-          ctx.el('span', { class: 'part-group__desc', text: t(launcher.descKey) }),
-          ctx.el('span', { class: 'meta' }, [
-            ctx.el('span', { text: t('design.payload', { value: tr.formatUnit(launcher.payloadCapacity, 'unit.kg') }) }),
-            ctx.el('span', { text: t('design.launch_cost', { value: tr.formatUnit(launcher.cost, 'unit.meur') }) }),
-            ctx.el('span', { text: t('design.max_orbit', { rank: launcher.maxOrbitRank }) })
-          ])
-        ]);
-        list.appendChild(button);
+        });
+        if (choice.version) {
+          var versionData = entry.versions[choice.version];
+          ctx.tooltip(button, function () {
+            return instrumentStats(versionData);
+          });
+        }
+        lever.appendChild(button);
       });
-      card.appendChild(list);
-      return card;
+      row.appendChild(lever);
+      return row;
+    }
+
+    /* --- Lanzador y órbita: selectores de consola -------------------- */
+
+    function buildPicks() {
+      return ctx.el('div', { class: 'console-pair' }, [buildLaunchers(), buildOrbits()]);
+    }
+
+    function buildLaunchers() {
+      var panel = ctx.el('section', {
+        class: 'console-panel console-panel--picker',
+        'data-tutorial': 'design-launcher',
+        'aria-labelledby': 'design-launcher-title'
+      });
+      panel.appendChild(
+        ctx.el('h2', { id: 'design-launcher-title' }, [
+          ctx.el('span', { text: t('design.launcher') }),
+          ctx.el('em', { text: pad2(catalog.launchers().length) })
+        ])
+      );
+      var list = ctx.el('ul', { class: 'console-pick-list' });
+      catalog.launchers().forEach(function (launcher) {
+        list.appendChild(
+          ctx.el('li', null, [buildLauncherOption(launcher)])
+        );
+      });
+      panel.appendChild(list);
+      return panel;
+    }
+
+    function buildLauncherOption(launcher) {
+      var selected = design.launcherId === launcher.id;
+      var button = ctx.el('button', {
+        type: 'button',
+        class: 'console-pick' + (selected ? ' is-selected' : ''),
+        'data-launcher': launcher.id,
+        'aria-pressed': selected ? 'true' : 'false',
+        onclick: function () {
+          designModule.setLauncher(design, selected ? null : launcher.id);
+          ctx.rerender();
+        }
+      }, [
+        ctx.el('span', { class: 'console-pick__title' }, [
+          ctx.el('strong', { text: t(launcher.nameKey) }),
+          selected ? ctx.el('span', { class: 'console-pick__pick', text: t('design.selected') }) : null
+        ]),
+        ctx.el('span', { class: 'console-pick__desc', text: t(launcher.descKey) }),
+        ctx.el('span', { class: 'console-pick__metrics' }, [
+          ctx.el('span', { text: t('design.payload', { value: tr.formatUnit(launcher.payloadCapacity, 'unit.kg') }) }),
+          ctx.el('span', { text: t('design.launch_cost', { value: tr.formatUnit(launcher.cost, 'unit.meur') }) }),
+          ctx.el('span', { text: t('design.max_orbit', { rank: launcher.maxOrbitRank }) }),
+          ctx.el('span', { text: t('design.reliability', { value: percent(tr, launcher.reliability) }) })
+        ])
+      ]);
+      return button;
     }
 
     function buildOrbits() {
-      var card = ctx.el('section', { class: 'card' }, [ctx.el('h2', { text: t('design.orbit') })]);
-      var list = ctx.el('div', { class: 'orbit-list' });
-      catalog.orbits().forEach(function (orbit) {
-        var selected = design.orbitId === orbit.id;
-        var button = ctx.el('button', {
-          type: 'button',
-          class: 'orbit-card' + (selected ? ' is-selected' : ''),
-          'aria-pressed': selected ? 'true' : 'false',
-          onclick: function () {
-            designModule.setOrbit(design, selected ? null : orbit.id);
-            ctx.rerender();
-          }
-        }, [
-          ctx.el('strong', { text: t(orbit.nameKey) }),
-          ctx.el('span', { class: 'part-group__desc', text: t(orbit.descKey) }),
-          ctx.el('span', { class: 'meta' }, [
-            ctx.el('span', { text: t('design.coverage', { value: tr.formatPercent(orbit.coverage, 0) }) }),
-            ctx.el('span', { text: t('design.radiation', { value: tr.formatPercent(orbit.radiation, 0) }) }),
-            ctx.el('span', { text: t('design.eclipse', { value: tr.formatPercent(orbit.eclipseFraction, 0) }) }),
-            ctx.el('span', {
-              text: t('design.comms_window', {
-                minutes: orbit.comms && orbit.comms.continuous ? t('design.continuous') : (orbit.comms && orbit.comms.windowMinutes) || 0
-              })
-            })
-          ])
-        ]);
-        list.appendChild(button);
+      var panel = ctx.el('section', {
+        class: 'console-panel console-panel--picker',
+        'data-tutorial': 'design-orbit',
+        'aria-labelledby': 'design-orbit-title'
       });
-      card.appendChild(list);
-      return card;
+      panel.appendChild(
+        ctx.el('h2', { id: 'design-orbit-title' }, [
+          ctx.el('span', { text: t('design.orbit') }),
+          ctx.el('em', { text: pad2(catalog.orbits().length) })
+        ])
+      );
+      var list = ctx.el('ul', { class: 'console-pick-list' });
+      catalog.orbits().forEach(function (orbit) {
+        list.appendChild(ctx.el('li', null, [buildOrbitOption(orbit)]));
+      });
+      panel.appendChild(list);
+      return panel;
     }
 
-    /* --- Lista verificable y recursos en vivo ------------------------ */
+    function buildOrbitOption(orbit) {
+      var selected = design.orbitId === orbit.id;
+      var metrics = [
+        ctx.el('span', { text: t('design.coverage', { value: tr.formatPercent(orbit.coverage, 0) }) }),
+        ctx.el('span', { text: t('design.radiation', { value: tr.formatPercent(orbit.radiation, 0) }) }),
+        ctx.el('span', { text: t('design.eclipse', { value: tr.formatPercent(orbit.eclipseFraction, 0) }) }),
+        ctx.el('span', {
+          text: t('design.comms_window', {
+            minutes:
+              orbit.comms && orbit.comms.continuous
+                ? t('design.continuous')
+                : (orbit.comms && orbit.comms.windowMinutes) || 0
+          })
+        })
+      ];
+      if (orbit.comms && isFinite(orbit.comms.bandwidthFactor)) {
+        metrics.push(
+          ctx.el('span', {
+            text: t('design.bandwidth', { value: tr.formatPercent(orbit.comms.bandwidthFactor, 0) })
+          })
+        );
+      }
+      return ctx.el('button', {
+        type: 'button',
+        class: 'console-pick' + (selected ? ' is-selected' : ''),
+        'data-orbit': orbit.id,
+        'aria-pressed': selected ? 'true' : 'false',
+        onclick: function () {
+          designModule.setOrbit(design, selected ? null : orbit.id);
+          ctx.rerender();
+        }
+      }, [
+        ctx.el('span', { class: 'console-pick__title' }, [
+          ctx.el('strong', { text: t(orbit.nameKey) }),
+          selected ? ctx.el('span', { class: 'console-pick__pick', text: t('design.selected') }) : null
+        ]),
+        ctx.el('span', { class: 'console-pick__desc', text: t(orbit.descKey) }),
+        ctx.el('span', { class: 'console-pick__metrics' }, metrics)
+      ]);
+    }
+
+    /* --- Columna derecha: telemetría -------------------------------- */
+
+    function buildTelemetry() {
+      var panel = ctx.el('section', {
+        id: 'design-resources',
+        class: 'console-panel console-panel--telemetry',
+        'aria-labelledby': 'design-resources-title'
+      });
+      panel.appendChild(
+        ctx.el('h2', { id: 'design-resources-title' }, [
+          ctx.el('span', { text: t('design.telemetry') }),
+          ctx.el('em', { text: t('design.resources') })
+        ])
+      );
+      var impact = designModule.liveImpact(design);
+      panel.appendChild(buildResources(impact));
+      panel.appendChild(buildGauges(impact));
+      return panel;
+    }
+
+    function buildResources(impact) {
+      var panel = impact.panel;
+      var criticalItem = panel.items.filter(function (item) {
+        return item.id === panel.critical;
+      })[0];
+      var wrap = ctx.el('div', { class: 'console-resources' });
+      wrap.appendChild(
+        ctx.el('p', { class: 'console-critical' }, [
+          ctx.el('span', {
+            class:
+              'shape shape--' +
+              (criticalItem ? criticalItem.shape : 'diamond') +
+              ' status--' +
+              (criticalItem ? criticalItem.status : 'warn'),
+            'aria-hidden': 'true'
+          }),
+          ctx.el('span', {
+            text: t('res.critical', { resource: t('res.' + panel.critical + '.name') })
+          })
+        ])
+      );
+
+      var list = ctx.el('ul', { class: 'res-list' });
+      panel.items.forEach(function (item) {
+        var trackClass = 'res-item__track is-' + item.status;
+        var box = ctx.el('li', {
+          class:
+            'res-item status--' + item.status +
+            (panel.critical === item.id ? ' is-critical-res' : '') +
+            (panel.worst === item.id ? ' is-worst' : ''),
+          'data-resource': item.id
+        });
+        box.appendChild(
+          ctx.el('span', { class: 'shape shape--' + item.shape + ' status--' + item.status, 'aria-hidden': 'true' })
+        );
+        box.appendChild(
+          ctx.el('span', { class: 'icon-glyph', 'aria-hidden': 'true', text: ICON_GLYPHS[item.icon] || '' })
+        );
+        box.appendChild(ctx.el('span', { class: 'res-item__name', text: t('res.' + item.id + '.name') }));
+        var valueText = tr.formatUnit(item.value, item.unit || 'unit.pct');
+        if (item.max > 0 && item.id !== 'comms' && item.unit !== 'unit.pct') {
+          valueText += ' / ' + tr.formatUnit(item.max, item.unit);
+        }
+        box.appendChild(
+          ctx.el('span', {
+            class: 'res-item__value',
+            text: valueText
+          })
+        );
+        box.appendChild(
+          ctx.el('span', {
+            class: 'res-item__status status--' + item.status,
+            text: t('res.status.' + item.status)
+          })
+        );
+        var track = ctx.el('span', { class: trackClass, 'aria-hidden': 'true' });
+        track.appendChild(
+          ctx.el('span', {
+            style: 'width: ' + Math.round(Math.max(0, Math.min(1, item.ratio)) * 100) + '%'
+          })
+        );
+        box.appendChild(track);
+        ctx.tooltip(box, function () {
+          return t('res.' + item.id + '.desc');
+        });
+        list.appendChild(box);
+      });
+      wrap.appendChild(list);
+      return wrap;
+    }
+
+    function buildGauges(impact) {
+      var totals = impact.totals;
+      var launcher = impact.launcher;
+      var grid = ctx.el('div', { class: 'console-gauges' });
+
+      var budgetRatio = design.budget > 0 ? totals.cost / design.budget : 0;
+      grid.appendChild(
+        ctx.el('div', { class: 'console-gauge', 'data-tutorial': 'design-budget' }, [
+          ctx.el('span', { text: t('res.budget.name') }),
+          ctx.el('b', { text: t('req.budget', { have: totals.cost, need: design.budget }) }),
+          gaugeBar(budgetRatio, budgetRatio > 1 ? 'is-critical' : budgetRatio > 0.9 ? 'is-warn' : '')
+        ])
+      );
+
+      var massRatio = launcher && launcher.payloadCapacity > 0 ? totals.mass / launcher.payloadCapacity : 0;
+      grid.appendChild(
+        ctx.el('div', { class: 'console-gauge' }, [
+          ctx.el('span', { text: t('res.mass.name') }),
+          ctx.el('b', { text: t('req.mass', { have: totals.mass, need: launcher ? launcher.payloadCapacity : 0 }) }),
+          gaugeBar(massRatio, massRatio > 1 ? 'is-critical' : massRatio > 0.9 ? 'is-warn' : '')
+        ])
+      );
+
+      var powerRatio = totals.powerGen > 0 ? (totals.powerGen - totals.powerDraw) / totals.powerGen : 0;
+      grid.appendChild(
+        ctx.el('div', { class: 'console-gauge' }, [
+          ctx.el('span', { text: t('res.power.name') }),
+          ctx.el('b', { text: t('req.power', { have: totals.powerGen, need: totals.powerDraw }) }),
+          gaugeBar(powerRatio, powerRatio < 0 ? 'is-critical' : powerRatio < 0.1 ? 'is-warn' : '')
+        ])
+      );
+      return grid;
+    }
+
+    function gaugeBar(ratio, stateClass) {
+      var bar = ctx.el('span', { class: 'bar ' + (stateClass || ''), 'aria-hidden': 'true' });
+      bar.appendChild(
+        ctx.el('span', {
+          style: 'width: ' + Math.round(Math.max(0, Math.min(1, isFinite(ratio) ? ratio : 0)) * 100) + '%'
+        })
+      );
+      return bar;
+    }
+
+    function totalsRows() {
+      var totals = totalsOf();
+      return [
+        { key: 'mass', label: 'res.mass.name', value: tr.formatUnit(totals.mass, 'unit.kg') },
+        { key: 'power', label: 'res.power.name', value: tr.formatUnit(totals.powerDraw, 'unit.w') },
+        { key: 'cost', label: 'res.budget.name', value: tr.formatUnit(totals.cost, 'unit.meur') },
+        { key: 'dataRate', label: 'design.data_rate', value: tr.formatUnit(totals.dataRate, 'unit.kb') },
+        { key: 'dataCapacity', label: 'design.data_capacity', value: tr.formatUnit(totals.dataCapacity, 'unit.kb') },
+        { key: 'partCount', label: 'design.part_count', value: tr.formatNumber(totals.partCount) },
+        { key: 'instrumentCount', label: 'design.instrument_count', value: tr.formatNumber(totals.instrumentCount) }
+      ];
+    }
+
+    function buildTotals() {
+      var box = ctx.el('div', { class: 'design-totals' });
+      totalsRows().forEach(function (row) {
+        box.appendChild(
+          ctx.el('div', null, [
+            ctx.el('div', { class: 'faint', text: t(row.label) }),
+            ctx.el('div', { 'data-total': row.key, text: row.value })
+          ])
+        );
+      });
+      return box;
+    }
+
+    function buildTotalsPanel() {
+      return ctx.el(
+        'section',
+        { class: 'console-panel console-panel--totals', 'aria-label': t('design.resources') },
+        [buildTotals()]
+      );
+    }
+
+    function buildRequirementsPanel() {
+      var panel = ctx.el('section', {
+        id: 'design-requirements',
+        class: 'console-panel console-panel--check',
+        'aria-labelledby': 'design-requirements-title'
+      });
+      panel.appendChild(
+        ctx.el('h2', { id: 'design-requirements-title' }, [
+          ctx.el('span', { text: t('design.requirements') }),
+          ctx.el('em', { text: '✔ / ✘' })
+        ])
+      );
+      panel.appendChild(buildRequirements());
+      return panel;
+    }
 
     function buildRequirements() {
       var list = ctx.el('ul', { class: 'requirements' });
@@ -320,77 +720,44 @@
       return list;
     }
 
-    function resourceValue(item) {
-      return tr.formatUnit(item.value, item.unit || 'unit.pct');
-    }
-
-    function buildResources() {
-      var impact = designModule.liveImpact(design);
-      var panel = impact.panel;
-      var wrap = ctx.el('div', { class: 'stack' });
-      var grid = ctx.el('div', { class: 'resource-panel' });
-      panel.items.forEach(function (item) {
-        var box = ctx.el('div', {
-          class: 'resource-item' + (panel.critical === item.id ? ' is-critical-resource' : '') + (panel.worst === item.id ? ' is-worst' : ''),
-          'data-resource': item.id
-        });
-        var shapeClass = 'shape shape--' + item.shape + ' status--' + item.status;
-        var head = ctx.el('div', { class: 'resource-item__head' }, [
-          ctx.el('span', { class: shapeClass, 'aria-hidden': 'true' }),
-          ctx.el('span', { class: 'icon-glyph', 'aria-hidden': 'true', text: ICON_GLYPHS[item.icon] || '' }),
-          ctx.el('span', { class: 'resource-item__name', text: t('res.' + item.id + '.name') })
-        ]);
-        box.appendChild(head);
-        box.appendChild(ctx.el('span', { class: 'resource-item__value', text: resourceValue(item) }));
-        box.appendChild(
-          ctx.el('span', {
-            class: 'resource-item__status status--' + item.status,
-            text: t('res.status.' + item.status)
-          })
-        );
-        ctx.tooltip(box, function () {
-          return t('res.' + item.id + '.desc');
-        });
-        grid.appendChild(box);
-      });
-      wrap.appendChild(grid);
-      wrap.appendChild(
-        ctx.el('p', { class: 'faint', text: t('res.critical', { resource: t('res.' + panel.critical + '.name') }) })
-      );
-      return wrap;
-    }
-
-    function buildTotals() {
-      var totals = design.totals || designModule.refresh(design);
-      var box = ctx.el('div', { class: 'design-totals' });
-      [
-        { label: 'res.mass.name', value: tr.formatUnit(totals.mass, 'unit.kg') },
-        { label: 'res.power.name', value: tr.formatUnit(totals.powerDraw, 'unit.w') },
-        { label: 'res.budget.name', value: tr.formatUnit(totals.cost, 'unit.meur') },
-        { label: 'design.data_rate', value: tr.formatUnit(totals.dataRate, 'unit.kb') },
-        { label: 'design.data_capacity', value: tr.formatUnit(totals.dataCapacity, 'unit.kb') },
-        { label: 'design.part_count', value: tr.formatNumber(totals.partCount) },
-        { label: 'design.instrument_count', value: tr.formatNumber(totals.instrumentCount) }
-      ].forEach(function (row) {
-        box.appendChild(ctx.el('div', null, [ctx.el('div', { class: 'faint', text: t(row.label) }), ctx.el('div', { text: row.value })]));
-      });
-      return box;
-    }
+    /* --- Franja de autorización de lanzamiento ----------------------- */
 
     function buildLaunch() {
-      var launch = designModule.validateLaunch(design);
-      var panel = ctx.el('section', {
+      var launch = launchState();
+      var checks = launch.checks || [];
+      var done = checks.filter(function (check) {
+        return check.ok;
+      }).length;
+
+      var permit = ctx.el('footer', {
         id: 'design-launch',
-        class: 'card launch-panel ' + (launch.ok ? 'is-ready' : 'is-blocked')
+        class: 'console-permit ' + (launch.ok ? 'is-ready' : 'is-blocked'),
+        'data-tutorial': 'design-launch',
+        'aria-label': t('design.permit')
       });
-      panel.appendChild(ctx.el('h2', { text: launch.ok ? t('design.launch_ready') : t('design.launch_blocked') }));
+
+      var verdict = ctx.el('div', { class: 'permit-verdict' });
+      verdict.appendChild(
+        ctx.el('h2', null, [
+          ctx.el('span', { text: t('design.permit') }),
+          ctx.el('em', { text: launch.ok ? t('design.launch_ready') : t('design.launch_blocked') })
+        ])
+      );
       if (launch.blockers.length > 0) {
+        // Varios requisitos científicos pueden fallar por el mismo motivo: la
+        // franja muestra el motivo una sola vez y deja el detalle en la lista.
+        var seenCodes = {};
+        var reasons = launch.blockers.filter(function (blocker) {
+          if (seenCodes[blocker.code]) return false;
+          seenCodes[blocker.code] = true;
+          return true;
+        });
         var blockers = ctx.el('ul', { class: 'blocker-list', id: 'design-blockers' });
-        launch.blockers.forEach(function (blocker) {
+        reasons.forEach(function (blocker) {
           blockers.appendChild(ctx.el('li', { text: t(blocker.code, blocker.params) }));
         });
-        panel.appendChild(ctx.el('h3', { text: t('design.blockers_title') }));
-        panel.appendChild(blockers);
+        verdict.appendChild(ctx.el('h3', { text: t('design.blockers_title') }));
+        verdict.appendChild(blockers);
 
         var seen = {};
         var fixes = ctx.el('ul', { class: 'fix-list' });
@@ -400,22 +767,45 @@
           fixes.appendChild(ctx.el('li', { text: t(blocker.fixKey) }));
         });
         if (fixes.childNodes.length > 0) {
-          panel.appendChild(ctx.el('h3', { text: t('design.fixes_title') }));
-          panel.appendChild(fixes);
+          verdict.appendChild(ctx.el('h3', { text: t('design.fixes_title') }));
+          verdict.appendChild(fixes);
         }
+      } else {
+        verdict.appendChild(ctx.el('p', { class: 'permit-ok', text: t('design.launch_ready') }));
       }
       if (launch.warnings.length > 0) {
         var warnings = ctx.el('ul', { class: 'warning-list' });
         launch.warnings.forEach(function (warning) {
           warnings.appendChild(ctx.el('li', { text: t(warning.code, warning.params) }));
         });
-        panel.appendChild(ctx.el('h3', { text: t('design.warnings_title') }));
-        panel.appendChild(warnings);
+        verdict.appendChild(ctx.el('h3', { text: t('design.warnings_title') }));
+        verdict.appendChild(warnings);
       }
+      verdict.appendChild(
+        ctx.el('p', {
+          class: 'permit-note',
+          text: t('design.checklist_count', { done: done, total: checks.length })
+        })
+      );
+      permit.appendChild(verdict);
+
+      var action = ctx.el('div', { class: 'permit-action' });
+      action.appendChild(
+        ctx.el('span', {
+          class: 'console-stamp',
+          role: 'img',
+          'aria-label': launch.ok ? t('design.stamp_authorized') : t('design.stamp_blocked'),
+          text: launch.ok ? t('design.stamp_authorized') : t('design.stamp_blocked')
+        })
+      );
+      var reason = !launch.ok
+        ? launch.blockers.length > 0
+          ? t(launch.blockers[0].code, launch.blockers[0].params)
+          : t('design.launch_blocked')
+        : t('design.launch_ready');
       var launchButton = ctx.el('button', {
         type: 'button',
-        class: 'primary',
-        text: t('design.launch'),
+        class: 'permit-switch',
         disabled: !launch.ok,
         'aria-describedby': launch.ok ? null : 'design-blockers',
         onclick: function () {
@@ -424,10 +814,16 @@
             ctx.startTravel(design);
           }
         }
-      });
-      panel.appendChild(ctx.el('div', { class: 'row' }, [launchButton]));
-      return panel;
+      }, [
+        ctx.el('b', { text: t('design.launch') }),
+        ctx.el('span', { text: reason })
+      ]);
+      action.appendChild(launchButton);
+      permit.appendChild(action);
+      return permit;
     }
+
+    /* --- Panel de diseños guardados ---------------------------------- */
 
     function buildSavedPanel() {
       var box = ctx.el('div', { class: 'saved-list' });
@@ -437,7 +833,7 @@
         return box;
       }
       entries.forEach(function (entry) {
-        var row = ctx.el('div', { class: 'row tight' }, [
+        var row = ctx.el('div', { class: 'saved-row' }, [
           ctx.el('span', {
             text: t('design.saved_entry', {
               scenario: t('scenario.' + entry.scenarioId + '.name'),
@@ -447,6 +843,7 @@
           }),
           ctx.el('button', {
             type: 'button',
+            class: 'console-action',
             text: t('common.load'),
             onclick: function () {
               loadDesign(entry.id);
@@ -454,7 +851,7 @@
           }),
           ctx.el('button', {
             type: 'button',
-            class: 'danger',
+            class: 'console-action console-action--danger',
             text: t('common.delete'),
             onclick: function () {
               saves.removeDesign(entry.id);
@@ -474,12 +871,15 @@
         return;
       }
       if (existing) existing.parentNode.removeChild(existing);
-      var panel = ctx.el('section', { id: 'design-saved', class: 'card' }, [
-        ctx.el('h2', { text: t('design.saved_title') }),
+      var panel = ctx.el('section', { id: 'design-saved', class: 'console-panel console-panel--saved' }, [
+        ctx.el('h2', null, [
+          ctx.el('span', { text: t('design.saved_title') }),
+          ctx.el('em', { text: t('common.load') })
+        ]),
         buildSavedPanel()
       ]);
-      var side = ctx.doc.getElementById('design-side');
-      if (side) side.appendChild(panel);
+      var host = root.querySelector('.console-col--parts') || root;
+      host.appendChild(panel);
     }
 
     /* --- Persistencia y exportación ---------------------------------- */
@@ -533,9 +933,10 @@
 
     /* --- Sincronización de estado visual ----------------------------- */
 
+    // Actualiza las palancas y sus cifras sin reconstruir la pantalla, para no
+    // perder la posición de scroll ni el foco dentro de la columna (S5).
     function syncSelections() {
-      var buttons = root.querySelectorAll('[data-group]');
-      Array.prototype.forEach.call(buttons, function (button) {
+      Array.prototype.forEach.call(root.querySelectorAll('[data-group][data-version]'), function (button) {
         var groupId = button.getAttribute('data-group');
         var version = button.getAttribute('data-version');
         if (!groupId || !version) return;
@@ -544,6 +945,27 @@
         });
         button.setAttribute('aria-pressed', selected && selected.version === version ? 'true' : 'false');
       });
+      Array.prototype.forEach.call(root.querySelectorAll('[data-part-metrics]'), function (node) {
+        var part = catalog.findPart(design.groups[node.getAttribute('data-part-metrics')]);
+        node.textContent = part ? partMetrics(part) : t('common.none');
+      });
+      Array.prototype.forEach.call(root.querySelectorAll('[data-total]'), function (node) {
+        var key = node.getAttribute('data-total');
+        totalsRows().forEach(function (row) {
+          if (row.key === key) node.textContent = row.value;
+        });
+      });
+      var totals = totalsOf();
+      var mass = root.querySelector('#design-readout-mass');
+      var cost = root.querySelector('#design-readout-cost');
+      var stateBox = root.querySelector('#design-readout-state');
+      if (mass) mass.textContent = tr.formatUnit(totals.mass, 'unit.kg');
+      if (cost) cost.textContent = tr.formatUnit(totals.cost, 'unit.meur');
+      if (stateBox) {
+        var ok = designModule.validateLaunch(design).ok;
+        stateBox.textContent = t(ok ? 'design.launch_ready' : 'design.launch_blocked');
+        stateBox.className = 'console-led ' + (ok ? 'is-ready' : 'is-blocked');
+      }
     }
 
     // Reemplaza solo un panel derivado, conservando su identificador para
@@ -555,36 +977,32 @@
     }
 
     function refreshDerived() {
-      replaceSection('design-requirements', function () {
-        var panel = ctx.el('section', { id: 'design-requirements', class: 'card' }, [
-          ctx.el('h2', { text: t('design.requirements') })
-        ]);
-        panel.appendChild(buildRequirements());
-        return panel;
-      });
-      replaceSection('design-resources', function () {
-        var panel = ctx.el('section', { id: 'design-resources', class: 'card' }, [
-          ctx.el('h2', { text: t('design.resources') })
-        ]);
-        panel.appendChild(buildResources());
-        panel.appendChild(buildTotals());
-        return panel;
-      });
+      replaceSection('design-requirements', buildRequirementsPanel);
+      replaceSection('design-resources', buildTelemetry);
       replaceSection('design-launch', buildLaunch);
     }
 
     /* --- Montaje ----------------------------------------------------- */
 
-    var main = ctx.el('div', { class: 'design-main' }, [buildHeader(), buildObjective(), buildParts(), buildInstruments()]);
-    var side = ctx.el('div', { class: 'design-side', id: 'design-side' }, [
-      ctx.el('section', { id: 'design-resources', class: 'card' }, [ctx.el('h2', { text: t('design.resources') }), buildResources(), buildTotals()]),
-      ctx.el('section', { id: 'design-requirements', class: 'card' }, [ctx.el('h2', { text: t('design.requirements') }), buildRequirements()]),
-      buildLaunch(),
-      buildLaunchers(),
-      buildOrbits()
+    var deck = ctx.el('main', { class: 'console-deck' }, [
+      ctx.el('aside', { class: 'console-col console-col--parts', 'aria-label': t('design.parts') }, [buildParts()]),
+      ctx.el('div', { class: 'console-col console-col--center', 'aria-label': t('design.bench') }, [
+        buildInstruments(),
+        buildPicks(),
+        buildTotalsPanel()
+      ]),
+      ctx.el('aside', { class: 'console-col console-col--telemetry', 'aria-label': t('design.telemetry') }, [
+        buildTelemetry(),
+        buildRequirementsPanel()
+      ])
     ]);
-    root.appendChild(main);
-    root.appendChild(side);
+
+    buildScrews().forEach(function (screw) {
+      root.appendChild(screw);
+    });
+    root.appendChild(buildHeader());
+    root.appendChild(deck);
+    root.appendChild(buildLaunch());
 
     return { id: 'design', node: root };
   }

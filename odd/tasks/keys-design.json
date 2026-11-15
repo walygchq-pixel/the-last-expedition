@@ -1,0 +1,30 @@
+{
+  "en": {
+    "design.bandwidth": "Bandwidth {value}",
+    "design.bench": "Instrument bench",
+    "design.checklist_count": "{done} of {total} checks passed",
+    "design.cost": "Cost",
+    "design.permit": "Launch permit",
+    "design.phase": "Phase",
+    "design.phase_design": "Design",
+    "design.reliability": "Reliability {value}",
+    "design.selected": "Selected",
+    "design.stamp_authorized": "Authorized",
+    "design.stamp_blocked": "Blocked",
+    "design.telemetry": "Telemetry"
+  },
+  "es": {
+    "design.bandwidth": "Ancho de banda {value}",
+    "design.bench": "Mesa de instrumentos",
+    "design.checklist_count": "{done} de {total} comprobaciones cumplidas",
+    "design.cost": "Coste",
+    "design.permit": "Permiso de despegue",
+    "design.phase": "Fase",
+    "design.phase_design": "Diseño",
+    "design.reliability": "Fiabilidad {value}",
+    "design.selected": "Seleccionado",
+    "design.stamp_authorized": "Autorizado",
+    "design.stamp_blocked": "Bloqueado",
+    "design.telemetry": "Telemetría"
+  }
+}

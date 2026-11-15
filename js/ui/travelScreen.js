@@ -1,6 +1,12 @@
 /*
  * Fase 2: viaje (V-1 … V-18, C-2, C-3, RG-11, RG-12).
  *
+ * Pantalla holográfica: el visor isométrico ocupa el marco completo y el HUD
+ * flota alrededor, pegado a los bordes (reloj arriba a la izquierda, tripulación
+ * arriba al centro, cintas de objetivo/enlace/instrumentos a la izquierda,
+ * sistemas y recursos a la derecha, dock de inventario/acciones/consecuencias
+ * abajo). Ningún panel tapa el centro del visor ni al personaje.
+ *
  * La pantalla mantiene un único `requestAnimationFrame`: en cada cuadro lee la
  * entrada, mueve a los jugadores, avanza la simulación con `core/game.tick` y
  * dibuja el canvas con `world/renderer.render`. El HUD no se reconstruye por
@@ -71,7 +77,19 @@
     clock: '\u25F7'
   };
 
+  // Icono propio por sistema: el estado nunca se comunica solo por color (S29).
+  var SYSTEM_GLYPHS = {
+    lifeSupport: '\u25C9',
+    power: '\u26A1',
+    thermal: '\u2668',
+    comms: '\u2301',
+    instruments: '\u25A4',
+    attitude: '\u2295'
+  };
+
   var STATUS_SHAPES = { ok: 'circle', warn: 'triangle', critical: 'square' };
+
+  var ARROW_KEYS = { ArrowUp: '\u2191', ArrowDown: '\u2193', ArrowLeft: '\u2190', ArrowRight: '\u2192' };
 
   function shapeForHealth(health) {
     if (health <= 33) return 'square';
@@ -81,6 +99,32 @@
 
   function percent(tr, value) {
     return tr.formatPercent(isFinite(value) ? value / 100 : 0, 0);
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  /** Abreviatura visual de una etiqueta traducida (la completa va en aria-label). */
+  function abbrev(label) {
+    return String(label || '')
+      .replace(/[^\p{L}\p{N} ]/gu, '')
+      .trim()
+      .slice(0, 3)
+      .toUpperCase();
+  }
+
+  /** Etiqueta legible de un código de tecla físico (sólo para mostrar). */
+  function keyLabel(code) {
+    if (!code) return 'E';
+    if (code.indexOf('Key') === 0) return code.slice(3);
+    if (code.indexOf('Digit') === 0) return code.slice(5);
+    if (code.indexOf('Numpad') === 0) return code.slice(6);
+    if (code === 'Semicolon') return '\u00D1';
+    if (code === 'Enter') return '\u21B5';
+    if (code === 'Space') return '\u2423';
+    if (ARROW_KEYS[code]) return ARROW_KEYS[code];
+    return String(code).replace(/^Arrow/, '');
   }
 
   /**
@@ -119,6 +163,7 @@
     var map = world.map;
     var input = state.worldInput || (state.worldInput = inputModule.createInput(prefs.bindings || inputModule.defaults()));
     var win = ctx.win || (typeof window !== 'undefined' ? window : null);
+    var doc = ctx.doc || (typeof document !== 'undefined' ? document : null);
     var raf =
       win && typeof win.requestAnimationFrame === 'function'
         ? win.requestAnimationFrame.bind(win)
@@ -140,6 +185,8 @@
     var lastTs = 0;
     var destroyed = false;
     var canvasCtx = null;
+    var lastView = null;
+    var pointer = null;
 
     function firstAliveId() {
       var alive = game.crew.members.filter(function (member) {
@@ -174,9 +221,19 @@
       return order;
     }
 
+    function prefersReducedMotion() {
+      if (ctx.getPrefs().reduceMotion) return true;
+      if (!win || typeof win.matchMedia !== 'function') return false;
+      try {
+        return !!win.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      } catch (error) {
+        return false;
+      }
+    }
+
     function a11yOptions() {
       var current = ctx.getPrefs();
-      return { highContrast: !!current.highContrast, reduceMotion: !!current.reduceMotion, hideLabels: false };
+      return { highContrast: !!current.highContrast, reduceMotion: prefersReducedMotion(), hideLabels: false };
     }
 
     function invalidate(key) {
@@ -187,89 +244,125 @@
       cache = {};
     }
 
+    /** Pinta una sección solo si su firma cambió. Devuelve `true` si reconstruyó. */
     function paint(key, signature, build) {
-      if (cache[key] === signature) return;
+      if (cache[key] === signature) return false;
       cache[key] = signature;
       var host = sections[key];
-      if (!host) return;
+      if (!host) return false;
       ctx.clear(host);
       var content = build();
       if (content) host.appendChild(content);
+      return true;
     }
 
-    /* --- Secciones del HUD ------------------------------------------- */
+    /* --- Estructura del visor ----------------------------------------- */
 
     var root = ctx.el('section', { id: 'travel-screen', class: 'travel-screen', 'aria-label': t('travel.title') });
+    var frameNode = ctx.el('div', { class: 'travel-frame' });
 
-    var view = ctx.el('div', { class: 'travel-view' });
     var canvasWrap = ctx.el('div', { class: 'canvas-wrap' });
     var canvas = ctx.el('canvas', {
       class: 'ship-canvas',
       width: 960,
       height: 600,
+      tabindex: '0',
       role: 'img',
       'aria-label': t('travel.canvas_label')
     });
     canvasWrap.appendChild(canvas);
-    canvasWrap.appendChild(
-      ctx.el('p', { class: 'canvas-overlay-hint', text: t('travel.canvas_hint') })
-    );
-    view.appendChild(canvasWrap);
 
-    sections.clock = ctx.el('section', { id: 'travel-clock', class: 'card hud-clock' });
-    sections.resources = ctx.el('section', { id: 'travel-resources', class: 'card' });
-    sections.objective = ctx.el('section', { id: 'travel-objective', class: 'card objective-progress' });
-    sections.caption = ctx.el('section', { id: 'travel-caption', class: 'caption-bar', hidden: true });
-    view.appendChild(sections.clock);
-    view.appendChild(sections.resources);
-    view.appendChild(sections.objective);
-    view.appendChild(sections.caption);
+    // Reloj (arriba izquierda) y tripulación (arriba al centro).
+    sections.clock = ctx.el('section', {
+      id: 'travel-clock',
+      class: 'hud hud-clock hud-plate',
+      'data-tutorial': 'travel-clock',
+      'aria-label': t('hud.mission_time')
+    });
+    sections.crew = ctx.el('section', { id: 'travel-crew', class: 'hud hud-crew', 'aria-label': t('hud.crew') });
 
-    var side = ctx.el('div', { class: 'travel-hud' });
-    sections.crew = ctx.el('section', { id: 'travel-crew', class: 'card' });
-    sections.systems = ctx.el('section', { id: 'travel-systems', class: 'card' });
-    sections.conflict = ctx.el('section', { id: 'travel-conflict', class: 'card' });
-    sections.object = ctx.el('section', { id: 'travel-object', class: 'card' });
-    sections.actions = ctx.el('section', { id: 'travel-actions', class: 'card' });
-    sections.inventory = ctx.el('section', { id: 'travel-inventory', class: 'card' });
-    sections.comms = ctx.el('section', { id: 'travel-comms', class: 'card' });
-    sections.vote = ctx.el('section', { id: 'travel-vote', class: 'card' });
-    sections.consequences = ctx.el('section', { id: 'travel-consequences', class: 'card' });
-    [sections.crew, sections.systems, sections.conflict, sections.object, sections.actions, sections.inventory, sections.comms, sections.vote, sections.consequences].forEach(
-      function (node) {
-        side.appendChild(node);
-      }
-    );
+    // Utilidades poco frecuentes: guardar, exportar, volver y la ayuda de teclas.
+    sections.controls = ctx.el('section', {
+      id: 'travel-controls',
+      class: 'hud hud-utility hud-plate',
+      'aria-label': t('travel.controls')
+    });
 
-    // Controles de partida: guardar, exportar, volver.
-    var controlsCard = ctx.el('section', { class: 'card' }, [
-      ctx.el('h2', { text: t('travel.controls') }),
-      ctx.el('div', { class: 'row tight' }, [
-        ctx.el('button', { type: 'button', text: t('common.save'), onclick: saveGame }),
-        ctx.el('button', { type: 'button', text: t('common.export'), onclick: exportGame }),
-        ctx.el('button', {
-          type: 'button',
-          class: 'ghost',
-          text: t('menu.back_to_title'),
-          onclick: function () {
-            if (win && typeof win.confirm === 'function' && !win.confirm(t('travel.confirm_exit'))) return;
-            ctx.go('title');
-          }
-        })
-      ])
-    ]);
-    side.appendChild(controlsCard);
+    // Cinta izquierda: objetivo, ventana de enlace, instrumentos y votación.
+    var leftRail = ctx.el('div', { class: 'hud hud-rail hud-rail--left' });
+    sections.objective = ctx.el('section', {
+      id: 'travel-objective',
+      class: 'hud-plate tape',
+      'aria-label': t('hud.objectives')
+    });
+    sections.comms = ctx.el('section', { id: 'travel-comms', class: 'hud-plate tape', 'aria-label': t('res.comms.name') });
+    sections.instruments = ctx.el('section', {
+      id: 'travel-instruments',
+      class: 'hud-plate tape',
+      'aria-label': t('travel.instruments')
+    });
+    sections.vote = ctx.el('section', { id: 'travel-vote', class: 'hud-plate tape' });
+    [sections.objective, sections.comms, sections.instruments, sections.vote].forEach(function (node) {
+      leftRail.appendChild(node);
+    });
+
+    // Cinta derecha: sistemas como gauges y recursos en formato compacto.
+    var rightRail = ctx.el('div', { class: 'hud hud-rail hud-rail--right' });
+    sections.conflict = ctx.el('section', { id: 'travel-conflict', class: 'hud-plate' });
+    sections.systems = ctx.el('section', {
+      id: 'travel-systems',
+      class: 'hud-plate tape',
+      'data-tutorial': 'travel-systems',
+      'aria-label': t('hud.systems')
+    });
+    sections.resources = ctx.el('section', {
+      id: 'travel-resources',
+      class: 'hud-plate tape',
+      'aria-label': t('design.resources')
+    });
+    [sections.conflict, sections.systems, sections.resources].forEach(function (node) {
+      rightRail.appendChild(node);
+    });
+
+    // Dock inferior pegado al borde del visor.
+    var dock = ctx.el('div', { class: 'hud hud-dock' });
+    sections.caption = ctx.el('section', { id: 'travel-caption', class: 'hud-caption hud-plate', hidden: true });
+    sections.inventory = ctx.el('section', {
+      id: 'travel-inventory',
+      class: 'hud-plate dock-panel dock-panel--inventory',
+      'data-tutorial': 'travel-inventory',
+      'aria-label': t('hud.inventory')
+    });
+    sections.actions = ctx.el('section', {
+      id: 'travel-actions',
+      class: 'hud-plate dock-panel dock-panel--actions',
+      'data-tutorial': 'travel-actions',
+      'aria-label': t('travel.actions_title')
+    });
+    sections.consequences = ctx.el('section', {
+      id: 'travel-consequences',
+      class: 'hud-plate dock-panel dock-panel--consequences tape',
+      'aria-label': t('hud.consequences')
+    });
+    [sections.caption, sections.inventory, sections.actions, sections.consequences].forEach(function (node) {
+      dock.appendChild(node);
+    });
+
+    // Capa del radial/flujo de la tecla de interactuar y chip del objeto cercano.
+    var interactionHost = ctx.el('div', { id: 'travel-interaction', class: 'travel-interaction' });
+    sections.interaction = interactionHost;
+    var chip = ctx.el('div', { id: 'travel-object-chip', class: 'travel-chip', hidden: true });
+    sections.chip = chip;
+
+    [canvasWrap, sections.clock, sections.crew, sections.controls, leftRail, rightRail, dock, chip, interactionHost].forEach(function (node) {
+      frameNode.appendChild(node);
+    });
 
     var overlayHost = ctx.el('div', { id: 'travel-event' });
     sections.event = overlayHost;
-    // Capa de interacción por teclado (V-4): se dibuja encima del canvas cuando
-    // el objeto al alcance tiene más de una acción aplicable.
-    var interactionHost = ctx.el('div', { id: 'travel-interaction' });
-    sections.interaction = interactionHost;
-    root.appendChild(view);
-    root.appendChild(side);
+
+    root.appendChild(frameNode);
     root.appendChild(overlayHost);
-    root.appendChild(interactionHost);
 
     /* --- Acciones ---------------------------------------------------- */
 
@@ -296,11 +389,11 @@
       var label = extraLabel || t(action.labelKey, action.params);
       var button = ctx.el('button', {
         type: 'button',
-        class: 'action-button',
+        class: 'dock-action',
         onclick: function () {
           runAction(withActor(action));
         }
-      }, [ctx.el('span', { text: label })]);
+      }, [ctx.el('span', { class: 'dock-action__label', text: label })]);
       if (action.estimateKey) {
         button.appendChild(ctx.el('span', { class: 'estimate', text: t(action.estimateKey, action.params) }));
         ctx.tooltip(button, function () {
@@ -320,37 +413,53 @@
       if (transfer.download(transfer.filenameFor('save', game.id), text)) ctx.toast({ code: 'save.exported' });
     }
 
-    /* --- Pintado del HUD --------------------------------------------- */
+    /* --- Utilidades del HUD ------------------------------------------- */
+
+    function plateTitle(text, extra) {
+      var head = ctx.el('h2', { class: 'hud-title' }, [ctx.el('span', { text: text })]);
+      if (extra) head.appendChild(extra);
+      return head;
+    }
+
+    function thinBar(value, statusClass, label) {
+      var ratio = clamp(isFinite(value) ? value : 0, 0, 100);
+      var bar = ctx.el('div', {
+        class: 'gauge-track' + (statusClass ? ' is-' + statusClass : ''),
+        role: 'img',
+        'aria-label': label || ''
+      }, [ctx.el('i', { style: 'width:' + ratio.toFixed(1) + '%' })]);
+      return bar;
+    }
+
+    /* --- Reloj -------------------------------------------------------- */
 
     function buildClock() {
       var clock = game.clock;
       var info = tr.missionClock(clock.hours);
-      var wrap = ctx.el('div', { class: 'stack' });
-      var row = ctx.el('div', { class: 'row' });
-      row.appendChild(ctx.el('h2', { text: t('hud.mission_time') }));
-      row.appendChild(
+      var wrap = ctx.el('div', { class: 'clock' });
+      var readout = ctx.el('div', { class: 'clock-main' });
+      readout.appendChild(ctx.el('p', { class: 'hud-label', text: t('hud.mission_time') }));
+      readout.appendChild(ctx.el('p', { class: 'clock-big', text: t('travel.clock', { day: info.day, time: info.text }) }));
+      var meta = ctx.el('p', { class: 'clock-meta' }, [
         ctx.el('span', {
-          class: 'clock-readout',
-          text: t('travel.clock', { day: info.day, time: info.text })
-        })
-      );
-      row.appendChild(
-        ctx.el('span', { class: 'badge', text: time.isEclipse(clock) ? t('hud.eclipse') : t('hud.daylight') })
-      );
-      row.appendChild(
-        ctx.el('span', {
-          class: 'badge',
-          text: t('hud.lifetime', { value: tr.formatUnit(Math.ceil(time.daysLeft(clock)), 'unit.days') })
-        })
-      );
-      wrap.appendChild(row);
+          class: (time.isEclipse(clock) ? 'is-eclipse' : 'is-daylight'),
+          text: time.isEclipse(clock) ? t('hud.eclipse') : t('hud.daylight')
+        }),
+        ctx.el('span', { class: 'clock-sep', 'aria-hidden': 'true', text: '\u00B7' }),
+        ctx.el('span', { text: t('hud.lifetime') }),
+        ctx.el('b', { text: tr.formatUnit(Math.ceil(time.daysLeft(clock)), 'unit.days') })
+      ]);
+      readout.appendChild(meta);
+      wrap.appendChild(readout);
 
-      var speeds = ctx.el('div', { class: 'speed-group', role: 'group', 'aria-label': t('hud.speed') });
+      var speeds = ctx.el('div', { class: 'clock-speed', role: 'group', 'aria-label': t('hud.speed') });
       speeds.appendChild(
         ctx.el('button', {
           type: 'button',
+          class: 'pause-button',
           'aria-pressed': clock.paused ? 'true' : 'false',
-          text: clock.paused ? t('hud.resume') : t('hud.pause'),
+          'aria-label': clock.paused ? t('hud.resume') : t('hud.pause'),
+          text: clock.paused ? '\u25B6' : '\u23F8',
           onclick: function () {
             time.togglePause(clock);
             invalidate('clock');
@@ -374,11 +483,8 @@
       return wrap;
     }
 
-    /**
-     * Valor de un recurso redondeado a la precisión que se muestra. La firma del
-     * panel usa el mismo número, así que el HUD no se reconstruye en cada cuadro
-     * por una fracción invisible (rendimiento, S5).
-     */
+    /* --- Recursos ----------------------------------------------------- */
+
     function displayValue(item) {
       var value = Number(item.value) || 0;
       if (item.id === 'mass' || item.id === 'power') return Math.round(value);
@@ -393,62 +499,138 @@
 
     function buildResources() {
       var panel = gameModule.resourcePanel(game);
-      var wrap = ctx.el('div', { class: 'stack' });
-      wrap.appendChild(ctx.el('h2', { text: t('design.resources') }));
-      var grid = ctx.el('div', { class: 'hud-resources' });
+      var wrap = ctx.el('div', { class: 'tape-body' });
+      wrap.appendChild(plateTitle(t('design.resources')));
+      var list = ctx.el('ul', { class: 'res-list' });
       panel.items.forEach(function (item) {
-        var box = ctx.el('div', {
-          class: 'hud-resource' + (panel.worst === item.id ? ' is-worst' : ''),
+        var row = ctx.el('li', {
+          class: 'res-row' + (panel.worst === item.id ? ' is-worst' : ''),
           'data-resource': item.id
-        });
-        box.appendChild(
-          ctx.el('div', { class: 'hud-resource__head' }, [
-            ctx.el('span', {
-              class: 'shape shape--' + item.shape + ' status--' + item.status,
-              'aria-hidden': 'true'
-            }),
-            ctx.el('span', { class: 'icon-glyph', 'aria-hidden': 'true', text: ICON_GLYPHS[item.icon] || '' }),
-            ctx.el('span', { text: t('res.' + item.id + '.name') })
-          ])
-        );
-        box.appendChild(ctx.el('span', { class: 'hud-resource__value', text: resourceValue(item) }));
-        box.appendChild(
-          ctx.el('span', { class: 'faint status--' + item.status, text: t('res.status.' + item.status) })
-        );
-        ctx.tooltip(box, function () {
+        }, [
+          ctx.el('span', {
+            class: 'shape shape--' + item.shape + ' status--' + item.status,
+            'aria-hidden': 'true'
+          }),
+          ctx.el('span', { class: 'res-icon', 'aria-hidden': 'true', text: ICON_GLYPHS[item.icon] || '' }),
+          ctx.el('span', { class: 'res-name', text: t('res.' + item.id + '.name') }),
+          ctx.el('b', { class: 'res-value num', text: resourceValue(item) })
+        ]);
+        ctx.tooltip(row, function () {
           return t('res.' + item.id + '.desc');
         });
-        grid.appendChild(box);
+        list.appendChild(row);
       });
-      wrap.appendChild(grid);
-      wrap.appendChild(ctx.el('p', { class: 'faint', text: t('res.critical', { resource: t('res.' + panel.critical + '.name') }) }));
+      wrap.appendChild(list);
+      wrap.appendChild(
+        ctx.el('p', { class: 'faint hud-note', text: t('res.critical', { resource: t('res.' + panel.critical + '.name') }) })
+      );
       return wrap;
     }
 
+    /* --- Tripulación -------------------------------------------------- */
+
+    var NEED_BARS = [
+      { id: 'health', key: 'health', invert: false, numeric: true },
+      { id: 'stress', key: 'stress', invert: true },
+      { id: 'hunger', key: 'hunger', invert: true },
+      { id: 'thirst', key: 'thirst', invert: true },
+      { id: 'sleep', key: 'sleep', invert: false }
+    ];
+
+    function needClass(value, invert) {
+      var good = invert ? 100 - value : value;
+      if (good <= 33) return ' c';
+      if (good <= 66) return ' w';
+      return '';
+    }
+
+    function buildCrew() {
+      var wrap = ctx.el('div', { class: 'crew-strip' });
+      game.crew.members.forEach(function (member) {
+        var needs = {
+          hunger: Math.round(member.hunger),
+          thirst: Math.round(member.thirst),
+          sleep: Math.round(member.sleep),
+          stress: Math.round(member.stress),
+          morale: Math.round(member.morale),
+          hygiene: Math.round(member.hygiene)
+        };
+        var card = ctx.el('button', {
+          type: 'button',
+          class:
+            'crew-card' +
+            (member.id === selectedId() ? ' is-active' : '') +
+            (member.alive ? '' : ' is-dead'),
+          'aria-pressed': member.id === selectedId() ? 'true' : 'false',
+          'aria-label': t('hud.crew_needs', needs),
+          disabled: !member.alive,
+          onclick: function () {
+            runtime.selected = member.id;
+            invalidate();
+          }
+        });
+        var memberName = t(member.nameKey);
+        var roleName = t('role.' + member.role + '.name');
+        var top = ctx.el('span', { class: 'crew-top' }, [
+          ctx.el('b', { text: memberName }),
+          roleName !== memberName ? ctx.el('span', { class: 'crew-role', text: roleName }) : null,
+          ctx.el('span', {
+            class: 'crew-health num' + (member.alive ? '' : ' is-dead'),
+            text: member.alive ? percent(tr, member.health) : t('crew.status.dead')
+          })
+        ]);
+        card.appendChild(top);
+        var bars = ctx.el('span', { class: 'crew-needs', 'aria-hidden': 'true' });
+        NEED_BARS.forEach(function (need) {
+          var value = clamp(Number(member[need.id]) || 0, 0, 100);
+          bars.appendChild(
+            ctx.el('span', { class: 'need' + needClass(value, need.invert) }, [
+              ctx.el('i', { style: 'width:' + value.toFixed(0) + '%' })
+            ])
+          );
+        });
+        card.appendChild(bars);
+        var legend = ctx.el('span', { class: 'crew-legend', 'aria-hidden': 'true' });
+        NEED_BARS.forEach(function (need) {
+          legend.appendChild(ctx.el('span', { text: abbrev(t('crew.need.' + need.key)) }));
+        });
+        card.appendChild(legend);
+        wrap.appendChild(card);
+      });
+      return wrap;
+    }
+
+    /* --- Objetivo y cintas de la izquierda ---------------------------- */
+
     function buildObjective() {
       var objective = game.objective || { checks: [], coverage: 0 };
-      var wrap = ctx.el('div', { class: 'stack' });
-      var head = ctx.el('div', { class: 'row' });
-      head.appendChild(ctx.el('h2', { text: t('hud.objectives') }));
-      head.appendChild(
-        ctx.el('span', {
-          class: 'badge',
-          text: t('travel.coverage', { value: tr.formatPercent(objective.coverage || 0, 0) })
-        })
+      var wrap = ctx.el('div', { class: 'tape-body' });
+      wrap.appendChild(plateTitle(t('hud.objectives')));
+      wrap.appendChild(
+        ctx.el('p', { class: 'tape-line' }, [
+          ctx.el('span', { text: t('travel.coverage', { value: tr.formatPercent(objective.coverage || 0, 0) }) })
+        ])
+      );
+      wrap.appendChild(
+        thinBar(objective.coverage || 0, (objective.coverage || 0) >= 100 ? 'ok' : '', t('travel.coverage', {
+          value: tr.formatPercent(objective.coverage || 0, 0)
+        }))
       );
       if (objective.required !== undefined) {
-        head.appendChild(
-          ctx.el('span', {
-            class: 'badge',
-            text: t('travel.data_progress', {
-              have: tr.formatUnit(objective.transmitted || 0, 'unit.kb'),
-              need: tr.formatUnit(objective.required || 0, 'unit.kb')
-            })
-          })
+        var progress = t('travel.data_progress', {
+          have: tr.formatUnit(objective.transmitted || 0, 'unit.kb'),
+          need: tr.formatUnit(objective.required || 0, 'unit.kb')
+        });
+        wrap.appendChild(ctx.el('p', { class: 'tape-line num', text: progress }));
+        wrap.appendChild(
+          thinBar(
+            objective.required > 0 ? ((objective.transmitted || 0) / objective.required) * 100 : 0,
+            '',
+            progress
+          )
         );
       }
-      wrap.appendChild(head);
-      var list = ctx.el('ul');
+      var list = ctx.el('ul', { class: 'tape-list' });
       (objective.checks || []).forEach(function (check) {
         list.appendChild(
           ctx.el('li', { class: check.ok ? 'status--ok' : 'status--critical' }, [
@@ -461,108 +643,201 @@
       return wrap;
     }
 
-    function buildCrew() {
-      var wrap = ctx.el('div', { class: 'stack' });
-      wrap.appendChild(ctx.el('h2', { text: t('hud.crew') }));
-      var list = ctx.el('div', { class: 'crew-list' });
-      game.crew.members.forEach(function (member) {
-        var box = ctx.el('div', {
-          class: 'crew-member' + (member.id === selectedId() ? ' is-selected' : '') + (member.alive ? '' : ' is-dead'),
-          'data-member': member.id
-        });
-        var head = ctx.el('div', { class: 'crew-member__head' }, [
-          ctx.el('button', {
-            type: 'button',
-            class: 'ghost',
-            'aria-pressed': member.id === selectedId() ? 'true' : 'false',
-            text: t(member.nameKey),
-            onclick: function () {
-              runtime.selected = member.id;
-              invalidate();
-            }
-          }),
-          ctx.el('span', { class: 'badge', text: t('crew.status.' + (member.alive ? 'alive' : 'dead')) })
-        ]);
-        box.appendChild(head);
-        var healthClass = member.health <= 33 ? 'is-critical' : member.health <= 66 ? 'is-warn' : '';
-        var bar = ctx.el('div', { class: 'bar ' + healthClass }, [ctx.el('span', { style: 'width:' + Math.max(0, Math.min(100, member.health)) + '%' })]);
-        box.appendChild(bar);
-        box.appendChild(
+    function windowContext() {
+      return {
+        orbit: game.design.orbit || {},
+        hours: game.clock.hours,
+        antennaHealth: game.systems.comms ? game.systems.comms.health : 100,
+        commsHealth: game.systems.comms ? game.systems.comms.health : 100
+      };
+    }
+
+    function buildComms() {
+      var wrap = ctx.el('div', { class: 'tape-body' });
+      var stateWindow = comms.windowState(windowContext());
+      var capacity = comms.windowCapacity(windowContext());
+      wrap.appendChild(
+        plateTitle(
+          t('res.comms.name'),
+          ctx.el('span', { class: 'led' + (stateWindow.open ? ' is-ok' : ''), 'aria-hidden': 'true' })
+        )
+      );
+      wrap.appendChild(
+        ctx.el('p', { class: 'tape-line' }, [
           ctx.el('span', {
-            class: 'faint',
-            text: t('travel.health_morale', { health: percent(tr, member.health), morale: percent(tr, member.morale) })
+            class: stateWindow.open ? 'status--ok' : 'status--warn',
+            text: stateWindow.open ? t('travel.comms_open') : t('travel.comms_closed')
           })
-        );
-        if (member.conditions && member.conditions.length > 0) {
-          var chips = ctx.el('div', { class: 'condition-chips' });
-          member.conditions.forEach(function (condition) {
-            chips.appendChild(ctx.el('span', { class: 'chip is-warn', text: t('crew.condition.' + condition) }));
-          });
-          box.appendChild(chips);
-        }
-        ctx.tooltip(box, function () {
-          return t('hud.crew_needs', {
-            hunger: tr.formatNumber(Math.round(member.hunger)),
-            thirst: tr.formatNumber(Math.round(member.thirst)),
-            sleep: tr.formatNumber(Math.round(member.sleep)),
-            stress: tr.formatNumber(Math.round(member.stress)),
-            morale: tr.formatNumber(Math.round(member.morale)),
-            hygiene: tr.formatNumber(Math.round(member.hygiene))
-          });
+        ])
+      );
+      wrap.appendChild(
+        ctx.el('p', {
+          class: 'tape-sub num',
+          text: stateWindow.open
+            ? t('travel.comms_capacity', { amount: tr.formatUnit(capacity, 'unit.kb') })
+            : t('travel.comms_next', { minutes: tr.formatNumber(stateWindow.nextOpenInMinutes || 0) })
+        })
+      );
+
+      var items = game.datastore.items || {};
+      var order = priorityList();
+      var details = ctx.el('details', { class: 'tape-details' });
+      details.appendChild(ctx.el('summary', { text: t('res.data.name') }));
+      details.appendChild(ctx.el('p', { class: 'faint hud-note', text: t('travel.data_priority_hint') }));
+      if (order.length === 0) {
+        details.appendChild(ctx.el('p', { class: 'muted', text: t('travel.no_data') }));
+      } else {
+        var list = ctx.el('ul', { class: 'priority-list' });
+        order.forEach(function (id, index) {
+          list.appendChild(
+            ctx.el('li', null, [
+              ctx.el('span', { class: 'priority-name', text: t('instrument.' + id + '.name') }),
+              ctx.el('span', { class: 'num', text: tr.formatUnit(items[id] || 0, 'unit.kb') }),
+              ctx.el('button', {
+                type: 'button',
+                class: 'icon',
+                text: '\u25B2',
+                'aria-label': t('travel.move_up', { instrument: t('instrument.' + id + '.name') }),
+                disabled: index === 0,
+                onclick: function () {
+                  var listOrder = priorityList().slice();
+                  var at = listOrder.indexOf(id);
+                  if (at > 0) {
+                    listOrder.splice(at, 1);
+                    listOrder.splice(at - 1, 0, id);
+                    runtime.priority = listOrder;
+                    invalidate();
+                  }
+                }
+              }),
+              ctx.el('button', {
+                type: 'button',
+                class: 'icon',
+                text: '\u25BC',
+                'aria-label': t('travel.move_down', { instrument: t('instrument.' + id + '.name') }),
+                disabled: index === order.length - 1,
+                onclick: function () {
+                  var listOrder = priorityList().slice();
+                  var at = listOrder.indexOf(id);
+                  if (at !== -1 && at < listOrder.length - 1) {
+                    listOrder.splice(at, 1);
+                    listOrder.splice(at + 1, 0, id);
+                    runtime.priority = listOrder;
+                    invalidate();
+                  }
+                }
+              })
+            ])
+          );
         });
-        list.appendChild(box);
+        details.appendChild(list);
+      }
+      var transmit = ctx.el('button', {
+        type: 'button',
+        class: 'primary tape-primary',
+        text: t('action.transmit'),
+        disabled: !stateWindow.open || order.length === 0,
+        onclick: function () {
+          runAction({ type: 'transmit', priority: priorityList() });
+        }
       });
-      wrap.appendChild(list);
+      if (!stateWindow.open) {
+        ctx.tooltip(transmit, function () {
+          return t('travel.comms_next', { minutes: tr.formatNumber(stateWindow.nextOpenInMinutes || 0) });
+        });
+      }
+      details.appendChild(transmit);
+      wrap.appendChild(details);
       return wrap;
     }
 
-    function buildSystems() {
-      var wrap = ctx.el('div', { class: 'stack' });
-      wrap.appendChild(ctx.el('h2', { text: t('hud.systems') }));
-      var list = ctx.el('div', { class: 'system-list' });
-      systems.SYSTEM_IDS.forEach(function (id) {
-        var system = game.systems[id];
-        if (!system) return;
-        var row = ctx.el('div', { class: 'system-row', 'data-system': id });
-        var shape = shapeForHealth(system.health);
-        var head = ctx.el('div', { class: 'system-row__head' }, [
-          ctx.el('span', { class: 'shape shape--' + shape + ' ' + (system.health <= 33 ? 'status--critical' : system.health <= 66 ? 'status--warn' : 'status--ok'), 'aria-hidden': 'true' }),
-          ctx.el('span', { text: t('sys.' + id + '.name') }),
-          ctx.el('span', {
-            class: 'badge',
-            text: t('travel.system_health', { health: percent(tr, system.health), reliability: percent(tr, system.reliability) })
-          })
-        ]);
-        row.appendChild(head);
-        var barClass = system.health <= 33 ? 'is-critical' : system.health <= 66 ? 'is-warn' : '';
-        row.appendChild(ctx.el('div', { class: 'bar ' + barClass }, [ctx.el('span', { style: 'width:' + Math.max(0, Math.min(100, system.health)) + '%' })]));
-        list.appendChild(row);
-      });
-      wrap.appendChild(list);
-
-      wrap.appendChild(ctx.el('h3', { text: t('travel.instruments') }));
-      var instruments = ctx.el('div', { class: 'action-list' });
+    function buildInstruments() {
+      var wrap = ctx.el('div', { class: 'tape-body' });
+      wrap.appendChild(plateTitle(t('travel.instruments')));
+      if (game.instruments.length === 0) {
+        wrap.appendChild(ctx.el('p', { class: 'muted', text: t('common.empty') }));
+        return wrap;
+      }
+      var list = ctx.el('ul', { class: 'tape-list tape-list--instruments' });
       game.instruments.forEach(function (instrument) {
         var name = t('instrument.' + instrument.id + '.name');
-        instruments.appendChild(
-          ctx.el('button', {
-            type: 'button',
-            class: 'action-button',
-            'aria-pressed': instrument.active ? 'true' : 'false',
-            onclick: function () {
-              runAction({ type: 'toggle_instrument', instrumentId: instrument.id });
-            }
-          }, [
-            ctx.el('span', {
-              text: t(instrument.active ? 'travel.instrument_on' : 'travel.instrument_off', { instrument: name })
-            })
+        list.appendChild(
+          ctx.el('li', null, [
+            ctx.el('button', {
+              type: 'button',
+              class: 'tape-toggle' + (instrument.active ? ' is-on' : ''),
+              'aria-pressed': instrument.active ? 'true' : 'false',
+              'aria-label': t(instrument.active ? 'travel.instrument_on' : 'travel.instrument_off', {
+                instrument: name
+              }),
+              onclick: function () {
+                runAction({ type: 'toggle_instrument', instrumentId: instrument.id });
+              }
+            }, [
+              ctx.el('span', { class: 'tape-toggle__mark', 'aria-hidden': 'true', text: instrument.active ? '\u25AE' : '\u25AF' }),
+              ctx.el('span', { text: name })
+            ])
           ])
         );
       });
-      if (game.instruments.length === 0) instruments.appendChild(ctx.el('p', { class: 'muted', text: t('common.empty') }));
-      wrap.appendChild(instruments);
+      wrap.appendChild(list);
       return wrap;
     }
+
+    /* --- Sistemas (gauges sin cifras) --------------------------------- */
+
+    function gaugesLegend() {
+      return ctx.el('p', { class: 'gauge-legend faint' }, [
+        ctx.el('span', { class: 'gauge-legend__health', text: t('travel.gauge_health') }),
+        ctx.el('span', { class: 'gauge-legend__reliability', text: t('travel.gauge_reliability') })
+      ]);
+    }
+
+    function buildSystems() {
+      var wrap = ctx.el('div', { class: 'tape-body' });
+      wrap.appendChild(plateTitle(t('hud.systems')));
+      wrap.appendChild(gaugesLegend());
+      var list = ctx.el('ul', { class: 'gauge-list' });
+      systems.SYSTEM_IDS.forEach(function (id) {
+        var system = game.systems[id];
+        if (!system) return;
+        var health = clamp(system.health, 0, 100);
+        var reliability = clamp(system.reliability, 0, 100);
+        var status = health <= 33 ? 'critical' : health <= 66 ? 'warn' : 'ok';
+        var summary = t('travel.system_health', { health: percent(tr, health), reliability: percent(tr, reliability) });
+        var row = ctx.el('li', {
+          class: 'gauge is-' + status,
+          'data-system': id,
+          role: 'group',
+          'aria-label': summary
+        });
+        row.appendChild(
+          ctx.el('span', { class: 'gauge-head' }, [
+            ctx.el('span', {
+              class: 'shape shape--' + shapeForHealth(health) + ' status--' + status,
+              'aria-hidden': 'true'
+            }),
+            ctx.el('span', { class: 'gauge-icon', 'aria-hidden': 'true', text: SYSTEM_GLYPHS[id] || '\u25A1' }),
+            ctx.el('span', { class: 'gauge-name', text: t('sys.' + id + '.name') })
+          ])
+        );
+        row.appendChild(
+          ctx.el('span', { class: 'gauge-track', 'aria-hidden': 'true' }, [
+            ctx.el('i', { style: 'width:' + health.toFixed(1) + '%' })
+          ])
+        );
+        row.appendChild(
+          ctx.el('span', { class: 'gauge-track gauge-track--reliability', 'aria-hidden': 'true' }, [
+            ctx.el('i', { style: 'width:' + reliability.toFixed(1) + '%' })
+          ])
+        );
+        list.appendChild(row);
+      });
+      wrap.appendChild(list);
+      return wrap;
+    }
+
+    /* --- Conflictos, acciones, inventario y consecuencias ------------- */
 
     function buildConflict() {
       var panel = gameModule.resourcePanel(game);
@@ -598,52 +873,6 @@
       return wrap;
     }
 
-    function buildObjectPanel() {
-      var nearest = worldModule.nearest(world, selectedId());
-      var wrap = ctx.el('div', { class: 'stack' });
-      wrap.appendChild(ctx.el('h2', { text: t('travel.object_title') }));
-      if (!nearest) {
-        wrap.appendChild(ctx.el('p', { class: 'muted', text: t('travel.no_object') }));
-        return wrap;
-      }
-      var object = nearest.object;
-      wrap.appendChild(ctx.el('h3', { text: t(object.nameKey) }));
-      wrap.appendChild(ctx.el('p', { class: 'faint', text: t(object.descKey) }));
-      var actions = objectsModule.actions(object);
-      var list = ctx.el('div', { class: 'action-list' });
-      actions.forEach(function (action) {
-        var button = ctx.el('button', {
-          type: 'button',
-          class: 'action-button',
-          onclick: function () {
-            applyObjectAction(selectedId(), object, action);
-          }
-        }, [ctx.el('span', { text: t(action.labelKey) })]);
-        if (action.estimateKey) {
-          button.appendChild(ctx.el('span', { class: 'estimate', text: t(action.estimateKey) }));
-          ctx.tooltip(button, function () {
-            return t(action.estimateKey);
-          });
-        }
-        list.appendChild(button);
-      });
-      wrap.appendChild(list);
-      if (object.item) {
-        wrap.appendChild(
-          ctx.el('button', {
-            type: 'button',
-            text: t('travel.pickup'),
-            onclick: function () {
-              var result = playersModule.pickup(world, selectedId(), object.id);
-              if (result && result.codes && typeof ctx.toastCodes === 'function') ctx.toastCodes(result.codes);
-              invalidate();
-            }
-          })
-        );
-      }
-      return wrap;
-    }
-
     function groupedActions() {
       var all = gameModule.getActions(game);
       var groups = { care: [], repair: [], cannibalize: [], decisions: [], misc: [] };
@@ -665,20 +894,19 @@
 
     function buildActions() {
       var groups = groupedActions();
-      var wrap = ctx.el('div', { class: 'stack' });
-      wrap.appendChild(ctx.el('h2', { text: t('travel.actions_title') }));
+      var wrap = ctx.el('div', { class: 'dock-body' });
       var member = memberById(selectedId());
       wrap.appendChild(
-        ctx.el('p', {
-          class: 'faint',
-          text: t('travel.acting_as', { member: t(member ? member.nameKey : 'hud.crew') })
-        })
+        ctx.el('div', { class: 'dock-head' }, [
+          ctx.el('h2', { class: 'hud-title', text: t('travel.actions_title') }),
+          ctx.el('span', { class: 'dock-sub', text: t('travel.acting_as', { member: t(member ? member.nameKey : 'hud.crew') }) })
+        ])
       );
 
       function group(titleKey, list, open) {
-        var details = ctx.el('details', open ? { open: true } : null);
+        var details = ctx.el('details', { class: 'dock-group', open: open ? true : null });
         details.appendChild(ctx.el('summary', { text: t(titleKey) }));
-        var box = ctx.el('div', { class: 'action-list' });
+        var box = ctx.el('div', { class: 'dock-actions' });
         list.forEach(function (action) {
           box.appendChild(actionButton(action));
         });
@@ -694,47 +922,68 @@
       return wrap;
     }
 
+    /** Cercanía de un objeto al jugador seleccionado (para inventario y chip). */
+    function nearObject(playerId) {
+      var near = worldModule.nearest(world, playerId);
+      return near ? near.object : null;
+    }
+
     function buildInventory() {
       var player = playersModule.byId(world, selectedId());
-      var wrap = ctx.el('div', { class: 'stack' });
-      wrap.appendChild(ctx.el('h2', { text: t('hud.inventory') }));
+      var wrap = ctx.el('div', { class: 'dock-body' });
       if (!player) {
+        wrap.appendChild(ctx.el('h2', { class: 'hud-title', text: t('hud.inventory') }));
         wrap.appendChild(ctx.el('p', { class: 'muted', text: t('common.empty') }));
         return wrap;
       }
       var capacity = playersModule.capacityOf(world, player);
       wrap.appendChild(
-        ctx.el('p', {
-          class: 'faint',
-          text: t('travel.inventory_count', {
-            used: tr.formatNumber(player.inventory.length),
-            max: tr.formatNumber(capacity)
+        ctx.el('div', { class: 'dock-head' }, [
+          ctx.el('h2', { class: 'hud-title', text: t('hud.inventory') }),
+          ctx.el('span', {
+            class: 'dock-sub num',
+            text: t('travel.inventory_count', {
+              used: tr.formatNumber(player.inventory.length),
+              max: tr.formatNumber(capacity)
+            })
           })
-        })
+        ])
       );
-      var list = ctx.el('ul', { class: 'inventory-list' });
-      if (player.inventory.length === 0) {
-        list.appendChild(ctx.el('li', { class: 'muted', text: t('travel.inventory_empty') }));
-      }
-      player.inventory.forEach(function (itemId) {
+      var slots = ctx.el('div', { class: 'inv-slots' });
+      for (var index = 0; index < capacity; index += 1) {
+        var itemId = player.inventory[index];
+        if (!itemId) {
+          slots.appendChild(
+            ctx.el('div', { class: 'inv-slot is-empty' }, [
+              ctx.el('b', { text: t('common.none') }),
+              ctx.el('span', { class: 'faint', text: t('travel.inventory_empty') })
+            ])
+          );
+          continue;
+        }
         var object = objectsModule.find(world, itemId);
-        var name = object ? t(object.nameKey) : itemId;
-        var row = ctx.el('li', null, [ctx.el('span', { text: name })]);
+        var slot = ctx.el('div', { class: 'inv-slot' }, [
+          ctx.el('b', { text: object ? t(object.nameKey) : itemId })
+        ]);
         var targets = world.players.list.filter(function (other) {
           return other.id !== player.id;
         });
         if (targets.length > 0) {
-          var give = ctx.el('div', { class: 'row tight' });
-          targets.forEach(function (other, index) {
+          var give = ctx.el('div', { class: 'inv-give' });
+          targets.forEach(function (other) {
+            var n = world.players.list.indexOf(other) + 1;
+            var full = t('travel.give_to', {
+              player: t('travel.player_name', {
+                player: t('hud.player', { n: n }),
+                role: t('role.' + other.role + '.name')
+              })
+            });
             give.appendChild(
               ctx.el('button', {
                 type: 'button',
-                text: t('travel.give_to', {
-                  player: t('travel.player_name', {
-                    player: t('hud.player', { n: world.players.list.indexOf(other) + 1 }),
-                    role: t('role.' + other.role + '.name')
-                  })
-                }),
+                class: 'inv-give__button',
+                text: 'P' + n,
+                'aria-label': full,
                 onclick: function () {
                   var result = playersModule.give(world, player.id, other.id, itemId);
                   if (result && result.codes && typeof ctx.toastCodes === 'function') ctx.toastCodes(result.codes);
@@ -743,191 +992,55 @@
               })
             );
           });
-          row.appendChild(give);
+          slot.appendChild(give);
         }
-        list.appendChild(row);
-      });
-      wrap.appendChild(list);
-      return wrap;
-    }
-
-    function windowContext() {
-      return {
-        orbit: game.design.orbit || {},
-        hours: game.clock.hours,
-        antennaHealth: game.systems.comms ? game.systems.comms.health : 100,
-        commsHealth: game.systems.comms ? game.systems.comms.health : 100
-      };
-    }
-
-    function buildComms() {
-      var wrap = ctx.el('div', { class: 'stack' });
-      wrap.appendChild(ctx.el('h2', { text: t('res.comms.name') }));
-      var stateWindow = comms.windowState(windowContext());
-      var capacity = comms.windowCapacity(windowContext());
-      var status = ctx.el('div', { class: 'comms-status' }, [
-        ctx.el('span', {
-          class: 'chip' + (stateWindow.open ? ' is-ok' : ' is-warn'),
-          text: stateWindow.open ? t('travel.comms_open') : t('travel.comms_closed')
-        }),
-        ctx.el('span', {
-          text: stateWindow.open
-            ? t('travel.comms_capacity', { amount: tr.formatUnit(capacity, 'unit.kb') })
-            : t('travel.comms_next', { minutes: tr.formatNumber(stateWindow.nextOpenInMinutes || 0) })
-        })
-      ]);
-      wrap.appendChild(status);
-
-      var items = game.datastore.items || {};
-      var order = priorityList();
-      wrap.appendChild(
-        ctx.el('p', {
-          class: 'faint',
-          text: t('travel.data_priority_hint')
-        })
-      );
-      if (order.length === 0) {
-        wrap.appendChild(ctx.el('p', { class: 'muted', text: t('travel.no_data') }));
-      } else {
-        var list = ctx.el('ul', { class: 'priority-list' });
-        order.forEach(function (id, index) {
-          var row = ctx.el('li', null, [
-            ctx.el('span', { text: t('instrument.' + id + '.name') }),
-            ctx.el('span', { text: tr.formatUnit(items[id] || 0, 'unit.kb') }),
-            ctx.el('button', {
-              type: 'button',
-              class: 'icon',
-              text: '\u25B2',
-              'aria-label': t('travel.move_up', { instrument: t('instrument.' + id + '.name') }),
-              disabled: index === 0,
-              onclick: function () {
-                var listOrder = priorityList().slice();
-                var at = listOrder.indexOf(id);
-                if (at > 0) {
-                  listOrder.splice(at, 1);
-                  listOrder.splice(at - 1, 0, id);
-                  runtime.priority = listOrder;
-                  invalidate();
-                }
-              }
-            }),
-            ctx.el('button', {
-              type: 'button',
-              class: 'icon',
-              text: '\u25BC',
-              'aria-label': t('travel.move_down', { instrument: t('instrument.' + id + '.name') }),
-              disabled: index === order.length - 1,
-              onclick: function () {
-                var listOrder = priorityList().slice();
-                var at = listOrder.indexOf(id);
-                if (at !== -1 && at < listOrder.length - 1) {
-                  listOrder.splice(at, 1);
-                  listOrder.splice(at + 1, 0, id);
-                  runtime.priority = listOrder;
-                  invalidate();
-                }
-              }
-            })
-          ]);
-          list.appendChild(row);
-        });
-        wrap.appendChild(list);
+        slots.appendChild(slot);
       }
-      var transmit = ctx.el('button', {
-        type: 'button',
-        class: 'primary',
-        text: t('action.transmit'),
-        disabled: !stateWindow.open || order.length === 0,
-        onclick: function () {
-          runAction({ type: 'transmit', priority: priorityList() });
-        }
-      });
-      if (!stateWindow.open) {
-        ctx.tooltip(transmit, function () {
-          return t('travel.comms_next', { minutes: tr.formatNumber(stateWindow.nextOpenInMinutes || 0) });
-        });
-      }
-      wrap.appendChild(ctx.el('div', { class: 'row' }, [transmit]));
-      return wrap;
-    }
-
-    function buildVote() {
-      var vote = game.vote;
-      if (!vote) return null;
-      var wrap = ctx.el('div', { class: 'stack' });
-      var remaining = Math.max(0, Math.ceil((vote.durationMs - vote.elapsedMs) / 1000));
-      wrap.appendChild(ctx.el('h2', { text: t('travel.vote_title') }));
-      var head = ctx.el('div', { class: 'row' }, [
-        ctx.el('span', { text: t(vote.code) }),
-        ctx.el('span', { class: 'vote-timer', text: t('travel.vote_seconds', { seconds: remaining }) })
-      ]);
-      wrap.appendChild(head);
-      var defaultOption = vote.options.find(function (option) {
-        return option.id === vote.defaultOption;
-      });
-      if (defaultOption) {
+      wrap.appendChild(slots);
+      var near = nearObject(selectedId());
+      if (near && near.item && !near.carriedBy) {
         wrap.appendChild(
-          ctx.el('p', { class: 'faint', text: t('travel.vote_default', { option: t(defaultOption.labelKey) }) })
+          ctx.el('button', {
+            type: 'button',
+            class: 'dock-pickup',
+            text: t('travel.pickup'),
+            onclick: function () {
+              var result = playersModule.pickup(world, selectedId(), near.id);
+              if (result && result.codes && typeof ctx.toastCodes === 'function') ctx.toastCodes(result.codes);
+              invalidate();
+            }
+          })
         );
       }
-      var options = ctx.el('div', { class: 'vote-options' });
-      var current = memberById(selectedId());
-      var myVote = current ? vote.votes[current.id] : undefined;
-      vote.options.forEach(function (option) {
-        var button = ctx.el('button', {
-          type: 'button',
-          class: 'vote-option',
-          'aria-pressed': myVote === option.id ? 'true' : 'false',
-          onclick: function () {
-            runAction({ type: 'vote', memberId: selectedId(), optionId: option.id });
-          }
-        }, [
-          ctx.el('strong', { text: t(option.labelKey) }),
-          ctx.el('span', { class: 'estimate', text: t(option.estimateKey) }),
-          ctx.el('span', { class: 'why', text: t(option.whyKey) })
-        ]);
-        options.appendChild(button);
-      });
-      wrap.appendChild(options);
-      var marks = ctx.el('div', { class: 'vote-marks' });
-      game.crew.members.forEach(function (member) {
-        if (!member.alive) return;
-        var chosen = vote.votes[member.id];
-        var chosenOption = chosen
-          ? vote.options.find(function (option) {
-              return option.id === chosen;
-            })
-          : null;
-        var label = chosenOption
-          ? t('travel.vote_mark', { member: t(member.nameKey), option: t(chosenOption.labelKey) })
-          : t('travel.vote_pending', { member: t(member.nameKey) });
-        marks.appendChild(ctx.el('span', { class: 'chip', text: label }));
-      });
-      wrap.appendChild(marks);
       return wrap;
     }
 
     function buildConsequences() {
-      var wrap = ctx.el('div', { class: 'stack' });
-      wrap.appendChild(ctx.el('h2', { text: t('hud.consequences') }));
+      var wrap = ctx.el('div', { class: 'dock-body' });
+      var pending = gameModule.pendingConsequences(game);
+      wrap.appendChild(
+        ctx.el('div', { class: 'dock-head' }, [
+          ctx.el('h2', { class: 'hud-title', text: t('hud.consequences') }),
+          ctx.el('span', { class: 'dock-sub num', text: tr.formatNumber(pending.length) })
+        ])
+      );
       if (!game.clock.paused) {
         wrap.appendChild(ctx.el('p', { class: 'faint', text: t('travel.pause_for_consequences') }));
         return wrap;
       }
-      var pending = gameModule.pendingConsequences(game);
       if (pending.length === 0) {
         wrap.appendChild(ctx.el('p', { class: 'muted', text: t('travel.no_consequences') }));
         return wrap;
       }
       if (typeof ctx.notifyTutorial === 'function') ctx.notifyTutorial('deferred_consequence');
-      var list = ctx.el('ul', { class: 'consequence-list' });
+      var list = ctx.el('ul', { class: 'tape-list' });
       pending.forEach(function (entry) {
         var countdown = entry.daysLeft !== null
           ? t('travel.days_left', { days: tr.formatNumber(entry.daysLeft) })
           : t('travel.events_left', { events: tr.formatNumber(entry.eventsLeft || 0) });
         var item = ctx.el('li', { class: entry.severity === 'severe' ? 'is-severe' : '' }, [
-          ctx.el('span', { text: t(entry.code, entry.params) }),
-          ctx.el('span', { class: 'faint', text: countdown })
+          ctx.el('span', { class: 'tape-entry', text: t(entry.code, entry.params) }),
+          ctx.el('span', { class: 'tape-trigger faint', text: countdown })
         ]);
         if (entry.whyKey) {
           ctx.tooltip(item, function () {
@@ -946,6 +1059,64 @@
       var notice = (game.notices || [])[game.notices.length - 1];
       if (!notice) return ctx.el('p', { class: 'faint', text: t('travel.captions_idle') });
       return ctx.el('p', { text: t(notice.code, notice.params) });
+    }
+
+    function buildVote() {
+      var vote = game.vote;
+      if (!vote) return null;
+      var wrap = ctx.el('div', { class: 'tape-body' });
+      var remaining = Math.max(0, Math.ceil((vote.durationMs - vote.elapsedMs) / 1000));
+      wrap.appendChild(
+        plateTitle(
+          t('travel.vote_title'),
+          ctx.el('span', { class: 'vote-timer num', text: t('travel.vote_seconds', { seconds: remaining }) })
+        )
+      );
+      wrap.appendChild(ctx.el('p', { class: 'tape-line', text: t(vote.code) }));
+      var defaultOption = vote.options.find(function (option) {
+        return option.id === vote.defaultOption;
+      });
+      if (defaultOption) {
+        wrap.appendChild(
+          ctx.el('p', { class: 'faint hud-note', text: t('travel.vote_default', { option: t(defaultOption.labelKey) }) })
+        );
+      }
+      var options = ctx.el('div', { class: 'vote-options' });
+      var current = memberById(selectedId());
+      var myVote = current ? vote.votes[current.id] : undefined;
+      vote.options.forEach(function (option) {
+        options.appendChild(
+          ctx.el('button', {
+            type: 'button',
+            class: 'vote-option',
+            'aria-pressed': myVote === option.id ? 'true' : 'false',
+            onclick: function () {
+              runAction({ type: 'vote', memberId: selectedId(), optionId: option.id });
+            }
+          }, [
+            ctx.el('strong', { text: t(option.labelKey) }),
+            ctx.el('span', { class: 'estimate', text: t(option.estimateKey) }),
+            ctx.el('span', { class: 'why', text: t(option.whyKey) })
+          ])
+        );
+      });
+      wrap.appendChild(options);
+      var marks = ctx.el('div', { class: 'vote-marks' });
+      game.crew.members.forEach(function (member) {
+        if (!member.alive) return;
+        var chosen = vote.votes[member.id];
+        var chosenOption = chosen
+          ? vote.options.find(function (option) {
+              return option.id === chosen;
+            })
+          : null;
+        var label = chosenOption
+          ? t('travel.vote_mark', { member: t(member.nameKey), option: t(chosenOption.labelKey) })
+          : t('travel.vote_pending', { member: t(member.nameKey) });
+        marks.appendChild(ctx.el('span', { class: 'chip', text: label }));
+      });
+      wrap.appendChild(marks);
+      return wrap;
     }
 
     function buildEvent() {
@@ -968,38 +1139,39 @@
       dialog.appendChild(ctx.el('p', { id: 'event-desc', text: t(event.descriptionKey) }));
       var options = ctx.el('div', { class: 'event-options' });
       event.options.forEach(function (option) {
-        var button = ctx.el('button', {
-          type: 'button',
-          class: 'event-option',
-          onclick: function () {
-            runAction({ type: 'event_option', uid: event.uid, optionId: option.id });
-          }
-        }, [
-          ctx.el('strong', { text: t(option.labelKey) }),
-          ctx.el('span', { class: 'estimate', text: t(option.estimateKey) }),
-          ctx.el('span', { class: 'why', text: t(option.whyKey) })
-        ]);
-        options.appendChild(button);
+        options.appendChild(
+          ctx.el('button', {
+            type: 'button',
+            class: 'event-option',
+            onclick: function () {
+              runAction({ type: 'event_option', uid: event.uid, optionId: option.id });
+            }
+          }, [
+            ctx.el('strong', { text: t(option.labelKey) }),
+            ctx.el('span', { class: 'estimate', text: t(option.estimateKey) }),
+            ctx.el('span', { class: 'why', text: t(option.whyKey) })
+          ])
+        );
       });
       dialog.appendChild(options);
       overlay.appendChild(dialog);
       // El evento detiene el reloj: el foco entra en el modal para que se pueda
       // responder con el teclado (accesibilidad de paneles).
-      if (ctx.doc && typeof setTimeout === 'function') {
+      if (doc && typeof setTimeout === 'function') {
         setTimeout(function () {
           var first = dialog.querySelector('button');
-          if (first && !dialog.contains(ctx.doc.activeElement)) first.focus();
+          if (first && !dialog.contains(doc.activeElement)) first.focus();
         }, 0);
       }
       return overlay;
     }
 
-    /* --- Interacción con la tecla de interactuar (S33, V-4) ---------- */
+    /* --- Interacción: radial junto al jugador (S33, V-4) --------------- */
 
     /**
      * Estados en los que el flanco de `interact` se ignora: con el reloj en
      * pausa se están revisando consecuencias, y un evento o una votación ya
-     * tienen su propia capa encima del canvas (V-4).
+     * tienen su propia capa encima del visor (V-4).
      */
     function interactionBlocked() {
       if (!game || !game.clock) return true;
@@ -1010,14 +1182,13 @@
 
     /** Objeto al alcance del jugador; respeta `objects.REACH` (V-4). */
     function objectInReach(playerId) {
-      var near = worldModule.nearest(world, playerId);
-      return near ? near.object : null;
+      return nearObject(playerId);
     }
 
     /**
-     * Ejecuta una acción del objeto por la misma ruta que los botones del panel:
+     * Ejecuta una acción del objeto por la misma ruta que los botones del dock:
      * `world/objects.interact` aplica los efectos y `core/game` recalcula los
-     * recursos (C-7). El `estimate` de la acción sigue visible en el panel.
+     * recursos (C-7). El `estimate` de la acción sigue visible en el radial.
      */
     function applyObjectAction(playerId, object, action) {
       var result = objectsModule.interact(world, object.id, action.id, playerId);
@@ -1027,24 +1198,38 @@
       return result;
     }
 
+    function focusCanvas() {
+      if (canvas && typeof canvas.focus === 'function') canvas.focus();
+    }
+
     function closeInteraction() {
       if (!runtime.interaction) return false;
       runtime.interaction = null;
+      invalidate();
+      focusCanvas();
+      return true;
+    }
+
+    function openRadial(playerId, object) {
+      if (!object) return false;
+      runtime.selected = playerId;
+      runtime.interaction = { playerId: playerId, objectId: object.id };
       invalidate();
       return true;
     }
 
     /**
      * Atiende el flanco de `interact` de un jugador: lo selecciona, busca el
-     * objeto al alcance y ejecuta la única acción aplicable o abre la capa de
-     * interacción. Devuelve un código estable para las pruebas:
-     * `blocked` | `no_object` | `no_action` | `acted` | `overlay`.
+     * objeto al alcance y abre el radial con sus acciones. Devuelve un código
+     * estable para las pruebas: `blocked` | `no_object` | `no_action` | `overlay`.
      */
     function handleInteract(playerId) {
       var member = memberById(playerId);
       // Un tripulante muerto no interactúa: `runtime.selected` tiene que seguir
       // apuntando a alguien vivo para el resto de la pantalla.
       if (!member || !member.alive) return 'blocked';
+      // Con el radial abierto, el flanco no reabre ni reejecuta nada.
+      if (runtime.interaction) return 'blocked';
       if (interactionBlocked()) return 'blocked';
       runtime.selected = playerId;
       invalidate();
@@ -1060,13 +1245,8 @@
         if (typeof ctx.toastCodes === 'function') ctx.toastCodes([{ code: 'travel.no_action_available' }]);
         return 'no_action';
       }
-      if (actions.length === 1) {
-        applyObjectAction(playerId, object, actions[0]);
-        return 'acted';
-      }
 
-      runtime.interaction = { playerId: playerId, objectId: object.id };
-      invalidate();
+      openRadial(playerId, object);
       return 'overlay';
     }
 
@@ -1077,88 +1257,150 @@
       });
     }
 
+    /** Botones del radial (sólo acciones: el cierre queda fuera del ciclo). */
+    function radialActions(radial) {
+      if (!radial || typeof radial.querySelectorAll !== 'function') return [];
+      return Array.prototype.slice.call(radial.querySelectorAll('button.radial-action'));
+    }
+
     /**
-     * Capa de interacción (V-4): nombre, descripción y un botón por acción con
-     * su etiqueta y su consecuencia estimada. Sigue el patrón de la capa de
-     * eventos: `overlay` + `dialog` modal con el foco dentro y Escape para
-     * cerrar; un botón Cancelar o un clic fuera también la cierran.
+     * Teclado dentro del radial: flechas o Tab recorren las acciones, Enter
+     * ejecuta la enfocada y Escape cierra. El manejador corta la propagación
+     * para que las teclas no muevan al personaje ni activen el flanco de
+     * interactuar al mismo tiempo.
      */
-    function buildInteraction() {
+    function onRadialKeydown(event) {
+      if (!event) return;
+      var radial = event.currentTarget;
+      if (!radial) return;
+      var key = event.key;
+      if (key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeInteraction();
+        return;
+      }
+      var list = radialActions(radial);
+      if (key === 'Enter') {
+        var active = doc ? doc.activeElement : null;
+        if (active && list.indexOf(active) !== -1) {
+          event.preventDefault();
+          event.stopPropagation();
+          closeInteraction();
+          active.click();
+        }
+        return;
+      }
+      var step;
+      if (key === 'ArrowDown' || key === 'ArrowRight') step = 1;
+      else if (key === 'ArrowUp' || key === 'ArrowLeft') step = -1;
+      else if (key === 'Tab') step = event.shiftKey ? -1 : 1;
+      else if (key === 'Home') step = -list.length;
+      else if (key === 'End') step = list.length;
+      else return;
+      if (list.length === 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      var at = doc ? list.indexOf(doc.activeElement) : -1;
+      var next = at === -1 ? (step > 0 ? 0 : list.length - 1) : (at + step + list.length) % list.length;
+      list[next].focus();
+      list.forEach(function (button, index) {
+        button.classList.toggle('is-target', index === next);
+      });
+    }
+
+    /** Construye el radial; devuelve `null` si ya no corresponde mostrarlo. */
+    function buildRadial() {
       var current = runtime.interaction;
       if (!current) return null;
       var object = objectsModule.find(world, current.objectId);
       var actions = object ? objectsModule.actions(object) : [];
-      // La capa nunca convive con un evento, una votación o una pausa.
       if (!object || actions.length === 0 || interactionBlocked()) return null;
 
-      var overlay = ctx.el('div', {
-        class: 'overlay',
-        id: 'travel-interaction-overlay',
-        onclick: function (event) {
-          if (!event || event.target === overlay) closeInteraction();
-        }
+      var radial = ctx.el('div', {
+        class: 'radial',
+        role: 'group',
+        'aria-label': t('travel.interaction_label'),
+        onkeydown: onRadialKeydown
       });
-      var dialog = ctx.el('div', {
-        class: 'dialog dialog--narrow',
-        role: 'dialog',
-        'aria-modal': 'true',
-        'aria-labelledby': 'interaction-title',
-        'aria-describedby': 'interaction-desc',
-        onkeydown: function (event) {
-          if (!event || event.key !== 'Escape') return;
-          if (typeof event.preventDefault === 'function') event.preventDefault();
-          closeInteraction();
-        }
-      });
-      dialog.appendChild(
-        ctx.el('div', { class: 'dialog__head' }, [
-          ctx.el('h2', { id: 'interaction-title', text: t(object.nameKey) }),
-          ctx.el('span', { class: 'badge', text: t('travel.object_title') })
+      radial.appendChild(
+        ctx.el('div', { class: 'radial-head' }, [
+          ctx.el('div', { class: 'radial-title' }, [
+            ctx.el('b', { text: t(object.nameKey) }),
+            ctx.el('span', { text: t(object.descKey) })
+          ]),
+          ctx.el('button', {
+            type: 'button',
+            class: 'radial-close icon',
+            text: '\u2715',
+            'aria-label': t('common.close'),
+            onclick: function () {
+              closeInteraction();
+            }
+          })
         ])
       );
-      dialog.appendChild(ctx.el('p', { id: 'interaction-desc', text: t(object.descKey) }));
-
-      var list = ctx.el('div', {
-        class: 'event-options',
-        role: 'group',
-        'aria-label': t('travel.interaction_label')
+      var list = ctx.el('div', { class: 'radial-list' });
+      actions.forEach(function (action, index) {
+        var button = ctx.el('button', {
+          type: 'button',
+          class: 'radial-action' + (index === 0 ? ' is-target' : ''),
+          'data-tutorial': 'travel-action',
+          'data-action': action.id,
+          onclick: function () {
+            closeInteraction();
+            applyObjectAction(current.playerId, object, action);
+          }
+        }, [
+          ctx.el('b', { text: t(action.labelKey) }),
+          action.estimateKey
+            ? ctx.el('span', { class: 'estimate', text: t(action.estimateKey) })
+            : null
+        ]);
+        list.appendChild(button);
       });
-      actions.forEach(function (action) {
-        var content = [ctx.el('strong', { text: t(action.labelKey) })];
-        if (action.estimateKey) content.push(ctx.el('span', { class: 'estimate', text: t(action.estimateKey) }));
+      if (object.item && !object.carriedBy) {
         list.appendChild(
           ctx.el('button', {
             type: 'button',
-            class: 'event-option',
+            class: 'radial-action',
+            'data-tutorial': 'travel-action',
+            'data-action': 'pickup',
             onclick: function () {
               closeInteraction();
-              applyObjectAction(current.playerId, object, action);
+              var result = playersModule.pickup(world, current.playerId, object.id);
+              if (result && result.codes && typeof ctx.toastCodes === 'function') ctx.toastCodes(result.codes);
+              invalidate();
             }
-          }, content)
+          }, [ctx.el('b', { text: t('travel.pickup') })])
         );
-      });
-      list.appendChild(
+      }
+      radial.appendChild(list);
+      radial.appendChild(ctx.el('p', { class: 'radial-keys faint', text: t('travel.radial_keys') }));
+      return radial;
+    }
+
+    /* --- Utilidades de partida ---------------------------------------- */
+
+    function buildControls() {
+      var wrap = ctx.el('div', { class: 'utility' });
+      var row = ctx.el('div', { class: 'utility-row' });
+      row.appendChild(ctx.el('button', { type: 'button', text: t('common.save'), onclick: saveGame }));
+      row.appendChild(ctx.el('button', { type: 'button', text: t('common.export'), onclick: exportGame }));
+      row.appendChild(
         ctx.el('button', {
           type: 'button',
           class: 'ghost',
-          text: t('common.cancel'),
+          text: t('menu.back_to_title'),
           onclick: function () {
-            closeInteraction();
+            if (win && typeof win.confirm === 'function' && !win.confirm(t('travel.confirm_exit'))) return;
+            ctx.go('title');
           }
         })
       );
-      dialog.appendChild(list);
-      overlay.appendChild(dialog);
-
-      // El foco entra en la capa para recorrerla y cerrarla con el teclado.
-      if (ctx.doc && typeof setTimeout === 'function') {
-        setTimeout(function () {
-          if (!runtime.interaction) return;
-          var first = typeof dialog.querySelector === 'function' ? dialog.querySelector('button') : null;
-          if (first && typeof first.focus === 'function' && ctx.doc.activeElement !== first) first.focus();
-        }, 0);
-      }
-      return overlay;
+      wrap.appendChild(row);
+      wrap.appendChild(ctx.el('p', { class: 'faint utility-hint', text: t('travel.canvas_hint') }));
+      return wrap;
     }
 
     function paintAll() {
@@ -1171,10 +1413,15 @@
         var conflictPower = conflictPanel.items.find(function (item) {
           return item.id === 'power';
         });
-        sections.conflict.hidden = !conflictPower || conflictPower.status === 'ok' || !game.instruments.some(function (instrument) {
-          return instrument.active;
-        });
+        sections.conflict.hidden =
+          !conflictPower ||
+          conflictPower.status === 'ok' ||
+          !game.instruments.some(function (instrument) {
+            return instrument.active;
+          });
       }
+
+      paint('controls', 'static:' + t('travel.controls'), buildControls);
       paint('clock', [Math.floor(clock.hours * 60), clock.speed, clock.paused].join('|'), buildClock);
 
       var panel = gameModule.resourcePanel(game);
@@ -1213,6 +1460,7 @@
               member.alive,
               Math.round(member.health),
               Math.round(member.morale),
+              Math.round(member.stress),
               Math.round(member.hunger),
               Math.round(member.thirst),
               Math.round(member.sleep),
@@ -1229,12 +1477,19 @@
           systems: systems.SYSTEM_IDS.map(function (id) {
             var system = game.systems[id];
             return system ? [Math.round(system.health), Math.round(system.reliability)] : null;
-          }),
-          instruments: game.instruments.map(function (instrument) {
-            return [instrument.id, instrument.active];
           })
         }),
         buildSystems
+      );
+
+      paint(
+        'instruments',
+        JSON.stringify(
+          game.instruments.map(function (instrument) {
+            return [instrument.id, instrument.active];
+          })
+        ),
+        buildInstruments
       );
 
       var powerItem = panel.items.find(function (item) {
@@ -1256,20 +1511,10 @@
         buildConflict
       );
 
-      var near = worldModule.nearest(world, selectedId());
-      var inventory = (playersModule.byId(world, selectedId()) || { inventory: [] }).inventory;
-      paint(
-        'object',
-        JSON.stringify({
-          selected: selectedId(),
-          object: near ? near.object.id : null,
-          used: near ? near.object.uses : {},
-          done: near ? near.object.done : {},
-          inventory: inventory
-        }),
-        buildObjectPanel
-      );
-
+      var near = nearObject(selectedId());
+      var actingPlayer = playersModule.byId(world, selectedId());
+      var inventory = (actingPlayer || { inventory: [] }).inventory;
+      var capacity = actingPlayer ? playersModule.capacityOf(world, actingPlayer) : 0;
       paint(
         'actions',
         JSON.stringify({
@@ -1285,7 +1530,19 @@
         buildActions
       );
 
-      paint('inventory', JSON.stringify({ selected: selectedId(), inventory: inventory }), buildInventory);
+      paint(
+        'inventory',
+        JSON.stringify({
+          selected: selectedId(),
+          inventory: inventory,
+          capacity: capacity,
+          targets: world.players.list.length,
+          near: near ? near.id : null,
+          item: near ? !!near.item : false,
+          carried: near ? !!near.carriedBy : false
+        }),
+        buildInventory
+      );
 
       var windowNow = comms.windowState(windowContext());
       paint(
@@ -1329,22 +1586,215 @@
       paint('caption', JSON.stringify({ captions: ctx.getPrefs().captions, note: lastNotice ? lastNotice.id : null }), buildCaption);
       paint('event', game.pendingEvents.length > 0 ? game.pendingEvents[0].uid : 'none', buildEvent);
 
-      // La capa de interacción se cierra sola si el objeto deja de estar al
-      // alcance o si aparece un evento, una votación o una pausa (V-4).
-      if (runtime.interaction && interactionBlocked()) runtime.interaction = null;
-      var interactionSignature = 'none';
+      // El radial se cierra solo si el objeto deja de estar al alcance, si se
+      // agotan sus acciones o si aparece un evento, una votación o una pausa.
       if (runtime.interaction) {
         var interactionObject = objectsModule.find(world, runtime.interaction.objectId);
+        var liveActions = interactionObject ? objectsModule.actions(interactionObject) : [];
+        if (interactionBlocked() || !interactionObject || liveActions.length === 0) runtime.interaction = null;
+      }
+      var interactionSignature = 'none';
+      if (runtime.interaction) {
+        var objectNow = objectsModule.find(world, runtime.interaction.objectId);
         interactionSignature = [
           runtime.interaction.playerId,
           runtime.interaction.objectId,
-          interactionObject ? objectsModule.actions(interactionObject).length : 0
+          objectsModule
+            .actions(objectNow)
+            .map(function (action) {
+              return action.id;
+            })
+            .join(','),
+          objectNow && objectNow.item ? 'item' : ''
         ].join('|');
       }
-      paint('interaction', interactionSignature, buildInteraction);
+      var rebuilt = paint('interaction', interactionSignature, buildRadial);
+      if (rebuilt) focusRadial();
     }
 
-    /* --- Bucle ------------------------------------------------------- */
+    function focusRadial() {
+      if (!runtime.interaction || !doc || typeof setTimeout !== 'function') return;
+      setTimeout(function () {
+        if (!runtime.interaction) return;
+        var radial = interactionHost.querySelector ? interactionHost.querySelector('.radial') : null;
+        var first = radial ? radialActions(radial)[0] : null;
+        if (first && doc.activeElement !== first) first.focus();
+      }, 0);
+    }
+
+    /* --- Posición del chip y del radial ------------------------------- */
+
+    function cellScreen(point) {
+      if (!lastView || !point) return null;
+      var viewport = lastView.viewport;
+      var camera = lastView.camera;
+      return renderer.toScreen(
+        renderer.project(point),
+        camera,
+        { x: viewport.width / 2, y: viewport.height / 2 },
+        camera.zoom
+      );
+    }
+
+    function objectScreen(object) {
+      var point = cellScreen(object);
+      if (!point) return null;
+      return { x: point.x, y: point.y - 14 * (lastView ? lastView.camera.zoom : 1) };
+    }
+
+    /** Objeto bajo el puntero (radio de 26 px sobre su volumen dibujado). */
+    function objectAtPointer() {
+      if (!pointer || !lastView) return null;
+      var best = null;
+      var bestDistance = 26;
+      (map.objects || []).forEach(function (def) {
+        var instance = world.objects && world.objects.items[def.id];
+        if (instance && instance.carriedBy) return;
+        var point = objectScreen(def);
+        if (!point) return;
+        var distance = Math.sqrt(Math.pow(point.x - pointer.x, 2) + Math.pow(point.y - pointer.y, 2));
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = def;
+        }
+      });
+      return best;
+    }
+
+    function setChipContent(object) {
+      if (!object) {
+        if (!chip.hidden) chip.hidden = true;
+        runtime.chipObject = null;
+        return;
+      }
+      if (runtime.chipObject === object.id) return;
+      runtime.chipObject = object.id;
+      var binds = (input.bindings && (input.bindings[selectedId()] || input.bindings.p1)) || {};
+      var key = keyLabel(binds.interact);
+      ctx.clear(chip);
+      chip.setAttribute('title', t('travel.interact_hint', { key: key }));
+      chip.setAttribute('aria-label', t(object.nameKey));
+      chip.appendChild(ctx.el('kbd', { text: key }));
+      chip.appendChild(ctx.el('span', { class: 'travel-chip__name', text: t(object.nameKey) }));
+    }
+
+    function positionChip() {
+      if (runtime.interaction) {
+        setChipContent(null);
+        return;
+      }
+      var hovered = runtime.hoverObject ? objectsModule.find(world, runtime.hoverObject) : null;
+      var object = hovered || nearObject(selectedId());
+      setChipContent(object);
+      if (!object) return;
+      var point = objectScreen(object);
+      if (!point) return;
+      var frameRect = frameNode.getBoundingClientRect ? frameNode.getBoundingClientRect() : null;
+      var width = frameRect ? frameRect.width : 960;
+      var height = frameRect ? frameRect.height : 540;
+      var x = clamp(Math.round(point.x), 60, Math.max(60, width - 60));
+      var y = clamp(Math.round(point.y - 30), 58, Math.max(58, height - 80));
+      if (runtime.chipX !== x) {
+        runtime.chipX = x;
+        chip.style.left = x + 'px';
+      }
+      if (runtime.chipY !== y) {
+        runtime.chipY = y;
+        chip.style.top = y + 'px';
+      }
+      if (chip.hidden) chip.hidden = false;
+    }
+
+    function positionRadial() {
+      var current = runtime.interaction;
+      if (!current) return;
+      var radial = interactionHost.querySelector ? interactionHost.querySelector('.radial') : null;
+      if (!radial) return;
+      var player = playersModule.byId(world, current.playerId);
+      if (!player) return;
+      var point = cellScreen(player);
+      if (!point) return;
+      var frameRect = frameNode.getBoundingClientRect ? frameNode.getBoundingClientRect() : null;
+      var width = frameRect ? frameRect.width : 960;
+      var height = frameRect ? frameRect.height : 540;
+      var panelWidth = radial.offsetWidth || 200;
+      var panelHeight = radial.offsetHeight || 160;
+      var zoom = lastView ? lastView.camera.zoom : 1;
+      var offset = 42 * zoom;
+      var left = point.x + offset;
+      if (left + panelWidth > width - 12) left = point.x - offset - panelWidth;
+      left = clamp(Math.round(left), 10, Math.max(10, width - panelWidth - 10));
+      var top = clamp(Math.round(point.y - panelHeight / 2), 10, Math.max(10, height - panelHeight - 10));
+      if (runtime.radialLeft === left && runtime.radialTop === top) return;
+      runtime.radialLeft = left;
+      runtime.radialTop = top;
+      radial.style.left = left + 'px';
+      radial.style.top = top + 'px';
+    }
+
+    function updateHover() {
+      var hovered = objectAtPointer();
+      runtime.hoverObject = hovered ? hovered.id : null;
+    }
+
+    /* --- Puntero ------------------------------------------------------ */
+
+    function pointerPosition(event) {
+      if (!event) return null;
+      var rect = canvas.getBoundingClientRect ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    }
+
+    function onCanvasMove(event) {
+      pointer = pointerPosition(event);
+    }
+
+    function onCanvasLeave() {
+      pointer = null;
+      runtime.hoverObject = null;
+    }
+
+    /**
+     * Clic sobre el visor: abre el radial del objeto apuntado (si el jugador
+     * seleccionado está a su alcance) o del objeto más cercano; con un radial
+     * abierto, cierra.
+     */
+    function onCanvasClick(event) {
+      if (runtime.interaction) {
+        closeInteraction();
+        return;
+      }
+      if (interactionBlocked()) return;
+      var point = pointerPosition(event);
+      pointer = point;
+      updateHover();
+      var selected = selectedId();
+      var target = runtime.hoverObject ? objectsModule.find(world, runtime.hoverObject) : null;
+      var reachable = target && worldModule.nearest(world, selected, objectsModule.REACH);
+      var object = null;
+      if (target && reachable && reachable.object.id === target.id) object = target;
+      else object = nearObject(selected);
+      if (!object) return;
+      var actions = objectsModule.actions(object);
+      if (actions.length === 0) return;
+      openRadial(selected, object);
+    }
+
+    /** Escape global: cierra el radial desde cualquier foco. */
+    function onDocumentKeydown(event) {
+      if (!event || event.key !== 'Escape' || !runtime.interaction) return;
+      if (typeof event.preventDefault === 'function') event.preventDefault();
+      closeInteraction();
+    }
+
+    if (canvas && typeof canvas.addEventListener === 'function') {
+      canvas.addEventListener('click', onCanvasClick);
+      canvas.addEventListener('mousemove', onCanvasMove);
+      canvas.addEventListener('mouseleave', onCanvasLeave);
+    }
+    if (doc && typeof doc.addEventListener === 'function') doc.addEventListener('keydown', onDocumentKeydown);
+
+    /* --- Bucle -------------------------------------------------------- */
 
     function sizeCanvas() {
       var rect = canvas.getBoundingClientRect ? canvas.getBoundingClientRect() : { width: 960, height: 600 };
@@ -1359,7 +1809,35 @@
       if (rafId && win) caf(rafId);
       rafId = 0;
       if (win && typeof win.removeEventListener === 'function') win.removeEventListener('resize', sizeCanvas);
+      if (canvas && typeof canvas.removeEventListener === 'function') {
+        canvas.removeEventListener('click', onCanvasClick);
+        canvas.removeEventListener('mousemove', onCanvasMove);
+        canvas.removeEventListener('mouseleave', onCanvasLeave);
+      }
+      if (doc && typeof doc.removeEventListener === 'function') doc.removeEventListener('keydown', onDocumentKeydown);
       inputModule.detach(input);
+    }
+
+    /**
+     * Anula el movimiento del jugador que tiene el radial abierto (V-4): el
+     * resto del grupo sigue moviéndose, así el radial queda anclado a su dueño.
+     */
+    function freezeActor(controls, playerId) {
+      var out = {};
+      Object.keys(controls || {}).forEach(function (id) {
+        var table = controls[id] || {};
+        out[id] =
+          id === playerId
+            ? { up: false, down: false, left: false, right: false, interact: !!table.interact }
+            : {
+                up: !!table.up,
+                down: !!table.down,
+                left: !!table.left,
+                right: !!table.right,
+                interact: !!table.interact
+              };
+      });
+      return out;
     }
 
     function frame(timestamp) {
@@ -1375,13 +1853,16 @@
       var interactQueue = (runtime.interactQueue || []).concat(interactFlanks(controls));
       runtime.interactQueue = [];
       if (interactQueue.length > 0) {
-        // Si el flanco se ignora (pausa, evento, votación o tripulante muerto)
-        // no queda nada pendiente: la cola se descarta entera.
         var outcome = handleInteract(interactQueue[0]);
         runtime.interactQueue = outcome === 'blocked' ? [] : interactQueue.slice(1);
       }
 
-      worldModule.step(world, controls, delta / 1000);
+      updateHover();
+      worldModule.step(
+        world,
+        runtime.interaction ? freezeActor(controls, runtime.interaction.playerId) : controls,
+        delta / 1000
+      );
       var result = gameModule.tick(game, delta);
 
       if (game.status === 'report') {
@@ -1393,21 +1874,29 @@
       if (canvasCtx) {
         sizeCanvas();
         var viewport = { width: canvas.width, height: canvas.height };
+        var camera = renderer.computeCamera(map, world, viewport);
+        lastView = { camera: camera, viewport: viewport };
+        var near = nearObject(selectedId());
         renderer.render(canvasCtx, {
           map: map,
           game: { systems: game.systems, clock: game.clock },
           world: world,
-          camera: renderer.computeCamera(map, world, viewport),
+          camera: camera,
           a11y: a11yOptions(),
           t: function (key) {
             return ctx.t(key);
           },
           viewport: viewport,
-          time: game.clock.hours
+          time: game.clock.hours,
+          selected: selectedId(),
+          near: near ? near.id : null,
+          hover: runtime.hoverObject || null
         });
       }
 
       paintAll();
+      positionChip();
+      positionRadial();
       rafId = raf(frame);
     }
 

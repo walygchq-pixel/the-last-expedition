@@ -1,20 +1,22 @@
 /*
  * Render isométrico en Canvas 2D (V-1, V-7, RG-6, S30, S5).
  *
- * Dibuja la nave vista desde arriba en tercera persona con gráficos
- * procedurales (sin imágenes ni fuentes externas) y una cámara que sigue al
- * grupo o usa encuadre compartido cuando hay más de un jugador.
+ * Dirección visual: visor holográfico de cubierta. La nave se dibuja como
+ * placas translúcidas con canto, rejilla fina y objetos de tres caras con
+ * detalles propios (rejillas, pantallas, perillas, patas y halo si están
+ * encendidos). Todo es procedural: no hay imágenes ni fuentes externas (RG-6).
  *
  * Reglas de rendimiento (S5, 60 FPS con 4 jugadores):
- *  - la geometría de cada sala se agrupa en pocas rutas (`beginPath` por sala,
- *    no por casilla) y se cachea en el mapa;
- *  - no se crean objetos por celda en cada cuadro;
- *  - el bucle de animación es externo: `render` dibuja un cuadro y nada más.
+ *  - la geometría de cada sala se agrupa en pocas rutas y se cachea en el mapa;
+ *  - el orden de dibujo de los objetos se precalcula por profundidad y se
+ *    mezcla con los jugadores sin ordenar de nuevo;
+ *  - no se crean degradados ni patrones por cuadro (las pruebas de Node usan un
+ *    contexto simulado que no los devuelve) ni objetos por celda.
  *
  * Iluminación: los multiplicadores salen de `core/systems.effects()`, de modo
  * que la degradación de luz, temperatura y enlace se ve en la nave (V-7).
  * Accesibilidad: `a11y.highContrast` refuerza contornos y añade una forma por
- * sala degradada; `a11y.reduceMotion` apaga el parpadeo (S66, E-5).
+ * sala degradada; `a11y.reduceMotion` apaga el pulso (S66, E-5).
  */
 (function (global, factory) {
   'use strict';
@@ -32,30 +34,84 @@
   var TILE_W = 48;
   var TILE_H = 24;
   var WALL_H = 18;
+  var LIP = 9;
 
   // Caché de geometría fuera del mapa, para que el estado siga siendo JSON
   // plano y serializable (C-5).
   var CACHE = typeof WeakMap === 'function' ? new WeakMap() : null;
 
-  var ROOM_COLORS = {
-    galley: { floor: '#39524b', contrast: '#0d2b22' },
-    engineering: { floor: '#4b4632', contrast: '#2b230a' },
-    medbay: { floor: '#33505c', contrast: '#0b2531' },
-    command: { floor: '#3b4258', contrast: '#12182e' },
-    corridor: { floor: '#3f3f45', contrast: '#1a1a20' },
-    dorm: { floor: '#453a4e', contrast: '#201327' },
-    airlock: { floor: '#4a3b3b', contrast: '#2a1414' }
+  // Paleta holográfica derivada de los tokens del tema: acento, texto y fondo
+  // con alfa. Ningún color nuevo, solo el mismo RGB con transparencia.
+  var PAL = {
+    bg: '#04060b',
+    plate: 'rgba(111, 211, 199, 0.045)',
+    plateEdge: 'rgba(111, 211, 199, 0.42)',
+    plateSide: 'rgba(111, 211, 199, 0.09)',
+    grid: 'rgba(111, 211, 199, 0.16)',
+    door: 'rgba(111, 211, 199, 0.32)',
+    doorEdge: '#6fd3c7',
+    wallTop: 'rgba(111, 211, 199, 0.12)',
+    wallLeft: 'rgba(38, 54, 90, 0.92)',
+    wallRight: 'rgba(9, 13, 22, 0.95)',
+    wallEdge: 'rgba(111, 211, 199, 0.28)',
+    objTop: 'rgba(111, 211, 199, 0.16)',
+    objTopHot: 'rgba(111, 211, 199, 0.44)',
+    objLeft: 'rgba(111, 211, 199, 0.06)',
+    objRight: 'rgba(13, 18, 32, 0.62)',
+    objEdge: 'rgba(111, 211, 199, 0.55)',
+    objEdgeSoft: 'rgba(111, 211, 199, 0.32)',
+    detail: 'rgba(230, 236, 251, 0.38)',
+    detailHi: 'rgba(230, 236, 251, 0.62)',
+    screen: 'rgba(111, 211, 199, 0.5)',
+    screenOff: 'rgba(111, 211, 199, 0.14)',
+    warm: 'rgba(255, 207, 107, 0.55)',
+    glow: 'rgba(111, 211, 199, 0.09)',
+    focus: '#ffe082',
+    text: '#e6ecfb',
+    shadow: 'rgba(0, 0, 0, 0.45)',
+    labelPlate: 'rgba(4, 7, 12, 0.78)',
+    labelEdge: 'rgba(111, 211, 199, 0.25)',
+    roomLabel: 'rgba(111, 211, 199, 0.82)',
+    playerChip: 'rgba(5, 7, 13, 0.85)',
+    reticle: 'rgba(38, 54, 90, 0.55)',
+    bracket: 'rgba(111, 211, 199, 0.5)'
   };
 
-  var DEFAULT_COLORS = { floor: '#3d3d44', contrast: '#1b1b20' };
-  var WALL_TOP = '#59606e';
-  var WALL_LEFT = '#3a4050';
-  var WALL_RIGHT = '#2b303d';
-  var WALL_TOP_CONTRAST = '#dfe7f5';
-  var WALL_SIDE_CONTRAST = '#8f9ab0';
-  var DOOR_COLOR = '#c9a45c';
-  var OBJECT_COLOR = '#e8d9a8';
-  var BACKGROUND = '#0a0b10';
+  // Contraste alto: contornos claros y rellenos más opacos (S66).
+  var PAL_CONTRAST = {
+    bg: '#000000',
+    plate: 'rgba(255, 255, 255, 0.07)',
+    plateEdge: '#ffffff',
+    plateSide: 'rgba(255, 255, 255, 0.12)',
+    grid: 'rgba(255, 255, 255, 0.28)',
+    door: 'rgba(255, 255, 255, 0.35)',
+    doorEdge: '#ffffff',
+    wallTop: 'rgba(255, 255, 255, 0.3)',
+    wallLeft: 'rgba(200, 214, 245, 0.28)',
+    wallRight: 'rgba(0, 0, 0, 0.85)',
+    wallEdge: '#ffffff',
+    objTop: 'rgba(255, 255, 255, 0.22)',
+    objTopHot: 'rgba(255, 255, 255, 0.6)',
+    objLeft: 'rgba(255, 255, 255, 0.1)',
+    objRight: 'rgba(0, 0, 0, 0.85)',
+    objEdge: '#ffffff',
+    objEdgeSoft: 'rgba(255, 255, 255, 0.6)',
+    detail: 'rgba(255, 255, 255, 0.8)',
+    detailHi: '#ffffff',
+    screen: 'rgba(255, 255, 255, 0.6)',
+    screenOff: 'rgba(255, 255, 255, 0.25)',
+    warm: '#ffe08a',
+    glow: 'rgba(255, 255, 255, 0.12)',
+    focus: '#ffe082',
+    text: '#ffffff',
+    shadow: 'rgba(0, 0, 0, 0.7)',
+    labelPlate: 'rgba(0, 0, 0, 0.88)',
+    labelEdge: '#ffffff',
+    roomLabel: '#ffffff',
+    playerChip: 'rgba(0, 0, 0, 0.9)',
+    reticle: 'rgba(255, 255, 255, 0.22)',
+    bracket: '#ffffff'
+  };
 
   var SYSTEM_COLORS = {
     power: '#ffb347',
@@ -80,27 +136,67 @@
     return Math.min(max, Math.max(min, n));
   }
 
-  /** Caché de geometría del mapa: listas de índices de casilla por sala. */
+  function lerp3(a, b, t) {
+    return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+  }
+
+  function lift(point, dy) {
+    return { x: point.x, y: point.y - dy };
+  }
+
+  /** Caché de geometría del mapa: salas, puertas, paredes y objetos ordenados. */
   function prepare(map) {
-    if (!map) return { rooms: [], doors: [], walls: [] };
+    if (!map) return { rooms: [], doors: [], walls: [], objects: [] };
     var cached = CACHE ? CACHE.get(map) : map.renderCache;
     if (cached) return cached;
-    var cache = { rooms: [], doors: [], walls: [] };
+    var cache = { rooms: [], doors: [], walls: [], objects: [] };
     (map.rooms || []).forEach(function (room) {
-      cache.rooms.push({ room: room, tiles: [] });
+      cache.rooms.push({ room: room, tiles: [], rect: null });
     });
     var tiles = map.tiles || map.grid || [];
     var roomIndex = map.roomIndex || [];
+    var groupOf = {};
     for (var i = 0; i < tiles.length; i += 1) {
       var value = tiles[i];
       if (value === TILES.wall) {
         cache.walls.push(i);
       } else if (value === TILES.floor || value === TILES.door) {
         var index = roomIndex[i];
-        if (index !== undefined && index >= 0 && cache.rooms[index]) cache.rooms[index].tiles.push(i);
-        else cache.doors.push(i);
+        if (index !== undefined && index >= 0 && cache.rooms[index]) {
+          cache.rooms[index].tiles.push(i);
+          groupOf[index] = cache.rooms[index];
+        } else {
+          cache.doors.push(i);
+        }
       }
     }
+    var width = map.width;
+    cache.rooms.forEach(function (group) {
+      var x0 = Infinity;
+      var y0 = Infinity;
+      var x1 = -Infinity;
+      var y1 = -Infinity;
+      for (var t = 0; t < group.tiles.length; t += 1) {
+        var idx = group.tiles[t];
+        var cx = idx % width;
+        var cy = (idx - (idx % width)) / width;
+        if (cx < x0) x0 = cx;
+        if (cx > x1) x1 = cx;
+        if (cy < y0) y0 = cy;
+        if (cy > y1) y1 = cy;
+      }
+      if (!isFinite(x0)) {
+        var fallback = group.room.rect || { x: 0, y: 0, w: 1, h: 1 };
+        x0 = fallback.x;
+        y0 = fallback.y;
+        x1 = fallback.x + fallback.w - 1;
+        y1 = fallback.y + fallback.h - 1;
+      }
+      group.rect = { x0: x0, y0: y0, x1: x1, y1: y1 };
+    });
+    cache.objects = (map.objects || []).slice().sort(function (a, b) {
+      return a.x + a.y - (b.x + b.y);
+    });
     if (CACHE) CACHE.set(map, cache);
     else map.renderCache = cache;
     return cache;
@@ -137,7 +233,7 @@
       focus = { x: (map.width - 1) / 2, y: (map.height - 1) / 2 };
     } else if (list.length === 1) {
       focus = { x: list[0].x, y: list[0].y };
-      return { x: focus.x, y: focus.y, zoom: 1.15, follow: 'player' };
+      return { x: focus.x, y: focus.y, zoom: 1.25, follow: 'player' };
     } else {
       focus = list.reduce(function (acc, player) {
         acc.x += player.x;
@@ -162,24 +258,10 @@
     });
     var spanX = Math.max(TILE_W * 4, maxX - minX + TILE_W * 3);
     var spanY = Math.max(TILE_H * 4, maxY - minY + TILE_H * 4);
-    var zoom = clamp(Math.min(view.width / spanX, view.height / spanY), 0.45, 1.35);
+    var zoom = clamp(Math.min(view.width / spanX, view.height / spanY), 0.5, 1.6);
     return { x: focus.x, y: focus.y, zoom: zoom, follow: 'group' };
   }
 
-  function roomColor(room, contrast) {
-    var entry = ROOM_COLORS[room && room.id] || DEFAULT_COLORS;
-    return contrast ? entry.contrast : entry.floor;
-  }
-
-  function diamondPath(ctx, x, y, width, height) {
-    ctx.moveTo(x, y - height / 2);
-    ctx.lineTo(x + width / 2, y);
-    ctx.lineTo(x, y + height / 2);
-    ctx.lineTo(x - width / 2, y);
-    ctx.closePath();
-  }
-
-  /** Color del sistema asociado a una sala y su salud 0–100. */
   function roomHealth(game, room) {
     if (!game || !game.systems || !room || !room.system) return { health: 100, color: null };
     var system = game.systems[room.system];
@@ -187,155 +269,426 @@
     return { health: clamp(system.health, 0, 100), color: SYSTEM_COLORS[room.system] || null };
   }
 
-  function drawIcon(ctx, x, y, size, icon, color) {
-    ctx.fillStyle = color;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = Math.max(1, size * 0.18);
-    switch (icon) {
-      case 'circle':
-        ctx.beginPath();
-        ctx.arc(x, y, size * 0.5, 0, Math.PI * 2);
-        ctx.fill();
-        break;
-      case 'cross':
-        ctx.beginPath();
-        ctx.rect(x - size * 0.18, y - size * 0.6, size * 0.36, size * 1.2);
-        ctx.rect(x - size * 0.6, y - size * 0.18, size * 1.2, size * 0.36);
-        ctx.fill();
-        break;
-      case 'wrench':
-        ctx.beginPath();
-        ctx.moveTo(x - size * 0.5, y + size * 0.5);
-        ctx.lineTo(x + size * 0.35, y - size * 0.4);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(x + size * 0.45, y - size * 0.45, size * 0.22, 0, Math.PI * 2);
-        ctx.stroke();
-        break;
-      case 'star':
-        ctx.beginPath();
-        for (var i = 0; i < 10; i += 1) {
-          var radius = i % 2 === 0 ? size * 0.6 : size * 0.25;
-          var angle = (Math.PI / 5) * i - Math.PI / 2;
-          var px = x + Math.cos(angle) * radius;
-          var py = y + Math.sin(angle) * radius;
-          if (i === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-        ctx.fill();
-        break;
-      case 'bolt':
-        ctx.beginPath();
-        ctx.moveTo(x + size * 0.15, y - size * 0.6);
-        ctx.lineTo(x - size * 0.35, y + size * 0.1);
-        ctx.lineTo(x + size * 0.05, y + size * 0.1);
-        ctx.lineTo(x - size * 0.1, y + size * 0.6);
-        ctx.lineTo(x + size * 0.4, y - size * 0.05);
-        ctx.lineTo(x, y - size * 0.05);
-        ctx.closePath();
-        ctx.fill();
-        break;
-      case 'flask':
-        ctx.beginPath();
-        ctx.moveTo(x - size * 0.35, y - size * 0.55);
-        ctx.lineTo(x + size * 0.35, y - size * 0.55);
-        ctx.lineTo(x + size * 0.5, y + size * 0.55);
-        ctx.lineTo(x - size * 0.5, y + size * 0.55);
-        ctx.closePath();
-        ctx.fill();
-        break;
-      case 'screen':
-        ctx.beginPath();
-        ctx.rect(x - size * 0.6, y - size * 0.45, size * 1.2, size * 0.9);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x - size * 0.3, y + size * 0.7);
-        ctx.lineTo(x + size * 0.3, y + size * 0.7);
-        ctx.stroke();
-        break;
-      case 'radio':
-        ctx.beginPath();
-        ctx.rect(x - size * 0.55, y - size * 0.3, size * 1.1, size * 0.7);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x, y - size * 0.3, size * 0.3, Math.PI, 0);
-        ctx.stroke();
-        break;
-      case 'bed':
-        ctx.beginPath();
-        ctx.rect(x - size * 0.6, y - size * 0.25, size * 1.2, size * 0.55);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.rect(x - size * 0.65, y - size * 0.45, size * 0.25, size * 0.9);
-        ctx.fill();
-        break;
-      case 'door':
-        ctx.beginPath();
-        ctx.arc(x, y, size * 0.55, Math.PI, 0);
-        ctx.lineTo(x + size * 0.55, y + size * 0.55);
-        ctx.lineTo(x - size * 0.55, y + size * 0.55);
-        ctx.closePath();
-        ctx.stroke();
-        break;
-      case 'tank':
-        ctx.beginPath();
-        ctx.rect(x - size * 0.45, y - size * 0.6, size * 0.9, size * 1.2);
-        ctx.fill();
-        break;
-      default:
-        ctx.beginPath();
-        ctx.rect(x - size * 0.5, y - size * 0.5, size, size);
-        ctx.fill();
-        break;
+  /* --- Ayudantes de dibujo ------------------------------------------ */
+
+  function polyPath(c, quad) {
+    c.beginPath();
+    c.moveTo(quad[0].x, quad[0].y);
+    for (var i = 1; i < quad.length; i += 1) c.lineTo(quad[i].x, quad[i].y);
+    c.closePath();
+  }
+
+  function fillPoly(c, quad, fill, stroke, width) {
+    polyPath(c, quad);
+    c.fillStyle = fill;
+    c.fill();
+    if (stroke) {
+      c.strokeStyle = stroke;
+      c.lineWidth = width || 1;
+      c.stroke();
     }
   }
 
-  function nearestObject(map, world, players) {
-    if (!map || !map.objects || players.length === 0) return null;
+  function line(c, a, b, stroke, width) {
+    if (!a || !b) return;
+    c.beginPath();
+    c.moveTo(a.x, a.y);
+    c.lineTo(b.x, b.y);
+    c.strokeStyle = stroke;
+    c.lineWidth = width || 1;
+    c.stroke();
+  }
+
+  function circle(c, point, radius, fill, stroke) {
+    c.beginPath();
+    c.arc(point.x, point.y, Math.max(0.4, radius), 0, Math.PI * 2);
+    if (fill) {
+      // Proxy de pruebas: `arc` no devuelve nada, el relleno es una llamada más.
+      c.fillStyle = fill;
+      c.fill();
+    }
+    if (stroke) {
+      c.strokeStyle = stroke;
+      c.lineWidth = 1;
+      c.stroke();
+    }
+  }
+
+  /** Rectángulo sobre una cara: `u` a lo ancho, `v` de abajo hacia arriba. */
+  function faceRect(c, geo, face, u0, v0, u1, v1, fill, stroke) {
+    var at = face === 'left' ? geo.leftAt : face === 'right' ? geo.rightAt : geo.topAt;
+    var quad = [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)];
+    fillPoly(c, quad, fill, stroke, Math.max(0.6, geo.s));
+  }
+
+  /* --- Tipos de objeto ---------------------------------------------- */
+
+  function detailCabinet(c, g, on, pal) {
+    faceRect(c, g, 'left', 0.16, 0.1, 0.84, 0.8, 'rgba(0, 0, 0, 0.2)', pal.objEdgeSoft);
+    line(c, g.leftAt(0.8, 0.22), g.leftAt(0.8, 0.44), pal.detailHi, Math.max(1, 1.4 * g.s));
+    for (var i = 0; i < 3; i += 1) {
+      line(c, g.rightAt(0.2, 0.74 - i * 0.08), g.rightAt(0.82, 0.74 - i * 0.08), pal.detail, Math.max(0.6, 0.8 * g.s));
+    }
+    if (on) circle(c, g.topAt(0.5, 0.5), 1.8 * g.s, pal.focus);
+  }
+
+  function detailShelf(c, g, on, pal) {
+    for (var i = 0; i < 3; i += 1) {
+      faceRect(c, g, 'left', 0.12, 0.18 + i * 0.24, 0.88, 0.24 + i * 0.24, 'rgba(230, 236, 251, 0.1)', pal.objEdgeSoft);
+    }
+    faceRect(c, g, 'top', 0.2, 0.2, 0.45, 0.6, pal.detail, pal.objEdgeSoft);
+    faceRect(c, g, 'top', 0.55, 0.3, 0.82, 0.75, 'rgba(230, 236, 251, 0.22)', pal.objEdgeSoft);
+    if (on) circle(c, g.topAt(0.5, 0.8), 1.4 * g.s, pal.focus);
+  }
+
+  function detailStove(c, g, on, pal) {
+    var left = g.topAt(0.32, 0.4);
+    var right = g.topAt(0.7, 0.58);
+    circle(c, left, 5.2 * g.s, pal.warm, pal.objEdgeSoft);
+    circle(c, left, 2.4 * g.s, on ? pal.warm : 'rgba(0, 0, 0, 0.4)');
+    circle(c, right, 4.2 * g.s, 'rgba(0, 0, 0, 0.3)', pal.objEdgeSoft);
+    if (on) circle(c, right, 1.8 * g.s, pal.warm);
+    faceRect(c, g, 'left', 0.18, 0.18, 0.82, 0.5, 'rgba(0, 0, 0, 0.28)', pal.objEdgeSoft);
+    for (var i = 0; i < 3; i += 1) circle(c, g.leftAt(0.26 + i * 0.24, 0.68), 1.4 * g.s, pal.detailHi);
+  }
+
+  function detailCrate(c, g, on, pal) {
+    line(c, g.topAt(0.1, 0.5), g.topAt(0.9, 0.5), pal.detail, Math.max(0.7, g.s));
+    line(c, g.topAt(0.5, 0.1), g.topAt(0.5, 0.9), pal.detail, Math.max(0.7, g.s));
+    faceRect(c, g, 'left', 0.15, 0.2, 0.85, 0.34, 'rgba(230, 236, 251, 0.14)', pal.objEdgeSoft);
+    faceRect(c, g, 'right', 0.2, 0.16, 0.5, 0.6, pal.detail, null);
+    if (on) circle(c, g.topAt(0.82, 0.82), 1.4 * g.s, pal.focus);
+  }
+
+  function detailTank(c, g, on, pal) {
+    faceRect(c, g, 'left', 0.18, 0.2, 0.82, 0.32, 'rgba(111, 211, 199, 0.2)', pal.objEdgeSoft);
+    faceRect(c, g, 'right', 0.22, 0.34, 0.78, 0.42, 'rgba(111, 211, 199, 0.14)', pal.objEdgeSoft);
+    circle(c, g.topAt(0.5, 0.5), 3.4 * g.s, null, pal.detail);
+    line(c, g.topAt(0.5, 0.5), g.rightAt(0.5, 0.9), pal.detailHi, Math.max(0.8, 1.2 * g.s));
+    if (on) circle(c, g.topAt(0.28, 0.28), 1.4 * g.s, pal.focus);
+  }
+
+  function detailPump(c, g, on, pal) {
+    circle(c, g.topAt(0.45, 0.45), 4.6 * g.s, null, pal.detailHi);
+    for (var i = 0; i < 4; i += 1) {
+      var a = (i / 4) * Math.PI * 2;
+      var center = g.topAt(0.45, 0.45);
+      line(
+        c,
+        center,
+        { x: center.x + Math.cos(a) * 4.6 * g.s, y: center.y + Math.sin(a) * 1.6 * g.s },
+        pal.detail,
+        Math.max(0.6, g.s)
+      );
+    }
+    line(c, g.rightAt(0.5, 0.55), g.rightAt(1, 0.35), pal.detailHi, Math.max(1, 1.6 * g.s));
+    faceRect(c, g, 'left', 0.2, 0.14, 0.6, 0.34, 'rgba(0, 0, 0, 0.24)', pal.objEdgeSoft);
+    if (on) circle(c, g.leftAt(0.82, 0.78), 1.5 * g.s, pal.focus);
+  }
+
+  function detailPanel(c, g, on, pal) {
+    for (var row = 0; row < 4; row += 1) {
+      for (var col = 0; col < 3; col += 1) {
+        faceRect(
+          c,
+          g,
+          'left',
+          0.12 + col * 0.28,
+          0.14 + row * 0.2,
+          0.28 + col * 0.28,
+          0.24 + row * 0.2,
+          on ? 'rgba(111, 211, 199, 0.22)' : 'rgba(230, 236, 251, 0.1)',
+          pal.objEdgeSoft
+        );
+      }
+    }
+    faceRect(c, g, 'right', 0.2, 0.2, 0.8, 0.3, on ? pal.warm : 'rgba(255, 207, 107, 0.2)', null);
+    line(c, g.rightAt(0.5, 0.3), g.rightAt(0.5, 0.9), pal.detail, Math.max(0.7, g.s));
+  }
+
+  function detailConsole(c, g, on, pal) {
+    faceRect(c, g, 'left', 0.16, 0.36, 0.84, 0.92, on ? pal.screen : pal.screenOff, pal.objEdge);
+    for (var i = 0; i < 3; i += 1) {
+      line(c, g.leftAt(0.2, 0.46 + i * 0.14), g.leftAt(0.8, 0.46 + i * 0.14), 'rgba(4, 7, 12, 0.45)', Math.max(0.6, 0.9 * g.s));
+    }
+    for (var k = 0; k < 4; k += 1) {
+      faceRect(c, g, 'top', 0.16 + k * 0.18, 0.55, 0.28 + k * 0.18, 0.86, 'rgba(230, 236, 251, 0.14)', null);
+    }
+    circle(c, g.rightAt(0.7, 0.5), 1.6 * g.s, on ? pal.focus : pal.detail);
+  }
+
+  function detailScreen(c, g, on, pal) {
+    faceRect(c, g, 'left', 0.12, 0.24, 0.88, 0.9, on ? pal.screen : pal.screenOff, pal.objEdge);
+    line(c, g.leftAt(0.2, 0.5), g.leftAt(0.8, 0.5), 'rgba(4, 7, 12, 0.4)', Math.max(0.6, g.s));
+    line(c, g.leftAt(0.2, 0.66), g.leftAt(0.6, 0.66), 'rgba(4, 7, 12, 0.4)', Math.max(0.6, g.s));
+    line(c, g.topAt(0.3, 0.5), g.topAt(0.3, 0.5), pal.detail, 1);
+  }
+
+  function detailBed(c, g, on, pal) {
+    faceRect(c, g, 'top', 0.14, 0.12, 0.86, 0.62, 'rgba(230, 236, 251, 0.14)', pal.objEdgeSoft);
+    faceRect(c, g, 'top', 0.14, 0.66, 0.42, 0.9, 'rgba(230, 236, 251, 0.3)', pal.objEdgeSoft);
+    line(c, g.topAt(0.5, 0.66), g.topAt(0.86, 0.66), pal.detail, Math.max(0.6, g.s));
+    var leg = Math.max(2, 3 * g.s);
+    [g.topAt(0.12, 0.12), g.topAt(0.88, 0.12), g.topAt(0.3, 0.9)].forEach(function (p) {
+      line(c, p, { x: p.x, y: p.y + leg }, pal.objEdgeSoft, Math.max(0.7, g.s));
+    });
+    if (on) circle(c, g.topAt(0.78, 0.3), 1.3 * g.s, pal.focus);
+  }
+
+  function detailKit(c, g, on, pal) {
+    faceRect(c, g, 'left', 0.3, 0.24, 0.44, 0.72, pal.detailHi, null);
+    faceRect(c, g, 'left', 0.18, 0.42, 0.56, 0.54, pal.detailHi, null);
+    faceRect(c, g, 'top', 0.42, 0.3, 0.66, 0.5, 'rgba(230, 236, 251, 0.14)', pal.objEdgeSoft);
+    if (on) circle(c, g.topAt(0.8, 0.7), 1.3 * g.s, pal.focus);
+  }
+
+  function detailLamp(c, g, on, pal) {
+    var base = g.topAt(0.5, 0.5);
+    line(c, base, { x: base.x, y: base.y - 20 * g.s }, pal.detailHi, Math.max(1, 1.4 * g.s));
+    var head = { x: base.x, y: base.y - 20 * g.s };
+    line(c, head, { x: head.x - 5 * g.s, y: head.y - 3 * g.s }, pal.detail, Math.max(0.8, g.s));
+    line(c, head, { x: head.x + 5 * g.s, y: head.y - 3 * g.s }, pal.detail, Math.max(0.8, g.s));
+    if (on) {
+      circle(c, { x: head.x, y: head.y + 2 * g.s }, 5 * g.s, 'rgba(255, 207, 107, 0.32)');
+      circle(c, { x: head.x, y: head.y + 2 * g.s }, 2 * g.s, pal.warm);
+    }
+  }
+
+  function detailBench(c, g, on, pal) {
+    for (var i = 0; i < 4; i += 1) {
+      faceRect(c, g, 'top', 0.16 + i * 0.17, 0.2, 0.3 + i * 0.17, 0.6, pal.detail, null);
+    }
+    faceRect(c, g, 'left', 0.16, 0.2, 0.84, 0.4, 'rgba(0, 0, 0, 0.24)', pal.objEdgeSoft);
+    faceRect(c, g, 'left', 0.3, 0.26, 0.5, 0.32, pal.detailHi, null);
+    faceRect(c, g, 'right', 0.2, 0.3, 0.6, 0.7, 'rgba(0, 0, 0, 0.3)', pal.objEdgeSoft);
+    if (on) circle(c, g.topAt(0.82, 0.78), 1.3 * g.s, pal.focus);
+  }
+
+  function detailHatch(c, g, on, pal) {
+    faceRect(c, g, 'top', 0.18, 0.18, 0.82, 0.82, 'rgba(111, 211, 199, 0.1)', pal.objEdge);
+    circle(c, g.topAt(0.5, 0.5), 6 * g.s, null, pal.objEdge);
+    line(c, g.topAt(0.2, 0.5), g.topAt(0.8, 0.5), pal.detail, Math.max(0.6, g.s));
+    for (var i = 0; i < 4; i += 1) {
+      circle(c, g.topAt(i < 2 ? 0.2 : 0.8, i % 2 === 0 ? 0.2 : 0.8), 1.1 * g.s, pal.detailHi);
+    }
+    if (on) circle(c, g.topAt(0.5, 0.5), 2 * g.s, pal.warm);
+  }
+
+  function detailFlat(c, g, on, pal) {
+    line(c, g.topAt(0.1, 0.34), g.topAt(0.9, 0.34), pal.detail, Math.max(0.6, g.s));
+    line(c, g.topAt(0.1, 0.66), g.topAt(0.9, 0.66), pal.detail, Math.max(0.6, g.s));
+    line(c, g.topAt(0.5, 0.08), g.topAt(0.5, 0.92), pal.detail, Math.max(0.6, g.s));
+    if (on) circle(c, g.topAt(0.5, 0.5), 1.4 * g.s, pal.focus);
+  }
+
+  function detailGauge(c, g, on, pal) {
+    var base = g.topAt(0.5, 0.5);
+    line(c, base, { x: base.x, y: base.y - 14 * g.s }, pal.detail, Math.max(0.8, g.s));
+    var dial = { x: base.x, y: base.y - 14 * g.s };
+    circle(c, dial, 4.6 * g.s, 'rgba(5, 7, 13, 0.7)', pal.detailHi);
+    line(c, { x: dial.x, y: dial.y }, { x: dial.x + 3 * g.s, y: dial.y - 2 * g.s }, on ? pal.focus : pal.detail, Math.max(0.8, g.s));
+  }
+
+  function detailPipe(c, g, on, pal) {
+    line(c, g.topAt(0.05, 0.5), g.topAt(0.95, 0.5), pal.detailHi, Math.max(1.2, 1.8 * g.s));
+    circle(c, g.topAt(0.22, 0.5), 2 * g.s, null, pal.detail);
+    circle(c, g.topAt(0.78, 0.5), 2 * g.s, null, pal.detail);
+    if (on) circle(c, g.topAt(0.5, 0.5), 1.3 * g.s, pal.focus);
+  }
+
+  function detailRack(c, g, on, pal) {
+    for (var i = 0; i < 4; i += 1) {
+      faceRect(c, g, 'left', 0.14 + i * 0.19, 0.16, 0.26 + i * 0.19, 0.66, 'rgba(111, 211, 199, 0.16)', pal.objEdgeSoft);
+    }
+    faceRect(c, g, 'right', 0.2, 0.3, 0.8, 0.38, pal.detail, null);
+    if (on) circle(c, g.topAt(0.5, 0.7), 1.6 * g.s, pal.focus);
+  }
+
+  function detailDoorframe(c, g, on, pal) {
+    faceRect(c, g, 'left', 0.18, 0.1, 0.4, 0.9, 'rgba(0, 0, 0, 0.3)', pal.objEdgeSoft);
+    faceRect(c, g, 'left', 0.6, 0.1, 0.82, 0.9, 'rgba(0, 0, 0, 0.3)', pal.objEdgeSoft);
+    line(c, g.leftAt(0.4, 0.9), g.leftAt(0.6, 0.9), pal.detailHi, Math.max(0.8, g.s));
+    if (on) circle(c, g.leftAt(0.5, 0.7), 1.4 * g.s, pal.warm);
+  }
+
+  function detailAppliance(c, g, on, pal) {
+    faceRect(c, g, 'left', 0.18, 0.34, 0.82, 0.5, 'rgba(0, 0, 0, 0.28)', pal.objEdgeSoft);
+    circle(c, g.topAt(0.5, 0.5), 2.6 * g.s, null, pal.detailHi);
+    circle(c, g.topAt(0.5, 0.5), 1.8 * g.s, 'rgba(230, 236, 251, 0.16)');
+    circle(c, g.leftAt(0.7, 0.7), 1.1 * g.s, on ? pal.focus : pal.detail);
+  }
+
+  function detailBoard(c, g, on, pal) {
+    for (var i = 0; i < 3; i += 1) {
+      line(c, g.topAt(0.2 + i * 0.22, 0.2), g.topAt(0.3 + i * 0.22, 0.8), pal.detail, Math.max(0.6, g.s));
+    }
+    if (on) circle(c, g.topAt(0.85, 0.2), 1.2 * g.s, pal.focus);
+  }
+
+  function detailSink(c, g, on, pal) {
+    faceRect(c, g, 'top', 0.24, 0.24, 0.76, 0.76, 'rgba(5, 7, 13, 0.55)', pal.objEdge);
+    faceRect(c, g, 'top', 0.34, 0.34, 0.66, 0.66, on ? 'rgba(111, 211, 199, 0.3)' : 'rgba(111, 211, 199, 0.12)', null);
+    line(c, g.topAt(0.5, 0.5), g.topAt(0.5, 0.95), pal.detailHi, Math.max(0.9, 1.3 * g.s));
+    line(c, g.topAt(0.5, 0.95), g.topAt(0.68, 0.95), pal.detailHi, Math.max(0.9, 1.3 * g.s));
+  }
+
+  function detailBin(c, g, on, pal) {
+    faceRect(c, g, 'left', 0.14, 0.2, 0.86, 0.38, 'rgba(0, 0, 0, 0.26)', pal.objEdgeSoft);
+    faceRect(c, g, 'top', 0.2, 0.2, 0.8, 0.8, 'rgba(230, 236, 251, 0.1)', pal.objEdgeSoft);
+    line(c, g.leftAt(0.5, 0.08), g.leftAt(0.5, 0.16), pal.detail, Math.max(0.7, g.s));
+    if (on) circle(c, g.topAt(0.3, 0.3), 1.2 * g.s, pal.focus);
+  }
+
+  var KIND = {
+    cabinet: { ex: 0.5, ey: 0.34, h: 38, draw: detailCabinet, lit: true },
+    shelf: { ex: 0.52, ey: 0.3, h: 26, draw: detailShelf, lit: true },
+    stove: { ex: 0.5, ey: 0.34, h: 22, draw: detailStove, lit: true },
+    crate: { ex: 0.44, ey: 0.34, h: 18, draw: detailCrate, lit: false },
+    tank: { ex: 0.4, ey: 0.32, h: 32, draw: detailTank, lit: true },
+    pump: { ex: 0.46, ey: 0.34, h: 24, draw: detailPump, lit: true },
+    panel: { ex: 0.24, ey: 0.44, h: 48, draw: detailPanel, lit: true },
+    console: { ex: 0.6, ey: 0.36, h: 28, draw: detailConsole, lit: true },
+    screen: { ex: 0.5, ey: 0.22, h: 30, draw: detailScreen, lit: true },
+    bed: { ex: 0.7, ey: 0.34, h: 12, draw: detailBed, lit: true },
+    kit: { ex: 0.34, ey: 0.26, h: 16, draw: detailKit, lit: true },
+    lamp: { ex: 0.22, ey: 0.22, h: 16, draw: detailLamp, lit: true },
+    bench: { ex: 0.62, ey: 0.34, h: 20, draw: detailBench, lit: true },
+    hatch: { ex: 0.5, ey: 0.5, h: 8, draw: detailHatch, lit: true },
+    flat: { ex: 0.5, ey: 0.36, h: 3, draw: detailFlat, lit: true },
+    gauge: { ex: 0.2, ey: 0.2, h: 8, draw: detailGauge, lit: true },
+    pipe: { ex: 0.46, ey: 0.22, h: 10, draw: detailPipe, lit: true },
+    rack: { ex: 0.5, ey: 0.32, h: 34, draw: detailRack, lit: true },
+    doorframe: { ex: 0.5, ey: 0.24, h: 42, draw: detailDoorframe, lit: true },
+    appliance: { ex: 0.32, ey: 0.26, h: 20, draw: detailAppliance, lit: true },
+    board: { ex: 0.42, ey: 0.26, h: 7, draw: detailBoard, lit: true },
+    sink: { ex: 0.42, ey: 0.32, h: 18, draw: detailSink, lit: true },
+    bin: { ex: 0.36, ey: 0.3, h: 20, draw: detailBin, lit: true }
+  };
+
+  // Un tipo por identificador de `data/objects.json`: la silueta tiene que
+  // parecerse al objeto, no a un icono genérico (V-3, S33).
+  var OBJECT_KIND = {
+    fridge: 'cabinet',
+    pantry: 'shelf',
+    stove: 'stove',
+    waste_bins: 'bin',
+    knives: 'board',
+    sink: 'sink',
+    cutting_board: 'board',
+    coffee_maker: 'appliance',
+    ration_crates: 'crate',
+    water_tank: 'tank',
+    spice_rack: 'shelf',
+    grease_trap: 'pump',
+    water_pump: 'pump',
+    electrical_panel: 'panel',
+    toolbox: 'crate',
+    spare_parts: 'crate',
+    conduits: 'pipe',
+    air_scrubber: 'pump',
+    battery_bank: 'rack',
+    fuel_cells: 'crate',
+    welding_bench: 'bench',
+    pressure_valve: 'pump',
+    coolant_loop: 'tank',
+    diagnostic_terminal: 'console',
+    medkit: 'kit',
+    stretcher: 'bed',
+    thermometer: 'kit',
+    medication_pods: 'kit',
+    scanner: 'console',
+    oxygen_mask: 'kit',
+    hygiene_station: 'sink',
+    medical_log: 'shelf',
+    comms_console: 'console',
+    telemetry: 'console',
+    orbit_control: 'console',
+    logbook: 'shelf',
+    star_chart: 'screen',
+    nav_table: 'console',
+    broadcast_mic: 'console',
+    crew_terminal: 'console',
+    light_panel: 'lamp',
+    hatch: 'hatch',
+    floor_plates: 'flat',
+    fire_extinguisher: 'tank',
+    pressure_gauge: 'gauge',
+    storage_locker: 'cabinet',
+    bunk_beds: 'bed',
+    sleep_pods: 'bed',
+    personal_lockers: 'cabinet',
+    reading_lamp: 'lamp',
+    hygiene_kit: 'kit',
+    music_speaker: 'appliance',
+    window_port: 'screen',
+    outer_hatch: 'hatch',
+    suit_locker: 'cabinet',
+    decontamination: 'doorframe',
+    tether_reel: 'crate',
+    pressure_seal: 'pipe',
+    eva_toolkit: 'crate'
+  };
+
+  function kindFor(def) {
+    return KIND[OBJECT_KIND[def.id]] || KIND.crate;
+  }
+
+  function nearestToPlayer(map, world, player) {
+    if (!map || !map.objects || !player) return null;
     var items = world && world.objects ? world.objects.items : {};
     var best = null;
     var bestDistance = 2.6;
     map.objects.forEach(function (def) {
       var instance = items[def.id];
       if (instance && instance.carriedBy) return;
-      players.forEach(function (player) {
-        var distance = Math.sqrt(
-          Math.pow(player.x - def.x, 2) + Math.pow(player.y - def.y, 2)
-        );
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          best = def;
-        }
-      });
+      var distance = Math.sqrt(Math.pow(player.x - def.x, 2) + Math.pow(player.y - def.y, 2));
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = def;
+      }
     });
     return best;
   }
 
-  function drawStatusShape(ctx, x, y, size, health) {
+  function drawStatusShape(c, x, y, size, health) {
     // Forma además de color (S29, S66): cuadrado 0–33, triángulo 34–66,
     // círculo 67–100. Se usa un contorno blanco para que no dependa del tono.
-    ctx.strokeStyle = '#f5f7ff';
-    ctx.lineWidth = Math.max(1, size * 0.14);
-    ctx.beginPath();
+    c.strokeStyle = '#f5f7ff';
+    c.lineWidth = Math.max(1, size * 0.14);
+    c.beginPath();
     if (health <= 33) {
-      ctx.rect(x - size, y - size, size * 2, size * 2);
+      c.rect(x - size, y - size, size * 2, size * 2);
     } else if (health <= 66) {
-      ctx.moveTo(x, y - size);
-      ctx.lineTo(x + size, y + size);
-      ctx.lineTo(x - size, y + size);
-      ctx.closePath();
+      c.moveTo(x, y - size);
+      c.lineTo(x + size, y + size);
+      c.lineTo(x - size, y + size);
+      c.closePath();
     } else {
-      ctx.arc(x, y, size, 0, Math.PI * 2);
+      c.arc(x, y, size, 0, Math.PI * 2);
     }
-    ctx.stroke();
+    c.stroke();
+  }
+
+  function roundRectPath(c, x, y, w, h, r) {
+    var radius = Math.min(r, w / 2, h / 2);
+    c.beginPath();
+    c.moveTo(x + radius, y);
+    c.lineTo(x + w - radius, y);
+    c.lineTo(x + w, y + radius);
+    c.lineTo(x + w, y + h - radius);
+    c.lineTo(x + w - radius, y + h);
+    c.lineTo(x + radius, y + h);
+    c.lineTo(x, y + h - radius);
+    c.lineTo(x, y + radius);
+    c.closePath();
   }
 
   /**
    * Dibuja un cuadro completo.
    * @param {CanvasRenderingContext2D} ctx2d
    * @param {{map:Object, game:Object, world:Object, camera:Object,
-   *   a11y:Object, t:Function, viewport:Object, time:number}} options
+   *   a11y:Object, t:Function, viewport:Object, time:number, selected:string,
+   *   near:string, hover:string}} options
    * @returns {{rooms:number, objects:number, players:number, zoom:number}}
    */
   function render(ctx2d, options) {
@@ -354,8 +707,9 @@
     var camera = opts.camera || computeCamera(map, world, viewport);
     if (!isFinite(camera.x)) camera.x = (map.width - 1) / 2;
     if (!isFinite(camera.y)) camera.y = (map.height - 1) / 2;
-    camera.zoom = clamp(camera.zoom || 1, 0.3, 2.4);
+    camera.zoom = clamp(camera.zoom || 1, 0.3, 2.6);
     var zoom = camera.zoom;
+    var pal = a11y.highContrast ? PAL_CONTRAST : PAL;
 
     var look = game && game.systems
       ? systems.effects(game.systems)
@@ -368,6 +722,7 @@
     var tileWidth = TILE_W * zoom;
     var tileHeight = TILE_H * zoom;
     var wallHeight = WALL_H * zoom;
+    var lip = LIP * zoom;
 
     function screenX(x, y) {
       return origin.x + ((x - y) * (TILE_W / 2) - ((camera.x - camera.y) * (TILE_W / 2))) * zoom;
@@ -376,12 +731,7 @@
       return origin.y + ((x + y) * (TILE_H / 2) - ((camera.x + camera.y) * (TILE_H / 2))) * zoom;
     }
 
-    // Casillas: se recorre el índice plano y se calcula x/y con aritmética
-    // entera, sin crear objetos por celda.
     var width = map.width;
-    var tileCount = 0;
-    var tileX = 0;
-    var tileY = 0;
     function cellX(index) {
       return index % width;
     }
@@ -390,158 +740,365 @@
     }
 
     ctx2d.save();
-    ctx2d.fillStyle = BACKGROUND;
+    ctx2d.fillStyle = pal.bg;
     ctx2d.fillRect(0, 0, viewport.width, viewport.height);
 
-    // 1. Suelo por sala: una ruta por sala, no por casilla.
+    // Contadores de casillas: el HUD y las pruebas los usan como medida de carga.
+    var tileCount = 0;
+
+    // 1. Suelo: una placa por sala con canto y rejilla fina (no una figura por
+    //    casilla). La rejilla se dibuja cada dos casillas, como el visor.
     cache.rooms.forEach(function (group) {
-      if (group.tiles.length === 0) return;
+      var rect = group.rect;
+      if (!rect) return;
+      tileCount += group.tiles.length;
+      var x0 = rect.x0 - 0.5;
+      var y0 = rect.y0 - 0.5;
+      var x1 = rect.x1 + 0.5;
+      var y1 = rect.y1 + 0.5;
+      var a = { x: screenX(x0, y0), y: screenY(x0, y0) };
+      var b = { x: screenX(x1, y0), y: screenY(x1, y0) };
+      var cc = { x: screenX(x1, y1), y: screenY(x1, y1) };
+      var d = { x: screenX(x0, y1), y: screenY(x0, y1) };
+
+      // Canto de la plataforma: dos caras visibles hacia el frente.
+      fillPoly(ctx2d, [b, cc, { x: cc.x, y: cc.y + lip }, { x: b.x, y: b.y + lip }], pal.plateSide, null);
+      fillPoly(ctx2d, [cc, d, { x: d.x, y: d.y + lip }, { x: cc.x, y: cc.y + lip }], pal.plateSide, null);
+      fillPoly(ctx2d, [a, b, cc, d], pal.plate, pal.plateEdge, 1);
+
+      var gx;
+      var gy;
       ctx2d.beginPath();
-      for (var i = 0; i < group.tiles.length; i += 1) {
-        tileCount += 1;
-        tileX = cellX(group.tiles[i]);
-        tileY = cellY(group.tiles[i]);
-        diamondPath(ctx2d, screenX(tileX, tileY), screenY(tileX, tileY), tileWidth, tileHeight);
+      for (gx = rect.x0; gx <= rect.x1 + 1; gx += 2) {
+        ctx2d.moveTo(screenX(gx - 0.5, y0), screenY(gx - 0.5, y0));
+        ctx2d.lineTo(screenX(gx - 0.5, y1), screenY(gx - 0.5, y1));
       }
-      ctx2d.fillStyle = roomColor(group.room, !!a11y.highContrast);
-      ctx2d.fill();
-      if (a11y.highContrast) {
-        ctx2d.strokeStyle = '#e8eefc';
-        ctx2d.lineWidth = 1;
-        ctx2d.stroke();
+      for (gy = rect.y0; gy <= rect.y1 + 1; gy += 2) {
+        ctx2d.moveTo(screenX(x0, gy - 0.5), screenY(x0, gy - 0.5));
+        ctx2d.lineTo(screenX(x1, gy - 0.5), screenY(x1, gy - 0.5));
       }
+      ctx2d.strokeStyle = pal.grid;
+      ctx2d.lineWidth = 0.6;
+      ctx2d.stroke();
     });
 
-    // 2. Puertas: suelo destacado entre salas.
-    if (cache.doors.length > 0) {
-      ctx2d.beginPath();
-      for (var d = 0; d < cache.doors.length; d += 1) {
-        tileX = cellX(cache.doors[d]);
-        tileY = cellY(cache.doors[d]);
-        diamondPath(ctx2d, screenX(tileX, tileY), screenY(tileX, tileY), tileWidth, tileHeight);
-      }
-      ctx2d.fillStyle = DOOR_COLOR;
-      ctx2d.fill();
-    }
+    // 2. Puertas: casilla destacada entre salas.
+    cache.doors.forEach(function (index) {
+      tileCount += 1;
+      var dx = cellX(index);
+      var dy = cellY(index);
+      var cx = screenX(dx, dy);
+      var cy = screenY(dx, dy);
+      var quad = [
+        { x: cx, y: cy - tileHeight / 2 },
+        { x: cx + tileWidth / 2, y: cy },
+        { x: cx, y: cy + tileHeight / 2 },
+        { x: cx - tileWidth / 2, y: cy }
+      ];
+      fillPoly(ctx2d, quad, pal.door, pal.doorEdge, 1);
+    });
 
-    // 3. Paredes: cara izquierda, cara derecha y tapa, cada una en su ruta.
+    // 3. Paredes: tres caras por casilla, agrupadas en tres rutas.
     if (cache.walls.length > 0) {
+      tileCount += cache.walls.length;
       ctx2d.beginPath();
       for (var w = 0; w < cache.walls.length; w += 1) {
-        tileX = cellX(cache.walls[w]);
-        tileY = cellY(cache.walls[w]);
-        var wx = screenX(tileX, tileY);
-        var wy = screenY(tileX, tileY);
+        var wx = screenX(cellX(cache.walls[w]), cellY(cache.walls[w]));
+        var wy = screenY(cellX(cache.walls[w]), cellY(cache.walls[w]));
         ctx2d.moveTo(wx - tileWidth / 2, wy);
         ctx2d.lineTo(wx, wy + tileHeight / 2);
         ctx2d.lineTo(wx, wy + tileHeight / 2 + wallHeight);
         ctx2d.lineTo(wx - tileWidth / 2, wy + wallHeight);
         ctx2d.closePath();
       }
-      ctx2d.fillStyle = a11y.highContrast ? WALL_SIDE_CONTRAST : WALL_LEFT;
+      ctx2d.fillStyle = pal.wallLeft;
       ctx2d.fill();
 
       ctx2d.beginPath();
       for (var r = 0; r < cache.walls.length; r += 1) {
-        tileX = cellX(cache.walls[r]);
-        tileY = cellY(cache.walls[r]);
-        var rx = screenX(tileX, tileY);
-        var ry = screenY(tileX, tileY);
+        var rx = screenX(cellX(cache.walls[r]), cellY(cache.walls[r]));
+        var ry = screenY(cellX(cache.walls[r]), cellY(cache.walls[r]));
         ctx2d.moveTo(rx + tileWidth / 2, ry);
         ctx2d.lineTo(rx, ry + tileHeight / 2);
         ctx2d.lineTo(rx, ry + tileHeight / 2 + wallHeight);
         ctx2d.lineTo(rx + tileWidth / 2, ry + wallHeight);
         ctx2d.closePath();
       }
-      ctx2d.fillStyle = a11y.highContrast ? WALL_SIDE_CONTRAST : WALL_RIGHT;
+      ctx2d.fillStyle = pal.wallRight;
       ctx2d.fill();
 
       ctx2d.beginPath();
       for (var t = 0; t < cache.walls.length; t += 1) {
-        tileX = cellX(cache.walls[t]);
-        tileY = cellY(cache.walls[t]);
-        diamondPath(ctx2d, screenX(tileX, tileY), screenY(tileX, tileY), tileWidth, tileHeight);
+        var tx = screenX(cellX(cache.walls[t]), cellY(cache.walls[t]));
+        var ty = screenY(cellX(cache.walls[t]), cellY(cache.walls[t]));
+        ctx2d.moveTo(tx, ty - tileHeight / 2);
+        ctx2d.lineTo(tx + tileWidth / 2, ty);
+        ctx2d.lineTo(tx, ty + tileHeight / 2);
+        ctx2d.lineTo(tx - tileWidth / 2, ty);
+        ctx2d.closePath();
       }
-      ctx2d.fillStyle = a11y.highContrast ? WALL_TOP_CONTRAST : WALL_TOP;
+      ctx2d.fillStyle = pal.wallTop;
       ctx2d.fill();
+      if (a11y.highContrast) {
+        ctx2d.strokeStyle = pal.wallEdge;
+        ctx2d.lineWidth = 1;
+        ctx2d.stroke();
+      }
     }
 
     // 4. Degradación visible por sala (V-7): tinte y forma de estado.
     cache.rooms.forEach(function (group) {
-      if (group.tiles.length === 0) return;
       var state = roomHealth(game, group.room);
-      if (state.health >= 99 || !state.color) return;
+      if (state.health >= 99 || !state.color || !group.rect) return;
+      var rect = group.rect;
       var alpha = ((100 - state.health) / 100) * 0.4;
       if (!a11y.reduceMotion) alpha *= 0.8 + Math.abs(Math.sin(motion * 0.6)) * 0.2;
       ctx2d.globalAlpha = clamp(alpha, 0, 0.5);
-      ctx2d.beginPath();
-      for (var i = 0; i < group.tiles.length; i += 1) {
-        tileX = cellX(group.tiles[i]);
-        tileY = cellY(group.tiles[i]);
-        diamondPath(ctx2d, screenX(tileX, tileY), screenY(tileX, tileY), tileWidth, tileHeight);
-      }
-      ctx2d.fillStyle = state.color;
-      ctx2d.fill();
+      var a = { x: screenX(rect.x0 - 0.5, rect.y0 - 0.5), y: screenY(rect.x0 - 0.5, rect.y0 - 0.5) };
+      var b = { x: screenX(rect.x1 + 0.5, rect.y0 - 0.5), y: screenY(rect.x1 + 0.5, rect.y0 - 0.5) };
+      var cc = { x: screenX(rect.x1 + 0.5, rect.y1 + 0.5), y: screenY(rect.x1 + 0.5, rect.y1 + 0.5) };
+      var d = { x: screenX(rect.x0 - 0.5, rect.y1 + 0.5), y: screenY(rect.x0 - 0.5, rect.y1 + 0.5) };
+      fillPoly(ctx2d, [a, b, cc, d], state.color, null);
       ctx2d.globalAlpha = 1;
-      var center = group.room.center || group.room.rect;
-      drawStatusShape(ctx2d, screenX(center.x, center.y), screenY(center.x, center.y) - tileHeight, 5 * zoom, state.health);
+      var cx = (rect.x0 + rect.x1) / 2;
+      var cy = (rect.y0 + rect.y1) / 2;
+      drawStatusShape(ctx2d, screenX(cx, cy), screenY(cx, cy) - tileHeight, 5 * zoom, state.health);
     });
 
-    // 5. Objetos interactuables con iconos procedurales.
+    // 5. Objetos y jugadores, mezclados por profundidad para que los cuerpos se
+    //    tapen en el orden correcto (volumen, no iconos planos).
     var items = world && world.objects ? world.objects.items : {};
+    var players = world && world.players && world.players.list ? world.players.list : [];
+    var selected = opts.selected || null;
+    var nearId = opts.near || null;
+    var hoverId = opts.hover || null;
+    var powerHealth = game && game.systems && game.systems.power ? game.systems.power.health : 100;
     var objectCount = 0;
-    (map.objects || []).forEach(function (object) {
-      var instance = items[object.id];
+
+    var objectList = cache.objects;
+    var playerList = players.slice().sort(function (p1, p2) {
+      return p1.x + p1.y - (p2.x + p2.y);
+    });
+    var oi = 0;
+    var pi = 0;
+    var playerPos = {};
+    var playerIndex = {};
+
+    players.forEach(function (player, index) {
+      playerIndex[player.id] = index + 1;
+    });
+    playerList.forEach(function (player) {
+      playerPos[player.id] = { x: screenX(player.x, player.y), y: screenY(player.x, player.y) };
+    });
+
+    function objectGeo(def) {
+      var kind = kindFor(def);
+      var sx = screenX(def.x - kind.ex, def.y - kind.ey);
+      var sy = screenY(def.x - kind.ex, def.y - kind.ey);
+      var top0 = { x: sx, y: sy };
+      var right0 = { x: screenX(def.x + kind.ex, def.y - kind.ey), y: screenY(def.x + kind.ex, def.y - kind.ey) };
+      var front0 = { x: screenX(def.x + kind.ex, def.y + kind.ey), y: screenY(def.x + kind.ex, def.y + kind.ey) };
+      var left0 = { x: screenX(def.x - kind.ex, def.y + kind.ey), y: screenY(def.x - kind.ex, def.y + kind.ey) };
+      var h = kind.h * zoom;
+      var top = [lift(top0, h), lift(right0, h), lift(front0, h), lift(left0, h)];
+      var base = [top0, right0, front0, left0];
+      var geo = {
+        s: zoom,
+        kind: kind,
+        base: base,
+        top: top,
+        left: [base[3], base[2], top[2], top[3]],
+        right: [base[2], base[1], top[1], top[2]],
+        center: { x: (base[0].x + base[2].x) / 2, y: (base[0].y + base[2].y) / 2 }
+      };
+      geo.topAt = function (u, v) {
+        return lerp3(lerp3(top[0], top[1], u), lerp3(top[3], top[2], u), v);
+      };
+      geo.leftAt = function (u, v) {
+        return lerp3(lerp3(geo.left[0], geo.left[1], u), lerp3(geo.left[3], geo.left[2], u), v);
+      };
+      geo.rightAt = function (u, v) {
+        return lerp3(lerp3(geo.right[0], geo.right[1], u), lerp3(geo.right[3], geo.right[2], u), v);
+      };
+      return geo;
+    }
+
+    function drawObject(def) {
+      var instance = items[def.id];
       if (instance && instance.carriedBy) return;
       objectCount += 1;
-      var ox = screenX(object.x, object.y);
-      var oy = screenY(object.x, object.y) - tileHeight * 0.35;
-      drawIcon(ctx2d, ox, oy, 7 * zoom, object.icon, a11y.highContrast ? '#ffffff' : OBJECT_COLOR);
-    });
-
-    // 6. Jugadores: círculo con marca de dirección, sin colisión entre ellos.
-    var players = world && world.players && world.players.list ? world.players.list : [];
-    players.forEach(function (player) {
-      var px = screenX(player.x, player.y);
-      var py = screenY(player.x, player.y) - tileHeight * 0.2;
-      var radius = 7 * zoom;
-      ctx2d.beginPath();
-      ctx2d.arc(px, py, radius, 0, Math.PI * 2);
-      ctx2d.fillStyle = (ROLE_COLORS[player.role] || '#e8eefc');
-      ctx2d.fill();
-      if (a11y.highContrast) {
-        ctx2d.strokeStyle = '#0a0b10';
-        ctx2d.lineWidth = 2;
-        ctx2d.stroke();
+      // Fuera del visor no se calcula nada: sólo importa el volumen visible.
+      var cullX = screenX(def.x, def.y);
+      var cullY = screenY(def.x, def.y);
+      var marginX = 130;
+      var marginY = 190;
+      if (cullX < -marginX || cullX > viewport.width + marginX || cullY < -marginY || cullY > viewport.height + marginY) {
+        return;
       }
-      var facing = player.facing || 'down';
-      var fx = px + (facing === 'left' ? -radius : facing === 'right' ? radius : 0);
-      var fy = py + (facing === 'up' ? -radius : facing === 'down' ? radius : 0);
-      ctx2d.beginPath();
-      ctx2d.moveTo(px, py);
-      ctx2d.lineTo(fx, fy);
-      ctx2d.strokeStyle = '#0a0b10';
-      ctx2d.lineWidth = 1.5;
-      ctx2d.stroke();
-    });
+      var hot = def.id === nearId || def.id === hoverId;
+      var geo = objectGeo(def);
+      var kind = geo.kind;
+      var powered = !!kind.lit && powerHealth > 0;
 
-    // 7. Etiquetas traducidas (solo si la UI pasa `t`).
+      // Sombra proyectada bajo el objeto: lo asienta en la cubierta.
+      ctx2d.beginPath();
+      ctx2d.ellipse(geo.center.x, geo.center.y + 1, (geo.base[1].x - geo.base[3].x) * 0.42, tileHeight * 0.32, 0, 0, Math.PI * 2);
+      ctx2d.fillStyle = pal.shadow;
+      ctx2d.fill();
+
+      if (powered && (kind.draw === detailConsole || kind.draw === detailScreen || kind.draw === detailLamp)) {
+        circle(ctx2d, geo.topAt(0.5, 0.5), 14 * zoom, pal.glow);
+      }
+
+      // Caras: izquierda, derecha y tapa. El resaltado cambia solo la tapa.
+      fillPoly(ctx2d, geo.left, pal.objLeft, pal.objEdgeSoft, Math.max(0.5, zoom));
+      fillPoly(ctx2d, geo.right, pal.objRight, pal.objEdgeSoft, Math.max(0.5, zoom));
+      fillPoly(ctx2d, geo.top, hot ? pal.objTopHot : pal.objTop, pal.objEdge, Math.max(0.7, zoom));
+
+      if (kind.draw) kind.draw(ctx2d, geo, powered, pal);
+
+      if (hot) {
+        // Esquinas de foco alrededor de la caja: mismo lenguaje que el visor.
+        var minX = Math.min(geo.top[3].x, geo.base[3].x) - 4 * zoom;
+        var maxX = Math.max(geo.top[1].x, geo.base[1].x) + 4 * zoom;
+        var minY = Math.min(geo.top[0].y, geo.top[1].y) - 4 * zoom;
+        var maxY = Math.max(geo.base[2].y, geo.base[1].y) + 2 * zoom;
+        var arm = Math.max(3, 5 * zoom);
+        ctx2d.strokeStyle = pal.focus;
+        ctx2d.lineWidth = Math.max(1, 1.2 * zoom);
+        [
+          [minX, minY, 1, 1],
+          [maxX, minY, -1, 1],
+          [minX, maxY, 1, -1],
+          [maxX, maxY, -1, -1]
+        ].forEach(function (corner) {
+          ctx2d.beginPath();
+          ctx2d.moveTo(corner[0] + arm * corner[2], corner[1]);
+          ctx2d.lineTo(corner[0], corner[1]);
+          ctx2d.lineTo(corner[0], corner[1] + arm * corner[3]);
+          ctx2d.stroke();
+        });
+      }
+    }
+
+    function drawPlayer(player) {
+      var point = playerPos[player.id];
+      var px = point.x;
+      var py = point.y;
+      var s = zoom;
+      var color = ROLE_COLORS[player.role] || pal.text;
+
+      ctx2d.beginPath();
+      ctx2d.ellipse(px + 1, py + 2 * s, 7 * s, 3.4 * s, 0, 0, Math.PI * 2);
+      ctx2d.fillStyle = pal.shadow;
+      ctx2d.fill();
+
+      // Anillo de acciones del jugador seleccionado (V-4): discontinuo y con
+      // marcas, para que el radial de la UI quede anclado al personaje.
+      if (player.id === selected) {
+        ctx2d.save();
+        ctx2d.setLineDash([3 * s, 5 * s]);
+        ctx2d.beginPath();
+        ctx2d.arc(px, py - 6 * s, 30 * s, 0, Math.PI * 2);
+        ctx2d.strokeStyle = 'rgba(111, 211, 199, 0.55)';
+        ctx2d.lineWidth = Math.max(1, s);
+        ctx2d.stroke();
+        ctx2d.setLineDash([]);
+        ctx2d.strokeStyle = 'rgba(111, 211, 199, 0.75)';
+        for (var tick = 0; tick < 12; tick += 1) {
+          var angle = (tick / 12) * Math.PI * 2;
+          ctx2d.beginPath();
+          ctx2d.moveTo(px + Math.cos(angle) * 27 * s, py - 6 * s + Math.sin(angle) * 27 * s);
+          ctx2d.lineTo(px + Math.cos(angle) * 30 * s, py - 6 * s + Math.sin(angle) * 30 * s);
+          ctx2d.stroke();
+        }
+        ctx2d.restore();
+      }
+
+      roundRectPath(ctx2d, px - 4.6 * s, py - 16 * s, 9.2 * s, 15 * s, 3.2 * s);
+      ctx2d.fillStyle = 'rgba(111, 211, 199, 0.24)';
+      ctx2d.fill();
+      ctx2d.strokeStyle = a11y.highContrast ? '#ffffff' : color;
+      ctx2d.lineWidth = Math.max(1, 1.2 * s);
+      ctx2d.stroke();
+
+      circle(ctx2d, { x: px, y: py - 19.5 * s }, 3.8 * s, a11y.highContrast ? '#ffffff' : color);
+
+      var facing = player.facing || 'down';
+      var fx = px + (facing === 'left' ? -5 * s : facing === 'right' ? 5 * s : 0);
+      var fy = py + (facing === 'up' ? -17 * s : facing === 'down' ? -2 * s : 0);
+      line(ctx2d, { x: px, y: py - 8 * s }, { x: fx, y: fy }, pal.bg, Math.max(1, 1.4 * s));
+
+      // Ficha P1…P4 sobre la cabeza, con el color del rol.
+      var label = 'P' + (playerIndex[player.id] || 1);
+      var chipW = 22 * s;
+      var chipH = 12 * s;
+      roundRectPath(ctx2d, px - chipW / 2, py - 36 * s, chipW, chipH, 2);
+      ctx2d.fillStyle = pal.playerChip;
+      ctx2d.fill();
+      ctx2d.strokeStyle = a11y.highContrast ? '#ffffff' : color;
+      ctx2d.lineWidth = 1;
+      ctx2d.stroke();
+      ctx2d.fillStyle = a11y.highContrast ? '#ffffff' : color;
+      ctx2d.textAlign = 'center';
+      ctx2d.textBaseline = 'middle';
+      ctx2d.font = '600 ' + Math.max(8, Math.round(9 * s)) + 'px ui-monospace, Menlo, Consolas, monospace';
+      ctx2d.fillText(label, px, py - 30 * s);
+    }
+
+    while (oi < objectList.length || pi < playerList.length) {
+      var objectDepth = oi < objectList.length ? objectList[oi].x + objectList[oi].y : Infinity;
+      var playerDepth = pi < playerList.length ? playerList[pi].x + playerList[pi].y : Infinity;
+      if (objectDepth <= playerDepth) {
+        drawObject(objectList[oi]);
+        oi += 1;
+      } else {
+        drawPlayer(playerList[pi]);
+        pi += 1;
+      }
+    }
+
+    // 6. Etiquetas de sala discretas (solo si la UI pasa `t`).
     if (translate && !a11y.hideLabels) {
       ctx2d.textAlign = 'center';
       ctx2d.textBaseline = 'middle';
-      ctx2d.font = Math.round(11 * zoom) + 'px system-ui, sans-serif';
-      ctx2d.fillStyle = a11y.highContrast ? '#ffffff' : 'rgba(235,240,255,0.82)';
+      ctx2d.font = '600 ' + Math.max(8, Math.round(10 * zoom)) + 'px ui-monospace, Menlo, Consolas, monospace';
       cache.rooms.forEach(function (group) {
-        if (group.room.rect.w * group.room.rect.h < 12) return;
-        var center = group.room.center;
-        ctx2d.fillText(translate(group.room.nameKey), screenX(center.x, center.y), screenY(center.x, center.y) + tileHeight * 0.2);
+        var rect = group.rect;
+        if (!rect) return;
+        var cx = (rect.x0 + rect.x1) / 2;
+        var cy = (rect.y0 + rect.y1) / 2;
+        var label = String(translate(group.room.nameKey) || '').toUpperCase();
+        if (!label) return;
+        var x = screenX(cx, cy);
+        var y = screenY(cx, cy) - tileHeight * 1.25;
+        var w = label.length * Math.max(4, 6.2 * zoom) + 12;
+        roundRectPath(ctx2d, x - w / 2, y - 8, w, 16, 2);
+        ctx2d.fillStyle = pal.labelPlate;
+        ctx2d.fill();
+        ctx2d.strokeStyle = pal.labelEdge;
+        ctx2d.lineWidth = 1;
+        ctx2d.stroke();
+        ctx2d.fillStyle = pal.roomLabel;
+        ctx2d.fillText(label, x, y + 0.5);
       });
-      var near = nearestObject(map, world, players);
-      if (near) {
-        ctx2d.fillStyle = '#ffe9a8';
-        ctx2d.fillText(translate(near.nameKey), screenX(near.x, near.y), screenY(near.x, near.y) - tileHeight * 1.1);
-      }
     }
+
+    // 7. Retícula del visor dentro del propio canvas: una capa menos que
+    //    recomponer sobre el canvas y el mismo lenguaje de consola (S5).
+    var step = 48;
+    ctx2d.beginPath();
+    for (var rx = step; rx < viewport.width; rx += step) {
+      ctx2d.moveTo(rx, 0);
+      ctx2d.lineTo(rx, viewport.height);
+    }
+    for (var ry = step; ry < viewport.height; ry += step) {
+      ctx2d.moveTo(0, ry);
+      ctx2d.lineTo(viewport.width, ry);
+    }
+    ctx2d.strokeStyle = pal.reticle;
+    ctx2d.lineWidth = 1;
+    ctx2d.stroke();
 
     // 8. Oscurecimiento global según la potencia y el soporte vital (V-7).
     var darkness = clamp(1 - (isFinite(look.lighting) ? look.lighting : 1), 0, 1) * 0.55;
@@ -549,6 +1106,25 @@
       ctx2d.fillStyle = 'rgba(2,4,10,' + darkness.toFixed(3) + ')';
       ctx2d.fillRect(0, 0, viewport.width, viewport.height);
     }
+
+    // 9. Marcas de esquina del visor (mismas medidas que el artboard).
+    var arm = 34;
+    var inset = 9;
+    var corners = [
+      [inset, inset, 1, 1],
+      [viewport.width - inset, inset, -1, 1],
+      [inset, viewport.height - inset, 1, -1],
+      [viewport.width - inset, viewport.height - inset, -1, -1]
+    ];
+    ctx2d.beginPath();
+    corners.forEach(function (corner) {
+      ctx2d.moveTo(corner[0] + arm * corner[2], corner[1]);
+      ctx2d.lineTo(corner[0], corner[1]);
+      ctx2d.lineTo(corner[0], corner[1] + arm * corner[3]);
+    });
+    ctx2d.strokeStyle = pal.bracket;
+    ctx2d.lineWidth = 1;
+    ctx2d.stroke();
 
     ctx2d.restore();
     return {
@@ -565,6 +1141,7 @@
     TILE_W: TILE_W,
     TILE_H: TILE_H,
     WALL_H: WALL_H,
+    OBJECT_KIND: OBJECT_KIND,
     project: project,
     toScreen: toScreen,
     computeCamera: computeCamera,

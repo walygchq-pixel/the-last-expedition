@@ -1,34 +1,68 @@
 {
-  "items": [
+  "steps": [
     {
-      "id": "design_basic",
-      "titleKey": "tutorial.design_basic.title",
-      "bodyKey": "tutorial.design_basic.body",
-      "target": "#design-objective"
+      "id": "design_objective",
+      "screen": "design",
+      "titleKey": "tutorial.design_objective.title",
+      "bodyKey": "tutorial.design_objective.body",
+      "target": "[data-tutorial=\"design-objective\"]",
+      "place": "bottom"
     },
     {
-      "id": "tradeoffs",
-      "titleKey": "tutorial.tradeoffs.title",
-      "bodyKey": "tutorial.tradeoffs.body",
-      "target": "#design-parts"
+      "id": "design_components",
+      "screen": "design",
+      "titleKey": "tutorial.design_components.title",
+      "bodyKey": "tutorial.design_components.body",
+      "target": "[data-tutorial=\"design-component\"]",
+      "place": "right"
     },
     {
-      "id": "launch_check",
-      "titleKey": "tutorial.launch_check.title",
-      "bodyKey": "tutorial.launch_check.body",
-      "target": "#design-launch"
+      "id": "design_instruments",
+      "screen": "design",
+      "titleKey": "tutorial.design_instruments.title",
+      "bodyKey": "tutorial.design_instruments.body",
+      "target": "[data-tutorial=\"design-instruments\"]",
+      "place": "top"
     },
     {
-      "id": "first_repair",
-      "titleKey": "tutorial.first_repair.title",
-      "bodyKey": "tutorial.first_repair.body",
-      "target": "#travel-actions"
+      "id": "design_launch",
+      "screen": "design",
+      "titleKey": "tutorial.design_launch.title",
+      "bodyKey": "tutorial.design_launch.body",
+      "target": "[data-tutorial=\"design-launch\"]",
+      "place": "top"
     },
     {
-      "id": "deferred_consequence",
-      "titleKey": "tutorial.deferred_consequence.title",
-      "bodyKey": "tutorial.deferred_consequence.body",
-      "target": "#travel-consequences"
+      "id": "travel_move",
+      "screen": "travel",
+      "titleKey": "tutorial.travel_move.title",
+      "bodyKey": "tutorial.travel_move.body",
+      "target": "[data-tutorial=\"travel-clock\"]",
+      "place": "bottom"
+    },
+    {
+      "id": "travel_actions",
+      "screen": "travel",
+      "titleKey": "tutorial.travel_actions.title",
+      "bodyKey": "tutorial.travel_actions.body",
+      "target": "[data-tutorial=\"travel-actions\"]",
+      "place": "top"
+    },
+    {
+      "id": "travel_systems",
+      "screen": "travel",
+      "titleKey": "tutorial.travel_systems.title",
+      "bodyKey": "tutorial.travel_systems.body",
+      "target": "[data-tutorial=\"travel-systems\"]",
+      "place": "left"
+    },
+    {
+      "id": "travel_consequences",
+      "screen": "travel",
+      "titleKey": "tutorial.travel_consequences.title",
+      "bodyKey": "tutorial.travel_consequences.body",
+      "target": "[data-tutorial=\"travel-inventory\"]",
+      "place": "top"
     }
   ]
 }

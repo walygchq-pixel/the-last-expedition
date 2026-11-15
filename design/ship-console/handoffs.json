@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "chosen": "03-flight-deck-holo.html",
+  "handoffs": {
+    "03-flight-deck-holo.html": {
+      "status": "sent",
+      "queued": false,
+      "sentAt": "2026-11-15T13:52:06.083Z",
+      "startedAt": null,
+      "implementedAt": null,
+      "feature": "odd/tasks/the-last-expedition.md"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "en": {
+    "travel.gauge_health": "Condition",
+    "travel.gauge_reliability": "Reliability",
+    "travel.interact_hint": "{key} interact",
+    "travel.radial_keys": "Arrows or Tab to choose · Enter to run · Esc to close"
+  },
+  "es": {
+    "travel.gauge_health": "Estado",
+    "travel.gauge_reliability": "Fiabilidad",
+    "travel.interact_hint": "{key} interactuar",
+    "travel.radial_keys": "Flechas o Tab para elegir · Enter para ejecutar · Esc para cerrar"
+  }
+}

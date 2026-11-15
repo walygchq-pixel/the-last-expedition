@@ -282,3 +282,18 @@ que cada clave exista en los dos idiomas.
   del jugador que pulsó, ejecuta la acción si es única y abre una capa modal con
   etiqueta y consecuencia estimada si hay varias; sin objeto, avisa. El humo
   despacha un `keydown` real de `KeyE` en el viaje y exige una reacción.
+
+- **L11 (rediseño implementado).** Se implementaron las dos direcciones elegidas y el
+  tutorial nuevo. Viaje: visor a pantalla completa, HUD flotante por bordes (reloj y
+  velocidades, tira de tripulación, cintas de objetivo/enlace/instrumentos, gauges de
+  sistemas sin cifras, recursos, dock inferior con inventario y acciones, cinta de
+  consecuencias), radial de acciones junto al objeto y **23 siluetas isométricas de
+  tres caras** dibujadas en Canvas 2D para los 60 objetos. Diseño de misión: chasis
+  único con biseles y tornillos, cabecera de instrumentación, tres columnas y franja
+  de permiso de despegue con sello y botón integrado. Tutorial: pasos por pantalla
+  (`data/tutorial.json` con `screen`, `target`, `place`), llamada anclada al control,
+  contorno sobre el objetivo, «Entendido» / «Después» / «No mostrar más», y salto
+  automático al primer paso pendiente de la pantalla activa (ya no queda «paso 1 de 5»
+  encima del viaje). El dock inferior se ancla a la ventana y reparte sus secciones en
+  columnas para que las acciones no queden dentro de un scroll.
+  Suite: **95 pruebas** en verde y humo sin problemas.

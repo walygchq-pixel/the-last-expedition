@@ -456,6 +456,10 @@ async function main() {
     }
 
     const structure = await client.evaluate('window.__tleSmoke.structure()');
+    // Diagnóstico de layout: alto real de la ventana y caja del dock inferior.
+    const layout = await client.evaluate(
+      '(() => { const d = document.querySelector(".hud-dock"); const s = document.querySelector(".travel-screen"); const r = (n) => n ? ({ top: Math.round(n.getBoundingClientRect().top), bottom: Math.round(n.getBoundingClientRect().bottom), height: Math.round(n.getBoundingClientRect().height) }) : null; return { innerHeight: window.innerHeight, dock: r(d), screen: r(s), dockPosition: d ? getComputedStyle(d).position : null, offsetParent: d && d.offsetParent ? (d.offsetParent.className || d.offsetParent.tagName) : null }; })()'
+    );
     const width = await client.evaluate('({ scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth })');
     if (width.scroll - width.client > 1) {
       problems.push(`la pantalla desborda a lo ancho: scrollWidth ${width.scroll} > clientWidth ${width.client} (I-14/S82)`);
@@ -501,6 +505,7 @@ async function main() {
       browserLogErrors: logErrors.length,
       i18nWarnings: i18nWarnings.length,
       problems: problems,
+      layout: layout,
       structure: structure
     };
     process.stdout.write(JSON.stringify(summary, null, 2) + '\n');

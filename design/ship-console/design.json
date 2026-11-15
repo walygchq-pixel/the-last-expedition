@@ -1,0 +1,28 @@
+{
+  "title": "Consola de la nave — diseño de misión y cubierta de vuelo",
+  "brief": "Rediseño de la interfaz de The Last Expedition como el panel físico de una computadora de nave: el diseño de misión se lee como una consola de ingeniería y el viaje como una cubierta de vuelo con un visor isométrico con volumen, sin tarjetas flotantes ni minimapa plano.",
+  "feature": "odd/tasks/the-last-expedition.md",
+  "artboards": [
+    {
+      "file": "01-mission-console.html",
+      "title": "Diseño de misión · consola de ingeniería",
+      "tradeoff": "Máxima densidad y lectura de panel físico: los 12 grupos, los 6 instrumentos, la telemetría y el permiso de despegue conviven en una sola pantalla. Cuesta espacio en blanco y exige tipografía pequeña, así que en pantallas angostas obliga a plegar columnas y pierde la vista simultánea.",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "02-flight-deck.html",
+      "title": "Viaje · cubierta de vuelo con chasis",
+      "tradeoff": "El visor isométrico es el héroe y la tripulación, el inventario y las acciones quedan dentro del espacio del jugador. A cambio, el chasis, los raíles y la cinta de consecuencias comen ancho: el visor pierde unos 380 px frente a la variante holográfica.",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "03-flight-deck-holo.html",
+      "title": "Viaje · visor holográfico a pantalla completa",
+      "tradeoff": "Inmersión y escala: el visor ocupa todo el marco y las acciones se agrupan en un radial junto al personaje. El precio es menor densidad de datos a la vez: los gauges de sistemas pierden cifras y la tripulación reduce sus necesidades a barras sin lectura numérica.",
+      "width": 1440,
+      "height": 900
+    }
+  ]
+}

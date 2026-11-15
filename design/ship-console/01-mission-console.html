@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Diseño de misión · consola de ingeniería</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #070910;
+    --bg-soft: #0d1220;
+    --panel: #111a2b;
+    --panel-2: #16223a;
+    --line: #26365a;
+    --line-strong: #3d5687;
+    --text: #e6ecfb;
+    --text-dim: #a9b6d3;
+    --text-faint: #7d8bab;
+    --accent: #6fd3c7;
+    --accent-2: #ffcf6b;
+    --ok: #6fd98a;
+    --warn: #ffcf6b;
+    --critical: #ff7a7a;
+    --focus: #ffe082;
+    --radius: 0.5rem;
+    --gap: 0.75rem;
+    --pad: 0.9rem;
+    --font: ui-monospace, SFMono-Regular, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); }
+
+  body {
+    position: relative;
+    width: 1440px; height: 900px; overflow: hidden;
+    color: var(--text); font-family: var(--font); font-size: 16px; line-height: 1.4;
+    background-image:
+      radial-gradient(circle at 18% 0%, rgba(111, 211, 199, 0.08), transparent 42%),
+      radial-gradient(circle at 88% 8%, rgba(255, 207, 107, 0.06), transparent 38%);
+  }
+
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  h1, h2, h3 { margin: 0; line-height: 1.2; letter-spacing: 0.02em; font-weight: 700; }
+  p { margin: 0; }
+
+  /* ---- chasis: marco físico con bisel, tornillos y placa ---- */
+  .chassis {
+    position: absolute; inset: 8px;
+    display: grid; grid-template-rows: 46px minmax(0, 1fr) 104px;
+    gap: 8px; padding: 8px;
+    border: 1px solid var(--line-strong); border-radius: var(--radius);
+    background:
+      linear-gradient(180deg, rgba(230, 236, 251, 0.05), transparent 32%),
+      linear-gradient(180deg, var(--panel-2), var(--panel) 40%, var(--bg-soft));
+    box-shadow:
+      inset 0 1px 0 rgba(230, 236, 251, 0.14),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.55),
+      0 10px 30px rgba(0, 0, 0, 0.6);
+  }
+
+  .screw {
+    position: absolute; width: 10px; height: 10px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--line-strong), var(--panel) 70%);
+    box-shadow: inset 0 0 0 1px var(--bg);
+  }
+  .screw::before {
+    content: ""; position: absolute; inset: 3px 1px;
+    border-top: 1px solid var(--bg); transform: rotate(28deg);
+  }
+  .screw.tl { top: 8px; left: 8px; }
+  .screw.tr { top: 8px; right: 8px; }
+  .screw.bl { bottom: 8px; left: 8px; }
+  .screw.br { bottom: 8px; right: 8px; }
+
+  .stamp {
+    position: absolute; top: -6px; right: 26px; padding: 0.05rem 0.4rem;
+    border: 1px solid var(--line-strong); border-radius: 2px;
+    background: var(--bg-soft); color: var(--text-faint);
+    font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase;
+  }
+
+  /* ---- cabecera de estado de misión ---- */
+  .status-bar {
+    display: grid; grid-template-columns: auto 1fr auto; align-items: center;
+    gap: var(--gap); padding: 0 12px;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    box-shadow: inset 0 1px 0 rgba(230, 236, 251, 0.1);
+    min-width: 0;
+  }
+  .brand { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .brand strong {
+    font-size: 0.95rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent);
+  }
+  .brand span { font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-faint); }
+
+  .mission-id { display: flex; align-items: center; gap: 0.6rem; min-width: 0; flex-wrap: wrap; }
+  .mission-id .scenario { font-size: 0.86rem; font-weight: 700; letter-spacing: 0.04em; }
+  .mission-id .objective { font-size: 0.72rem; color: var(--text-dim); }
+
+  .status-right { display: flex; align-items: center; gap: 0.5rem; }
+  .readout {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 0;
+    padding: 0.15rem 0.45rem; border: 1px solid var(--line); border-radius: 2px;
+    background: var(--bg-soft); min-width: 5.4rem;
+  }
+  .readout b { font-size: 0.8rem; letter-spacing: 0.04em; }
+  .readout span { font-size: 0.58rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); }
+
+  .led { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.66rem; color: var(--text-dim); }
+  .led i {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--ok);
+    box-shadow: 0 0 6px rgba(111, 217, 138, 0.8);
+  }
+  .led.warn i { background: var(--warn); box-shadow: 0 0 6px rgba(255, 207, 107, 0.8); }
+  .led.crit i { background: var(--critical); box-shadow: 0 0 6px rgba(255, 122, 122, 0.8); }
+
+  /* ---- paneles internos ---- */
+  .deck { display: grid; grid-template-columns: 318px minmax(0, 1fr) 330px; gap: 8px; min-height: 0; min-width: 0; }
+  .col { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+  .panel {
+    display: flex; flex-direction: column; min-height: 0; min-width: 0;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--panel), var(--bg-soft));
+    box-shadow: inset 0 1px 0 rgba(230, 236, 251, 0.07);
+    padding: 7px;
+  }
+  .panel > h2 {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem;
+    font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim);
+    padding-bottom: 4px; margin-bottom: 5px; border-bottom: 1px solid var(--line);
+  }
+  .panel > h2 em { font-style: normal; color: var(--text-faint); letter-spacing: 0.08em; }
+
+  /* ---- columna izquierda: 12 grupos ---- */
+  .group-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; min-height: 0; }
+  .group {
+    display: grid; grid-template-columns: 16px minmax(0, 1fr) 78px;
+    align-items: center; gap: 6px; height: 52px; padding: 3px 5px;
+    border: 1px solid var(--line); border-radius: 2px; background: var(--bg-soft);
+    box-shadow: inset 0 1px 0 rgba(230, 236, 251, 0.05);
+  }
+  .group .idx { font-size: 0.6rem; color: var(--text-faint); letter-spacing: 0.06em; }
+  .group .what { min-width: 0; }
+  .group .what b {
+    display: block; font-size: 0.73rem; color: var(--text); letter-spacing: 0.01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .group .what span {
+    display: block; font-size: 0.6rem; color: var(--text-faint);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .group .what small { display: block; font-size: 0.58rem; color: var(--text-dim); letter-spacing: 0.02em; }
+
+  .toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+  .toggle button {
+    font: inherit; font-size: 0.56rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-dim); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 2px; padding: 3px 0; cursor: pointer; min-height: 22px;
+    box-shadow: 0 0 0 1px rgba(125, 139, 171, 0.22);
+  }
+  .toggle button[aria-pressed="true"] {
+    color: var(--bg); background: var(--accent); border-color: var(--accent); font-weight: 700;
+  }
+
+  /* ---- centro: mesa de instrumentos ---- */
+  .instrument-table { width: 100%; border-collapse: collapse; font-size: 0.66rem; }
+  .instrument-table th {
+    text-align: left; font-weight: 600; color: var(--text-faint); font-size: 0.56rem;
+    letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 4px;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .instrument-table td { padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .instrument-table td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-dim); }
+  .instrument-table tr:last-child td { border-bottom: 0; }
+  .instrument-table .name { color: var(--text); font-weight: 700; }
+  .instrument-table .sci { color: var(--text-dim); font-size: 0.62rem; }
+  .instrument-table .state { color: var(--ok); font-size: 0.6rem; letter-spacing: 0.06em; }
+  .tag {
+    display: inline-block; padding: 0 0.3rem; border: 1px solid var(--line);
+    border-radius: 2px; color: var(--text-dim); font-size: 0.58rem;
+  }
+
+  .lower { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-height: 0; }
+  .launcher-list, .orbit-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; min-height: 0; }
+  .bolt {
+    display: grid; gap: 1px; padding: 5px 6px; border: 1px solid var(--line); border-radius: 2px;
+    background: var(--bg-soft); box-shadow: inset 0 1px 0 rgba(230, 236, 251, 0.05);
+    text-align: left; font: inherit; color: inherit; cursor: pointer;
+  }
+  .bolt.is-selected {
+    border-color: var(--accent); background: rgba(111, 211, 199, 0.1);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .bolt .title { display: flex; align-items: baseline; justify-content: space-between; gap: 0.4rem; }
+  .bolt .title b { font-size: 0.74rem; }
+  .bolt .title .pick { font-size: 0.56rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  .bolt .desc { font-size: 0.6rem; color: var(--text-faint); }
+  .bolt .metrics { display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; font-size: 0.6rem; color: var(--text-dim); }
+  .bolt .metrics b { color: var(--text); font-weight: 600; }
+
+  .gauge-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
+  .gauge {
+    border: 1px solid var(--line); border-radius: 2px; background: var(--bg);
+    padding: 4px 5px; display: flex; flex-direction: column; gap: 3px;
+  }
+  .gauge span { font-size: 0.56rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); }
+  .gauge b { font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+  .bar { height: 0.4rem; border-radius: 999px; background: #0a1322; border: 1px solid var(--line); overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--ok); }
+  .bar.is-warn > i { background: var(--warn); }
+  .bar.is-critical > i { background: var(--critical); }
+
+  /* ---- derecha: telemetría ---- */
+  .critical-resource {
+    display: flex; align-items: center; gap: 0.4rem; padding: 4px 6px; margin-bottom: 6px;
+    border: 1px solid var(--line-strong); border-left: 3px solid var(--accent-2);
+    border-radius: 2px; background: rgba(255, 207, 107, 0.06);
+    font-size: 0.6rem; color: var(--text-dim);
+  }
+  .critical-resource b { color: var(--text); font-size: 0.66rem; }
+
+  .res-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+  .res {
+    display: grid; grid-template-columns: 13px 13px minmax(0, 1fr) auto auto;
+    gap: 2px 5px; align-items: center; padding: 3px 7px 3px 5px;
+    border: 1px solid var(--line); border-radius: 2px; background: var(--bg-soft);
+  }
+  .res .shape { width: 0.62rem; height: 0.62rem; background: currentColor; display: inline-block; }
+  .shape--square { border-radius: 2px; }
+  .shape--circle { border-radius: 50%; }
+  .shape--triangle { clip-path: polygon(50% 0%, 100% 100%, 0% 100%); }
+  .shape--diamond { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+  .res .glyph { font-size: 0.62rem; line-height: 1; text-align: center; }
+  .res .name { font-size: 0.66rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .res .value { font-size: 0.62rem; color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .res .status { font-size: 0.48rem; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; justify-self: end; }
+  .res .track { grid-column: 1 / -1; display: block; height: 4px; border-radius: 999px; background: #0a1322; border: 1px solid var(--line); overflow: hidden; }
+  .res .track > i { display: block; height: 100%; background: var(--ok); }
+  .res .track.is-warn > i { background: var(--warn); }
+  .res .track.is-critical > i { background: var(--critical); }
+  .res.is-critical-res { border-color: var(--accent-2); }
+  .status--ok { color: var(--ok); }
+  .status--warn { color: var(--warn); }
+  .status--critical { color: var(--critical); }
+
+  .tutorial-dock {
+    position: relative; flex: 1 1 auto; min-height: 0; border-radius: var(--radius);
+    border: 1px dashed var(--line);
+    background-image: repeating-linear-gradient(135deg, rgba(38, 54, 90, 0.28) 0 1px, transparent 1px 9px);
+  }
+  .tutorial-dock > span {
+    position: absolute; left: 8px; bottom: 5px; font-size: 0.54rem; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--text-faint);
+  }
+
+  .sequence { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .sequence li {
+    display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 4px; align-items: baseline;
+    font-size: 0.6rem; color: var(--text-dim); padding: 2px 4px; border: 1px solid var(--line);
+    border-radius: 2px; background: var(--bg);
+  }
+  .sequence li .mk { text-align: center; font-weight: 700; }
+  .sequence li.is-met .mk { color: var(--ok); }
+  .sequence li.is-unmet { color: var(--text); border-color: var(--line-strong); }
+  .sequence li.is-unmet .mk { color: var(--critical); }
+  .sequence li em { font-style: normal; color: var(--text-faint); font-size: 0.55rem; letter-spacing: 0.08em; text-transform: uppercase; }
+
+  .check-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .check-list li {
+    display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 5px; align-items: baseline;
+    font-size: 0.63rem; color: var(--text-dim); padding: 2px 4px; border-bottom: 1px dotted var(--line);
+  }
+  .check-list li:last-child { border-bottom: 0; }
+  .check-list .mark { font-weight: 700; font-size: 0.7rem; text-align: center; }
+  .check-list li.is-met .mark { color: var(--ok); }
+  .check-list li.is-unmet .mark { color: var(--critical); }
+  .check-list li.is-unmet { color: var(--text); }
+
+  /* ---- franja de autorización de lanzamiento ---- */
+  .permit {
+    display: grid; grid-template-columns: 1.35fr 1fr 0.85fr; gap: 10px;
+    border: 1px solid var(--line-strong); border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--panel-2), var(--bg-soft));
+    box-shadow: inset 0 1px 0 rgba(230, 236, 251, 0.12), inset 0 -2px 0 rgba(0, 0, 0, 0.5);
+    padding: 7px 10px; position: relative; min-height: 0;
+  }
+  .permit::before {
+    content: ""; position: absolute; left: 10px; right: 10px; top: 3px; height: 1px;
+    background: repeating-linear-gradient(90deg, var(--line-strong) 0 6px, transparent 6px 12px);
+  }
+  .permit h2 {
+    font-size: 0.66rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim);
+    display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 4px;
+  }
+  .permit h2 em { font-style: normal; color: var(--text-faint); letter-spacing: 0.08em; font-size: 0.58rem; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 12px; }
+  .field { display: flex; align-items: baseline; gap: 4px; font-size: 0.62rem; min-width: 0; }
+  .field span { color: var(--text-faint); letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.55rem; white-space: nowrap; }
+  .field i { flex: 1 1 auto; border-bottom: 1px dotted var(--line-strong); height: 0.7rem; }
+  .field b { color: var(--text); font-weight: 700; white-space: nowrap; }
+  .field .ok { color: var(--ok); }
+  .field .bad { color: var(--critical); }
+
+  .verdict { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .verdict .why { font-size: 0.62rem; color: var(--text); }
+  .verdict .why b { color: var(--critical); }
+  .verdict .fix { font-size: 0.6rem; color: var(--text-dim); }
+  .verdict .fix span { color: var(--accent); }
+
+  .switch-bay { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
+  .stamp.blocked {
+    position: static; margin: 0 0 3px auto; transform: rotate(-4deg);
+    border: 2px solid var(--critical); border-radius: 2px; color: var(--critical);
+    padding: 0 0.3rem; font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase;
+    background: rgba(255, 122, 122, 0.08); font-weight: 700;
+  }
+  .switch {
+    display: flex; flex-direction: column; gap: 2px;
+    border: 2px solid var(--line-strong); border-radius: var(--radius);
+    background: var(--bg); padding: 3px 6px; cursor: not-allowed; opacity: 0.85;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7);
+  }
+  .switch b { font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); }
+  .switch span { font-size: 0.58rem; color: var(--text-faint); }
+  .permit-note { font-size: 0.55rem; color: var(--text-faint); letter-spacing: 0.04em; }
+
+  /* ---- llamado de tutorial anclado ---- */
+  .callout {
+    position: absolute; left: 6px; right: 6px; top: 6px; z-index: 5;
+    border: 1px solid var(--focus); border-radius: var(--radius); background: var(--panel);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); padding: 0.55rem 0.65rem;
+    display: flex; flex-direction: column; gap: 0.35rem;
+  }
+  .callout h3 { color: var(--focus); font-size: 0.78rem; letter-spacing: 0.04em; }
+  .callout p { font-size: 0.68rem; color: var(--text-dim); }
+  .callout .step { font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-faint); }
+  .callout .actions { display: flex; gap: 0.35rem; margin-top: 0.1rem; }
+  .callout button {
+    font: inherit; font-size: 0.66rem; padding: 0.22rem 0.5rem; min-height: 1.6rem;
+    border: 1px solid var(--line-strong); border-radius: 2px; background: var(--panel-2);
+    color: var(--text); cursor: pointer;
+    box-shadow: 0 0 0 1px rgba(125, 139, 171, 0.28);
+  }
+  .callout button.primary { background: var(--focus); border-color: var(--focus); color: #1a1503; font-weight: 700; }
+  .callout .leader {
+    position: absolute; left: 22px; top: -14px; width: 1px; height: 14px; background: var(--focus);
+  }
+  .callout .leader::after {
+    content: ""; position: absolute; left: -3px; top: -4px;
+    border-bottom: 6px solid var(--focus); border-left: 4px solid transparent; border-right: 4px solid transparent;
+  }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+
+  /* ---- textura de pantalla ---- */
+  .chassis::after {
+    content: ""; position: absolute; inset: 0; border-radius: var(--radius); pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(230, 236, 251, 0.03) 0 1px, transparent 1px 3px);
+    opacity: 0.5;
+    animation: scan 6s linear infinite;
+  }
+  @keyframes scan { from { background-position: 0 0; } to { background-position: 0 24px; } }
+  .led i { animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important; animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+    .chassis::after { background-position: 0 0; }
+  }
+</style>
+</head>
+<body>
+<div class="chassis">
+  <span class="screw tl" aria-hidden="true"></span>
+  <span class="screw tr" aria-hidden="true"></span>
+  <span class="screw bl" aria-hidden="true"></span>
+  <span class="screw br" aria-hidden="true"></span>
+  <span class="stamp" aria-hidden="true">unidad 07 · ingeniería de misión</span>
+
+  <header class="status-bar" role="banner" aria-label="Estado de la misión">
+    <div class="brand">
+      <strong>La última expedición</strong>
+      <span>consola de ingeniería · dm-14</span>
+    </div>
+    <div class="mission-id">
+      <span class="scenario">Censo de Ceres</span>
+      <span class="badge tag">Básico</span>
+      <span class="badge tag">Campaña</span>
+      <span class="objective">Objetivo: cartografiar una región · datos necesarios 50 KB</span>
+    </div>
+    <div class="status-right">
+      <div class="readout"><b>500 M€</b><span>presupuesto</span></div>
+      <div class="readout"><b>Día 0</b><span>pre-lanzamiento</span></div>
+      <div class="led warn"><i aria-hidden="true"></i> presupuesto excedido</div>
+    </div>
+  </header>
+
+  <main class="deck" aria-label="Diseño de misión">
+    <!-- columna izquierda: componentes -->
+    <aside class="col" aria-label="Componentes y versiones">
+      <section class="panel" aria-labelledby="t-parts">
+        <h2 id="t-parts">Componentes <em>12 grupos · simple / avanzada</em></h2>
+        <ol class="group-list">
+          <li class="group"><span class="idx">01</span><span class="what"><b>Estructura y chasis</b><span>Estructura y caminos de carga</span><small>620 kg · 24 M€</small></span>
+            <span class="toggle" role="group" aria-label="Versión de estructura y chasis"><button type="button" aria-pressed="false">Simple</button><button type="button" aria-pressed="true">Avanz.</button></span></li>
+          <li class="group"><span class="idx">02</span><span class="what"><b>Paneles solares</b><span>Generación de energía · 1900 W</span><small>300 kg · 30 M€</small></span>
+            <span class="toggle" role="group" aria-label="Versión de paneles solares"><button type="button" aria-pressed="false">Simple</button><button type="button" aria-pressed="true">Avanz.</button></span></li>
+          <li class="group"><span class="idx">03</span><span class="what"><b>Baterías</b><span>Almacenamiento de energía</span><small>90 kg · 20 M€</small></span>
+            <span class="toggle" role="group" aria-label="Versión de baterías"><button type="button" aria-pressed="false">Simple</button><button type="button" aria-pressed="true">Avanz.</button></span></li>
+          <li class="group"><span class="idx">04</span><span class="what"><b>Soporte vital</b><span>Aire y agua</span><small>480 kg · 40 M€</small></span>
+            <span class="toggle" role="group" aria-label="Versión de soporte vital"><button type="button" aria-pressed="false">Simple</button><button type="button" aria-pressed="true">Avanz.</button></span></li>
+          <li class="group"><span class="idx">05</span><span class="what"><b>Control térmico</b><span>Evacuación de calor</span><small>150 kg · 12 M€</small></span>
+            <span class="toggle" role="group" aria-label="Versión de control térmico"><button type="button" aria-pressed="true">Simple</button><button type="button" aria-pressed="false">Avanz.</button></span></li>
+          <li class="group"><span class="idx">06</span><span class="what"><b>Cocina</b><span>Preparación de alimentos</span><small>200 kg · 24 M€</small></span>
+            <span class="toggle" role="group" aria-label="Versión de cocina"><button type="button" aria-pressed="false">Simple</button><button type="button" aria-pressed="true">Avanz.</button></span></li>
+          <li class="group"><span class="idx">07</span><span class="what"><b>Enfermería</b><span>Atención médica</span><small>190 kg · 26 M€</small></span>
+            <span class="toggle" role="group" aria-label="Versión de enfermería"><button type="button" aria-pressed="false">Simple</button><button type="button" aria-pressed="true">Avanz.</button></span></li>
+          <li class="group"><span class="idx">08</span><span class="what"><b>Computadora y memoria</b><span>Memoria de datos · 40 KB</span><small>80 kg · 30 M€</small></span>
+            <span class="toggle" role="group" aria-label="Versión de computadora"><button type="button" aria-pressed="false">Simple</button><button type="button" aria-pressed="true">Avanz.</button></span></li>
+          <li class="group"><span class="idx">09</span><span class="what"><b>Antena</b><span>Enlace con la Tierra</span><small>120 kg · 26 M€</small></span>
+            <span class="toggle" role="group" aria-label="Versión de antena"><button type="button" aria-pressed="false">Simple</button><button type="button" aria-pressed="true">Avanz.</button></span></li>
+          <li class="group"><span class="idx">10</span><span class="what"><b>Control de orientación</b><span>Control de puntería</span><small>60 kg · 22 M€</small></span>
+            <span class="toggle" role="group" aria-label="Versión de control de orientación"><button type="button" aria-pressed="false">Simple</button><button type="button" aria-pressed="true">Avanz.</button></span></li>
+          <li class="group"><span class="idx">11</span><span class="what"><b>Módulo de mando</b><span>Control de misión</span><small>280 kg · 30 M€</small></span>
+            <span class="toggle" role="group" aria-label="Versión de módulo de mando"><button type="button" aria-pressed="false">Simple</button><button type="button" aria-pressed="true">Avanz.</button></span></li>
+          <li class="group"><span class="idx">12</span><span class="what"><b>Taller</b><span>Herramientas de reparación</span><small>230 kg · 26 M€</small></span>
+            <span class="toggle" role="group" aria-label="Versión de taller"><button type="button" aria-pressed="false">Simple</button><button type="button" aria-pressed="true">Avanz.</button></span></li>
+        </ol>
+      </section>
+    </aside>
+
+    <!-- columna central: mesa de instrumentos, lanzador y órbita -->
+    <div class="col" aria-label="Mesa de instrumentos y lanzamiento">
+      <section class="panel" aria-labelledby="t-inst" style="flex: 0 0 236px">
+        <h2 id="t-inst">Mesa de instrumentos <em>6 a bordo · masa 435 kg · 585 W</em></h2>
+        <table class="instrument-table">
+          <caption class="visually-hidden">Instrumentos instalados y su rendimiento científico</caption>
+          <thead>
+            <tr><th scope="col">Instrumento</th><th scope="col">Ciencia</th><th scope="col" class="num">kg</th><th scope="col" class="num">W</th><th scope="col" class="num">M€</th><th scope="col" class="num">KB/d</th><th scope="col" class="num">Fiab.</th><th scope="col">Estado</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="name">Cámara · avanzada</td><td class="sci">Imágenes 8 · Cartografía 4</td><td class="num">70</td><td class="num">95</td><td class="num">28</td><td class="num">6</td><td class="num">91 %</td><td class="state">Encendida</td></tr>
+            <tr><td class="name">Radar · avanzado</td><td class="sci">Cartografía 8 · Superficie 5</td><td class="num">110</td><td class="num">160</td><td class="num">38</td><td class="num">9</td><td class="num">87 %</td><td class="state">Encendido</td></tr>
+            <tr><td class="name">Espectrómetro · avanzado</td><td class="sci">Atmósfera 8 · Composición 5</td><td class="num">85</td><td class="num">120</td><td class="num">34</td><td class="num">7</td><td class="num">90 %</td><td class="state">Encendido</td></tr>
+            <tr><td class="name">Sismómetro · avanzado</td><td class="sci">Interior 8 · Superficie 3</td><td class="num">50</td><td class="num">45</td><td class="num">30</td><td class="num">3.5</td><td class="num">94 %</td><td class="state">Encendido</td></tr>
+            <tr><td class="name">Magnetómetro · avanzado</td><td class="sci">Interior 5 · Composición 3</td><td class="num">40</td><td class="num">35</td><td class="num">24</td><td class="num">2.5</td><td class="num">95 %</td><td class="state">Encendido</td></tr>
+            <tr><td class="name">Detector de partículas · avanzado</td><td class="sci">Atmósfera 6 · Partículas 8</td><td class="num">80</td><td class="num">130</td><td class="num">40</td><td class="num">8</td><td class="num">86 %</td><td class="state">Encendido</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div class="lower">
+        <section class="panel" aria-labelledby="t-launcher">
+          <h2 id="t-launcher">Lanzador <em>carga y órbita máxima</em></h2>
+          <ul class="launcher-list">
+            <li><button type="button" class="bolt">
+              <span class="title"><b>Vector S</b><span class="metrics"><b>4.200 kg</b> · 26 M€</span></span>
+              <span class="desc">Carga ligera y barata; solo alcanza la órbita baja.</span>
+              <span class="metrics">Órbita máx. <b>1</b> · fiabilidad <b>95 %</b></span>
+            </button></li>
+            <li><button type="button" class="bolt is-selected" aria-pressed="true">
+              <span class="title"><b>Atlas M</b><span class="pick">seleccionado</span></span>
+              <span class="desc">El caballo de carga del programa: siete toneladas y tres rangos orbitales.</span>
+              <span class="metrics"><b>7.000 kg</b> · 42 M€ · órbita máx. <b>3</b> · fiabilidad <b>92 %</b></span>
+            </button></li>
+            <li><button type="button" class="bolt">
+              <span class="title"><b>Hermes Heavy</b><span class="metrics"><b>11.000 kg</b> · 66 M€</span></span>
+              <span class="desc">Todo lo que la misión necesite, incluida la órbita de transferencia.</span>
+              <span class="metrics">Órbita máx. <b>4</b> · fiabilidad <b>89 %</b></span>
+            </button></li>
+          </ul>
+          <div class="gauge-strip">
+            <div class="gauge"><span>Carga usada</span><b>3.235 / 7.000 kg</b><div class="bar"><i style="width: 46%"></i></div></div>
+            <div class="gauge"><span>Presupuesto del diseño</span><b>546 / 500 M€</b><div class="bar is-critical"><i style="width: 100%"></i></div></div>
+            <div class="gauge"><span>Margen de potencia</span><b>385 W · 20 %</b><div class="bar"><i style="width: 20%"></i></div></div>
+          </div>
+          <ol class="sequence">
+            <li class="is-met"><span class="mk" aria-hidden="true">✔</span><span>Masa y carga dentro del Atlas M</span><em>ok</em></li>
+            <li class="is-met"><span class="mk" aria-hidden="true">✔</span><span>La órbita media está al alcance</span><em>ok</em></li>
+            <li class="is-unmet"><span class="mk" aria-hidden="true">✘</span><span>Presupuesto: 546 de 500 M€</span><em>falta</em></li>
+          </ol>
+        </section>
+
+        <section class="panel" aria-labelledby="t-orbit">
+          <h2 id="t-orbit">Órbita <em>lo que cambia cada pasada</em></h2>
+          <ul class="orbit-list">
+            <li><button type="button" class="bolt">
+              <span class="title"><b>Órbita baja</b><span class="metrics">cobertura <b>55 %</b></span></span>
+              <span class="desc">Detalle fino, pero solo una parte del terreno por pasada.</span>
+              <span class="metrics">Radiación 15 % · eclipse 35 % · ventana 10 min cada 90 min</span>
+            </button></li>
+            <li><button type="button" class="bolt is-selected" aria-pressed="true">
+              <span class="title"><b>Órbita media</b><span class="pick">seleccionada</span></span>
+              <span class="desc">Equilibrada: buena cobertura, pasadas más largas y más oportunidades.</span>
+              <span class="metrics">cobertura <b>70 %</b> · radiación 40 % · eclipse 20 % · ventana 20 min cada 4 h · ancho de banda 80 %</span>
+            </button></li>
+            <li><button type="button" class="bolt">
+              <span class="title"><b>Órbita alta</b><span class="metrics">cobertura <b>45 %</b></span></span>
+              <span class="desc">Casi nunca en sombra: paneles cargando y enlace abierto.</span>
+              <span class="metrics">Radiación 55 % · eclipse 5 % · ventana continua · ancho de banda 60 %</span>
+            </button></li>
+            <li><button type="button" class="bolt">
+              <span class="title"><b>Órbita de transferencia</b><span class="metrics">cobertura <b>80 %</b></span></span>
+              <span class="desc">Barre casi todo el cuerpo, pero una vuelta dura dos días.</span>
+              <span class="metrics">Radiación 80 % · eclipse 10 % · ventana 60 min cada 48 h · Atlas M no llega</span>
+            </button></li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <!-- columna derecha: telemetría y comprobación -->
+    <aside class="col" aria-label="Telemetría y lista de comprobación">
+      <section class="panel" aria-labelledby="t-res" style="flex: 0 0 auto">
+        <h2 id="t-res">Telemetría <em>seis recursos · forma + icono</em></h2>
+        <p class="critical-resource"><span class="shape shape--circle status--ok" aria-hidden="true"></span><span>Recurso más crítico del escenario: <b>Datos</b> · cada ventana de transmisión cuenta.</span></p>
+        <ul class="res-list">
+          <li class="res status--ok">
+            <span class="shape shape--square" aria-hidden="true"></span><span class="glyph" aria-hidden="true">▣</span>
+            <span class="name">Masa</span><span class="value">3.235 / 7.000 kg</span><span class="status">Nominal</span>
+            <span class="track"><i style="width: 46%"></i></span>
+          </li>
+          <li class="res status--ok">
+            <span class="shape shape--triangle" aria-hidden="true"></span><span class="glyph" aria-hidden="true">▲</span>
+            <span class="name">Potencia</span><span class="value">385 / 1.900 W</span><span class="status">Nominal</span>
+            <span class="track"><i style="width: 20%"></i></span>
+          </li>
+          <li class="res is-critical-res status--critical">
+            <span class="shape shape--diamond" aria-hidden="true"></span><span class="glyph" aria-hidden="true">◆</span>
+            <span class="name">Presupuesto</span><span class="value">546 de 500 M€</span><span class="status">Crítico</span>
+            <span class="track is-critical"><i style="width: 100%"></i></span>
+          </li>
+          <li class="res status--warn">
+            <span class="shape shape--circle" aria-hidden="true"></span><span class="glyph" aria-hidden="true">●</span>
+            <span class="name">Datos</span><span class="value">50 / 50 KB</span><span class="status">Justo</span>
+            <span class="track is-warn"><i style="width: 100%"></i></span>
+          </li>
+          <li class="res status--ok">
+            <span class="shape shape--diamond" aria-hidden="true"></span><span class="glyph" aria-hidden="true">◆</span>
+            <span class="name">Comunicaciones</span><span class="value">80 % · 20 min / 4 h</span><span class="status">Nominal</span>
+            <span class="track"><i style="width: 80%"></i></span>
+          </li>
+          <li class="res status--ok">
+            <span class="shape shape--triangle" aria-hidden="true"></span><span class="glyph" aria-hidden="true">▲</span>
+            <span class="name">Tiempo</span><span class="value">90 de 90 días</span><span class="status">Nominal</span>
+            <span class="track"><i style="width: 100%"></i></span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="panel" aria-labelledby="t-check" style="flex: 0 0 auto">
+        <h2 id="t-check">Lista de comprobación <em>✔ cumple · ✘ falta</em></h2>
+        <ul class="check-list">
+          <li class="is-met"><span class="mark" aria-hidden="true">✔</span><span>Cartografía: 12 de 4 puntos</span></li>
+          <li class="is-met"><span class="mark" aria-hidden="true">✔</span><span>Superficie: 5 de 3 puntos</span></li>
+          <li class="is-met"><span class="mark" aria-hidden="true">✔</span><span>Cobertura: 70 % del 60 % requerido</span></li>
+          <li class="is-met"><span class="mark" aria-hidden="true">✔</span><span>Almacenamiento de datos: 50 de 50 KB</span></li>
+          <li class="is-met"><span class="mark" aria-hidden="true">✔</span><span>Masa de lanzamiento: 3.235 de 7.000 kg</span></li>
+          <li class="is-met"><span class="mark" aria-hidden="true">✔</span><span>Atlas M alcanza la órbita media</span></li>
+          <li class="is-unmet"><span class="mark" aria-hidden="true">✘</span><span>Coste del diseño: 546 de 500 M€</span></li>
+        </ul>
+      </section>
+
+      <div class="tutorial-dock">
+        <span>área de aviso · tutorial 2 de 5</span>
+        <aside class="callout" role="note" aria-labelledby="tut-1">
+          <span class="step">Tutorial · paso 2 de 5</span>
+          <h3 id="tut-1">Empieza por el objetivo</h3>
+          <p>El objetivo de la misión va primero. La lista marca con ✔ lo que ya cumples y con ✘ lo que todavía falta: ahora mismo solo el coste está en rojo.</p>
+          <div class="actions">
+            <button type="button" class="primary">Entendido</button>
+            <button type="button">Después</button>
+          </div>
+          <span class="leader" aria-hidden="true"></span>
+        </aside>
+      </div>
+    </aside>
+  </main>
+
+  <!-- franja de autorización de lanzamiento -->
+  <footer class="permit" aria-label="Autorización de lanzamiento">
+    <div>
+      <h2>Permiso de despegue <em>n.º 07-CERES · revisión 3</em></h2>
+      <div class="fields">
+        <p class="field"><span>Masa</span><i></i><b>3.235 kg</b><b class="ok">✔</b></p>
+        <p class="field"><span>Lanzador</span><i></i><b>Atlas M · 92 %</b><b class="ok">✔</b></p>
+        <p class="field"><span>Órbita</span><i></i><b>Media · rango 2</b><b class="ok">✔</b></p>
+        <p class="field"><span>Coste</span><i></i><b>546 M€</b><b class="bad">✘</b></p>
+        <p class="field"><span>Ventana de enlace</span><i></i><b>20 min / 4 h</b><b class="ok">✔</b></p>
+        <p class="field"><span>Tripulación</span><i></i><b>4 de 4 · Básico</b><b class="ok">✔</b></p>
+      </div>
+    </div>
+    <div class="verdict">
+      <h2>Por qué está bloqueado <em>· cómo corregirlo</em></h2>
+      <p class="why"><b>El diseño cuesta más que el presupuesto.</b></p>
+      <p class="fix"><span>Corrección:</span> quita piezas o cámbialas por versiones más baratas. Bajar el detector de partículas a simple libera 18 M€.</p>
+      <p class="fix" style="color: var(--text-faint)">Casillas firmadas: 5 de 6 · una corrección pendiente.</p>
+    </div>
+    <div class="switch-bay">
+      <span class="stamp blocked" aria-hidden="true">bloqueado</span>
+      <button type="button" class="switch" disabled aria-describedby="bloqueo">
+        <b>⏻ Lanzar misión</b>
+        <span id="bloqueo">Deshabilitado: falta cubrir el presupuesto.</span>
+      </button>
+      <p class="permit-note">Motivo y corrección a la izquierda; el botón nunca se atenúa sin explicación.</p>
+    </div>
+  </footer>
+</div>
+</body>
+</html>

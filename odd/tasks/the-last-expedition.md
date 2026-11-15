@@ -318,3 +318,9 @@ que cada clave exista en los dos idiomas.
   Motivo del candado: el README ya declaraba «95 pruebas» en la cabecera y «83 pruebas»
   en «Verificación»; una copia que envejece es peor que no tenerla, así que la paridad
   pasa a ser una prueba más, como la de claves i18n y la del bundle de datos.
+  Entrega: rama `docs/english-edition`, dos rebanadas. `65b86db` documentación (547
+  inserciones / 142 borrados: espejo 1:1 de prosa, se revisa leyendo una edición contra la
+  otra, no línea por línea). `47dc2cc` la guarda (`tests/docs-parity.test.js`, 135 líneas).
+  Prueba de que la guarda muerde: al quitar una fila de la tabla S-n y reintroducir una cifra
+  de pruebas en la edición española fallan 3 de sus 5 casos; restaurada, los 5 pasan.
+  Suite: **100 pruebas** en verde. Sin push ni PR (decisión del humano).

@@ -1,18 +1,18 @@
 /*
- * Fase 2: viaje (V-1 … V-18, C-2, C-3, RG-11, RG-12).
+ * Phase 2: travel (V-1 … V-18, C-2, C-3, RG-11, RG-12).
  *
- * Pantalla holográfica: el visor isométrico ocupa el marco completo y el HUD
- * flota alrededor, pegado a los bordes (reloj arriba a la izquierda, tripulación
- * arriba al centro, cintas de objetivo/enlace/instrumentos a la izquierda,
- * sistemas y recursos a la derecha, dock de inventario/acciones/consecuencias
- * abajo). Ningún panel tapa el centro del visor ni al personaje.
+ * Holographic screen: the isometric viewer fills the whole frame and the HUD
+ * floats around it, glued to the edges (clock at the top left, crew at the
+ * top centre, objective/link/instrument ribbons on the left, systems and
+ * resources on the right, the inventory/actions/consequences dock at the
+ * bottom). No panel covers the centre of the viewer or the character.
  *
- * La pantalla mantiene un único `requestAnimationFrame`: en cada cuadro lee la
- * entrada, mueve a los jugadores, avanza la simulación con `core/game.tick` y
- * dibuja el canvas con `world/renderer.render`. El HUD no se reconstruye por
- * cuadro: cada sección tiene una firma y sólo se vuelve a pintar cuando sus datos
- * cambian (S5, 60 FPS). Todo el estado de partida vive en `shell.state`, así que
- * re-renderizar por un cambio de idioma no pierde la misión (I-2).
+ * The screen keeps a single `requestAnimationFrame`: on every frame it reads the
+ * input, moves the players, advances the simulation with `core/game.tick` and
+ * draws the canvas with `world/renderer.render`. The HUD is not rebuilt per
+ * frame: each section has a signature and is only repainted when its data
+ * changes (S5, 60 FPS). All match state lives in `shell.state`, so
+ * re-rendering for a language change does not lose the mission (I-2).
  */
 (function (global, factory) {
   'use strict';
@@ -77,7 +77,7 @@
     clock: '\u25F7'
   };
 
-  // Icono propio por sistema: el estado nunca se comunica solo por color (S29).
+  // Own icon per system: status is never communicated by colour alone (S29).
   var SYSTEM_GLYPHS = {
     lifeSupport: '\u25C9',
     power: '\u26A1',
@@ -105,7 +105,7 @@
     return Math.min(max, Math.max(min, value));
   }
 
-  /** Abreviatura visual de una etiqueta traducida (la completa va en aria-label). */
+  /** Visual abbreviation of a translated label (the full one goes in aria-label). */
   function abbrev(label) {
     return String(label || '')
       .replace(/[^\p{L}\p{N} ]/gu, '')
@@ -114,7 +114,7 @@
       .toUpperCase();
   }
 
-  /** Etiqueta legible de un código de tecla físico (sólo para mostrar). */
+  /** Human-readable label of a physical key code (display only). */
   function keyLabel(code) {
     if (!code) return 'E';
     if (code.indexOf('Key') === 0) return code.slice(3);
@@ -128,8 +128,8 @@
   }
 
   /**
-   * Pantalla de viaje. Devuelve `{id, node, destroy}`.
-   * @param {Object} ctx shell de `js/ui/shell`
+   * Travel screen. Returns `{id, node, destroy}`.
+   * @param {Object} ctx shell from `js/ui/shell`
    */
   function create(ctx) {
     var t = ctx.t;
@@ -137,7 +137,7 @@
     var state = ctx.state;
     var game = state.game;
 
-    // Sin partida no hay viaje: se ofrece volver al diseño.
+    // No game, no travel: it offers to go back to the design screen.
     if (!game) {
       var empty = ctx.el('section', { class: 'card stack', 'aria-label': t('travel.title') }, [
         ctx.el('h1', { text: t('travel.title') }),
@@ -244,7 +244,7 @@
       cache = {};
     }
 
-    /** Pinta una sección solo si su firma cambió. Devuelve `true` si reconstruyó. */
+    /** Paints a section only if its signature changed. Returns `true` if it rebuilt. */
     function paint(key, signature, build) {
       if (cache[key] === signature) return false;
       cache[key] = signature;
@@ -256,7 +256,7 @@
       return true;
     }
 
-    /* --- Estructura del visor ----------------------------------------- */
+    /* --- Viewer structure --------------------------------------------- */
 
     var root = ctx.el('section', { id: 'travel-screen', class: 'travel-screen', 'aria-label': t('travel.title') });
     var frameNode = ctx.el('div', { class: 'travel-frame' });
@@ -272,7 +272,7 @@
     });
     canvasWrap.appendChild(canvas);
 
-    // Reloj (arriba izquierda) y tripulación (arriba al centro).
+    // Clock (top left) and crew (top centre).
     sections.clock = ctx.el('section', {
       id: 'travel-clock',
       class: 'hud hud-clock hud-plate',
@@ -281,14 +281,14 @@
     });
     sections.crew = ctx.el('section', { id: 'travel-crew', class: 'hud hud-crew', 'aria-label': t('hud.crew') });
 
-    // Utilidades poco frecuentes: guardar, exportar, volver y la ayuda de teclas.
+    // Rarely used utilities: save, export, back and the key help.
     sections.controls = ctx.el('section', {
       id: 'travel-controls',
       class: 'hud hud-utility hud-plate',
       'aria-label': t('travel.controls')
     });
 
-    // Cinta izquierda: objetivo, ventana de enlace, instrumentos y votación.
+    // Left ribbon: objective, comms window, instruments and voting.
     var leftRail = ctx.el('div', { class: 'hud hud-rail hud-rail--left' });
     sections.objective = ctx.el('section', {
       id: 'travel-objective',
@@ -306,7 +306,7 @@
       leftRail.appendChild(node);
     });
 
-    // Cinta derecha: sistemas como gauges y recursos en formato compacto.
+    // Right ribbon: systems as gauges and resources in compact form.
     var rightRail = ctx.el('div', { class: 'hud hud-rail hud-rail--right' });
     sections.conflict = ctx.el('section', { id: 'travel-conflict', class: 'hud-plate' });
     sections.systems = ctx.el('section', {
@@ -324,7 +324,7 @@
       rightRail.appendChild(node);
     });
 
-    // Dock inferior pegado al borde del visor.
+    // Bottom dock glued to the edge of the viewer.
     var dock = ctx.el('div', { class: 'hud hud-dock' });
     sections.caption = ctx.el('section', { id: 'travel-caption', class: 'hud-caption hud-plate', hidden: true });
     sections.inventory = ctx.el('section', {
@@ -348,7 +348,7 @@
       dock.appendChild(node);
     });
 
-    // Capa del radial/flujo de la tecla de interactuar y chip del objeto cercano.
+    // Layer for the interact-key radial/flow and the nearby-object chip.
     var interactionHost = ctx.el('div', { id: 'travel-interaction', class: 'travel-interaction' });
     sections.interaction = interactionHost;
     var chip = ctx.el('div', { id: 'travel-object-chip', class: 'travel-chip', hidden: true });
@@ -364,7 +364,7 @@
     root.appendChild(frameNode);
     root.appendChild(overlayHost);
 
-    /* --- Acciones ---------------------------------------------------- */
+    /* --- Actions ----------------------------------------------------- */
 
     function runAction(action) {
       var result = gameModule.applyAction(game, action);
@@ -413,7 +413,7 @@
       if (transfer.download(transfer.filenameFor('save', game.id), text)) ctx.toast({ code: 'save.exported' });
     }
 
-    /* --- Utilidades del HUD ------------------------------------------- */
+    /* --- HUD utilities ------------------------------------------------ */
 
     function plateTitle(text, extra) {
       var head = ctx.el('h2', { class: 'hud-title' }, [ctx.el('span', { text: text })]);
@@ -431,7 +431,7 @@
       return bar;
     }
 
-    /* --- Reloj -------------------------------------------------------- */
+    /* --- Clock -------------------------------------------------------- */
 
     function buildClock() {
       var clock = game.clock;
@@ -483,7 +483,7 @@
       return wrap;
     }
 
-    /* --- Recursos ----------------------------------------------------- */
+    /* --- Resources ---------------------------------------------------- */
 
     function displayValue(item) {
       var value = Number(item.value) || 0;
@@ -527,7 +527,7 @@
       return wrap;
     }
 
-    /* --- Tripulación -------------------------------------------------- */
+    /* --- Crew --------------------------------------------------------- */
 
     var NEED_BARS = [
       { id: 'health', key: 'health', invert: false, numeric: true },
@@ -600,7 +600,7 @@
       return wrap;
     }
 
-    /* --- Objetivo y cintas de la izquierda ---------------------------- */
+    /* --- Objective and ribbons on the left ---------------------------- */
 
     function buildObjective() {
       var objective = game.objective || { checks: [], coverage: 0 };
@@ -784,7 +784,7 @@
       return wrap;
     }
 
-    /* --- Sistemas (gauges sin cifras) --------------------------------- */
+    /* --- Systems (gauges without figures) ----------------------------- */
 
     function gaugesLegend() {
       return ctx.el('p', { class: 'gauge-legend faint' }, [
@@ -837,7 +837,7 @@
       return wrap;
     }
 
-    /* --- Conflictos, acciones, inventario y consecuencias ------------- */
+    /* --- Conflicts, actions, inventory and consequences --------------- */
 
     function buildConflict() {
       var panel = gameModule.resourcePanel(game);
@@ -922,7 +922,7 @@
       return wrap;
     }
 
-    /** Cercanía de un objeto al jugador seleccionado (para inventario y chip). */
+    /** Proximity of an object to the selected player (for inventory and chip). */
     function nearObject(playerId) {
       var near = worldModule.nearest(world, playerId);
       return near ? near.object : null;
@@ -1155,8 +1155,8 @@
       });
       dialog.appendChild(options);
       overlay.appendChild(dialog);
-      // El evento detiene el reloj: el foco entra en el modal para que se pueda
-      // responder con el teclado (accesibilidad de paneles).
+      // The event stops the clock: focus enters the modal so it can be
+      // answered from the keyboard (panel accessibility).
       if (doc && typeof setTimeout === 'function') {
         setTimeout(function () {
           var first = dialog.querySelector('button');
@@ -1166,12 +1166,12 @@
       return overlay;
     }
 
-    /* --- Interacción: radial junto al jugador (S33, V-4) --------------- */
+    /* --- Interaction: radial next to the player (S33, V-4) ------------- */
 
     /**
-     * Estados en los que el flanco de `interact` se ignora: con el reloj en
-     * pausa se están revisando consecuencias, y un evento o una votación ya
-     * tienen su propia capa encima del visor (V-4).
+     * States in which the `interact` edge is ignored: with the clock paused
+     * the player is reviewing consequences, and an event or a vote already
+     * has its own layer on top of the viewer (V-4).
      */
     function interactionBlocked() {
       if (!game || !game.clock) return true;
@@ -1180,15 +1180,15 @@
       return (game.pendingEvents || []).length > 0;
     }
 
-    /** Objeto al alcance del jugador; respeta `objects.REACH` (V-4). */
+    /** Object within the player's reach; honours `objects.REACH` (V-4). */
     function objectInReach(playerId) {
       return nearObject(playerId);
     }
 
     /**
-     * Ejecuta una acción del objeto por la misma ruta que los botones del dock:
-     * `world/objects.interact` aplica los efectos y `core/game` recalcula los
-     * recursos (C-7). El `estimate` de la acción sigue visible en el radial.
+     * Runs an object action through the same path as the dock buttons:
+     * `world/objects.interact` applies the effects and `core/game` recomputes
+     * the resources (C-7). The action's `estimate` stays visible in the radial.
      */
     function applyObjectAction(playerId, object, action) {
       var result = objectsModule.interact(world, object.id, action.id, playerId);
@@ -1219,16 +1219,16 @@
     }
 
     /**
-     * Atiende el flanco de `interact` de un jugador: lo selecciona, busca el
-     * objeto al alcance y abre el radial con sus acciones. Devuelve un código
-     * estable para las pruebas: `blocked` | `no_object` | `no_action` | `overlay`.
+     * Handles a player's `interact` edge: selects that player, looks for the
+     * object within reach and opens the radial with its actions. Returns a code
+     * that is stable for the tests: `blocked` | `no_object` | `no_action` | `overlay`.
      */
     function handleInteract(playerId) {
       var member = memberById(playerId);
-      // Un tripulante muerto no interactúa: `runtime.selected` tiene que seguir
-      // apuntando a alguien vivo para el resto de la pantalla.
+      // A dead crew member does not interact: `runtime.selected` has to keep
+      // pointing at someone alive for the rest of the screen.
       if (!member || !member.alive) return 'blocked';
-      // Con el radial abierto, el flanco no reabre ni reejecuta nada.
+      // With the radial open, the edge reopens nothing and re-runs nothing.
       if (runtime.interaction) return 'blocked';
       if (interactionBlocked()) return 'blocked';
       runtime.selected = playerId;
@@ -1250,24 +1250,24 @@
       return 'overlay';
     }
 
-    /** Jugadores que pulsaron interactuar en este cuadro, en orden de jugador. */
+    /** Players that pressed interact on this frame, in player order. */
     function interactFlanks(controls) {
       return Object.keys(controls).filter(function (playerId) {
         return !!(controls[playerId] && controls[playerId].interact);
       });
     }
 
-    /** Botones del radial (sólo acciones: el cierre queda fuera del ciclo). */
+    /** Radial buttons (actions only: closing stays out of the cycle). */
     function radialActions(radial) {
       if (!radial || typeof radial.querySelectorAll !== 'function') return [];
       return Array.prototype.slice.call(radial.querySelectorAll('button.radial-action'));
     }
 
     /**
-     * Teclado dentro del radial: flechas o Tab recorren las acciones, Enter
-     * ejecuta la enfocada y Escape cierra. El manejador corta la propagación
-     * para que las teclas no muevan al personaje ni activen el flanco de
-     * interactuar al mismo tiempo.
+     * Keyboard inside the radial: arrows or Tab walk the actions, Enter runs
+     * the focused one and Escape closes. The handler stops propagation so the
+     * keys neither move the character nor trigger the interact edge at the
+     * same time.
      */
     function onRadialKeydown(event) {
       if (!event) return;
@@ -1309,7 +1309,7 @@
       });
     }
 
-    /** Construye el radial; devuelve `null` si ya no corresponde mostrarlo. */
+    /** Builds the radial; returns `null` if it should no longer be shown. */
     function buildRadial() {
       var current = runtime.interaction;
       if (!current) return null;
@@ -1380,7 +1380,7 @@
       return radial;
     }
 
-    /* --- Utilidades de partida ---------------------------------------- */
+    /* --- Match utilities ---------------------------------------------- */
 
     function buildControls() {
       var wrap = ctx.el('div', { class: 'utility' });
@@ -1586,8 +1586,8 @@
       paint('caption', JSON.stringify({ captions: ctx.getPrefs().captions, note: lastNotice ? lastNotice.id : null }), buildCaption);
       paint('event', game.pendingEvents.length > 0 ? game.pendingEvents[0].uid : 'none', buildEvent);
 
-      // El radial se cierra solo si el objeto deja de estar al alcance, si se
-      // agotan sus acciones o si aparece un evento, una votación o una pausa.
+      // The radial closes itself only if the object leaves reach, if its
+      // actions run out, or if an event, a vote or a pause appears.
       if (runtime.interaction) {
         var interactionObject = objectsModule.find(world, runtime.interaction.objectId);
         var liveActions = interactionObject ? objectsModule.actions(interactionObject) : [];
@@ -1622,7 +1622,7 @@
       }, 0);
     }
 
-    /* --- Posición del chip y del radial ------------------------------- */
+    /* --- Chip and radial position ------------------------------------- */
 
     function cellScreen(point) {
       if (!lastView || !point) return null;
@@ -1642,7 +1642,7 @@
       return { x: point.x, y: point.y - 14 * (lastView ? lastView.camera.zoom : 1) };
     }
 
-    /** Objeto bajo el puntero (radio de 26 px sobre su volumen dibujado). */
+    /** Object under the pointer (26 px radius around its drawn volume). */
     function objectAtPointer() {
       if (!pointer || !lastView) return null;
       var best = null;
@@ -1737,7 +1737,7 @@
       runtime.hoverObject = hovered ? hovered.id : null;
     }
 
-    /* --- Puntero ------------------------------------------------------ */
+    /* --- Pointer ------------------------------------------------------ */
 
     function pointerPosition(event) {
       if (!event) return null;
@@ -1755,9 +1755,9 @@
     }
 
     /**
-     * Clic sobre el visor: abre el radial del objeto apuntado (si el jugador
-     * seleccionado está a su alcance) o del objeto más cercano; con un radial
-     * abierto, cierra.
+     * Click on the viewer: opens the radial of the pointed object (if the
+     * selected player is within its reach) or of the nearest object; with a
+     * radial already open, it closes it.
      */
     function onCanvasClick(event) {
       if (runtime.interaction) {
@@ -1780,7 +1780,7 @@
       openRadial(selected, object);
     }
 
-    /** Escape global: cierra el radial desde cualquier foco. */
+    /** Global Escape: closes the radial from any focus. */
     function onDocumentKeydown(event) {
       if (!event || event.key !== 'Escape' || !runtime.interaction) return;
       if (typeof event.preventDefault === 'function') event.preventDefault();
@@ -1794,7 +1794,7 @@
     }
     if (doc && typeof doc.addEventListener === 'function') doc.addEventListener('keydown', onDocumentKeydown);
 
-    /* --- Bucle -------------------------------------------------------- */
+    /* --- Loop --------------------------------------------------------- */
 
     function sizeCanvas() {
       var rect = canvas.getBoundingClientRect ? canvas.getBoundingClientRect() : { width: 960, height: 600 };
@@ -1819,8 +1819,8 @@
     }
 
     /**
-     * Anula el movimiento del jugador que tiene el radial abierto (V-4): el
-     * resto del grupo sigue moviéndose, así el radial queda anclado a su dueño.
+     * Cancels the movement of the player whose radial is open (V-4): the
+     * rest of the group keeps moving, so the radial stays anchored to its owner.
      */
     function freezeActor(controls, playerId) {
       var out = {};
@@ -1847,9 +1847,9 @@
       lastTs = timestamp;
 
       var controls = inputModule.poll(input);
-      // Interacción por teclado (S33, V-4): se atiende un jugador por cuadro y
-      // los demás flancos esperan al siguiente, así dos teclas pulsadas a la vez
-      // no se pisan.
+      // Keyboard interaction (S33, V-4): one player is served per frame and
+      // the other edges wait for the next one, so two keys pressed at the same
+      // time do not step on each other.
       var interactQueue = (runtime.interactQueue || []).concat(interactFlanks(controls));
       runtime.interactQueue = [];
       if (interactQueue.length > 0) {
@@ -1906,8 +1906,8 @@
     paintAll();
     rafId = raf(frame);
 
-    // `refresh` repinta el HUD sin esperar al siguiente cuadro: lo usan las
-    // pruebas de humo y los paneles que cambian fuera del bucle.
+    // `refresh` repaints the HUD without waiting for the next frame: the smoke
+    // tests and the panels that change outside the loop use it.
     return { id: 'travel', node: root, destroy: stop, refresh: paintAll };
   }
 

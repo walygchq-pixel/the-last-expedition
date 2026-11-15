@@ -3,12 +3,13 @@
   "chosen": "03-flight-deck-holo.html",
   "handoffs": {
     "03-flight-deck-holo.html": {
-      "status": "sent",
+      "status": "implemented",
       "queued": false,
       "sentAt": "2026-11-15T13:52:06.083Z",
       "startedAt": null,
-      "implementedAt": null,
-      "feature": "odd/tasks/the-last-expedition.md"
+      "implementedAt": "2026-11-15T15:03:46.925Z",
+      "feature": "odd/tasks/the-last-expedition.md",
+      "note": "Viaje holográfico implementado: visor a pantalla completa, HUD flotante por bordes, radial de acciones y 23 siluetas isométricas en Canvas 2D. Verificado con humo headless y capturas a 1440×900."
     }
   }
 }

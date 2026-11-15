@@ -1,9 +1,9 @@
 /*
- * Acceso a `localStorage` con degradación limpia (S-17, G-1).
+ * Access to `localStorage` with clean degradation (S-17, G-1).
  *
- * En el navegador usa `localStorage`; sin él (Node, modo privado bloqueado) cae a
- * un almacén en memoria para que la lógica siga siendo probable. El límite de
- * 5 MB se controla antes de escribir y se informa como código, nunca con texto.
+ * In the browser it uses `localStorage`; without it (Node, blocked private mode)
+ * it falls back to an in-memory store so the logic stays testable. The 5 MB limit
+ * is checked before writing and reported as a code, never as text.
  */
 (function (global, factory) {
   'use strict';
@@ -43,7 +43,7 @@
     }
   }
 
-  /** Lee una clave. Devuelve `null` si no existe o si el JSON está corrupto. */
+  /** Reads a key. Returns `null` if it does not exist or if the JSON is corrupt. */
   function read(key, fallback) {
     var raw = null;
     var store = nativeStore();
@@ -61,7 +61,7 @@
   }
 
   /**
-   * Escribe un valor serializable controlando el límite de 5 MB (S-17).
+   * Writes a serializable value, enforcing the 5 MB limit (S-17).
    * @returns {{ok:boolean, code?:string, bytes:number}}
    */
   function write(key, value) {
@@ -71,8 +71,8 @@
     } catch (error) {
       return { ok: false, code: 'save.unserializable', bytes: 0 };
     }
-    // `JSON.stringify(undefined)` devuelve undefined: guardarlo dejaría una clave
-    // ilegible respondiendo `ok` (R3-003).
+    // `JSON.stringify(undefined)` returns undefined: storing it would leave an
+    // unreadable key answering `ok` (R3-003).
     if (text === undefined) return { ok: false, code: 'save.unserializable', bytes: 0 };
     var bytes = bytesOf(text);
     if (bytes > LIMIT_BYTES) return { ok: false, code: 'save.too_large', bytes: bytes };
@@ -80,8 +80,8 @@
     var store = nativeStore();
     if (store) {
       try {
-        // Al sobrescribir una clave se descuenta lo que ya ocupaba: si no, una
-        // actualización cerca del tope falla sin motivo (R3-002).
+        // Overwriting a key discounts what it already occupied: otherwise an
+        // update near the cap fails for no reason (R3-002).
         var previous = store.getItem(key);
         var freed = previous ? bytesOf(key) + bytesOf(previous) : 0;
         var projected = usedBytes(store) - freed + bytesOf(key) + bytes;
@@ -123,7 +123,7 @@
     return true;
   }
 
-  /** Todas las claves con un prefijo dado (para listar partidas guardadas). */
+  /** All keys with a given prefix (to list saved games). */
   function keysWithPrefix(prefix) {
     var out = [];
     var store = nativeStore();
@@ -145,7 +145,7 @@
     return { used: store ? usedBytes(store) : memoryBytes, limit: LIMIT_BYTES };
   }
 
-  /** Solo para pruebas: vacía el almacén en memoria. */
+  /** Tests only: empties the in-memory store. */
   function clearMemory() {
     memory.clear();
     memoryBytes = 0;

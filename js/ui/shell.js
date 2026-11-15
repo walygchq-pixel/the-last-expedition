@@ -1,13 +1,13 @@
 /*
- * Shell de la interfaz: router de pantallas, barra superior, avisos, glosario y
- * tooltips (E-2, E-3, I-2).
+ * Interface shell: screen router, top bar, notices, glossary and tooltips
+ * (E-2, E-3, I-2).
  *
- * Es el único módulo que conoce el DOM global. Las pantallas reciben este shell
- * como contexto y construyen su propio nodo; así el shell puede re-montar la
- * pantalla activa al cambiar de idioma sin recargar ni perder estado, porque
- * todas las decisiones viven en `shell.state` (I-2, S71).
+ * It is the only module that knows the global DOM. The screens receive this
+ * shell as context and build their own node; that way the shell can re-mount the
+ * active screen on a language change without reloading or losing state, because
+ * every decision lives in `shell.state` (I-2, S71).
  *
- * En Node el módulo se puede requerir: nada del DOM se ejecuta hasta `mount()`.
+ * In Node the module can be required: nothing of the DOM runs until `mount()`.
  */
 (function (global, factory) {
   'use strict';
@@ -91,7 +91,7 @@
     if (children && children.nodeType) node.appendChild(children);
   }
 
-  /** Crea un elemento con atributos, texto, hijos y manejadores en un solo paso. */
+  /** Creates an element with attributes, text, children and handlers in a single step. */
   function makeElement(doc) {
     return function el(tag, attrs, children) {
       var node = doc.createElement(tag);
@@ -127,8 +127,8 @@
   }
 
   /**
-   * Monta el shell sobre un contenedor. Devuelve el objeto `shell` que consumen
-   * las pantallas, `js/main.js` y la consola de depuración.
+   * Mounts the shell on a container. Returns the `shell` object consumed by
+   * the screens, `js/main.js` and the debugging console.
    */
   function mount(options) {
     var opts = options || {};
@@ -167,7 +167,7 @@
     var overlayNode = null;
     var overlayKeyHandler = null;
 
-    /* --- Traducción con parámetros que son claves -------------------- */
+    /* --- Translation with keys as parameters ------------------------- */
 
     function resolveParams(params) {
       if (!params || typeof params !== 'object') return params;
@@ -187,7 +187,7 @@
       return translator.t(key, resolveParams(params));
     }
 
-    /* --- Preferencias y accesibilidad -------------------------------- */
+    /* --- Preferences and accessibility ------------------------------- */
 
     function getPrefs() {
       return currentPrefs;
@@ -212,7 +212,7 @@
       if (doc.title !== undefined) doc.title = t('app.title');
     }
 
-    /* --- Avisos ------------------------------------------------------ */
+    /* --- Notices ----------------------------------------------------- */
 
     function toast(entry) {
       if (!doc) return null;
@@ -245,7 +245,7 @@
       });
     }
 
-    /* --- Tooltips reutilizables (E-3) ------------------------------- */
+    /* --- Reusable tooltips (E-3) ------------------------------------ */
 
     function tooltipNode() {
       var node = doc.getElementById('tooltip');
@@ -266,7 +266,7 @@
       node.style.top = top + 'px';
     }
 
-    /** Asocia un tooltip a un nodo; el texto se calcula al mostrarlo (idioma vivo). */
+    /** Binds a tooltip to a node; the text is computed when shown (live language). */
     function tooltip(target, content) {
       if (!target || typeof target.addEventListener !== 'function') return target;
       function show() {
@@ -296,7 +296,7 @@
       return target;
     }
 
-    /* --- Superposiciones -------------------------------------------- */
+    /* --- Overlays --------------------------------------------------- */
 
     function focusables(container) {
       if (!container || typeof container.querySelectorAll !== 'function') return [];
@@ -368,7 +368,7 @@
       return dialog;
     }
 
-    /** Glosario accesible desde cualquier pantalla (E-2, S63). */
+    /** Glossary reachable from any screen (E-2, S63). */
     function openGlossary(termId) {
       if (!doc) return;
       closeOverlay();
@@ -430,7 +430,7 @@
       });
     }
 
-    /** Repaso del tutorial desde el menú, sin activarlo en la partida. */
+    /** Tutorial review from the menu, without activating it in the game. */
     function showTutorialOverview() {
       if (!doc) return;
       closeOverlay();
@@ -623,7 +623,7 @@
       var root = el('section', { id: 'setup-screen', class: 'stack', 'aria-label': t('setup.title') });
       root.appendChild(el('h1', { text: t('setup.title') }));
 
-      // Modo (M-1 … M-4).
+      // Mode (M-1 … M-4).
       var modes = el('div', { class: 'setup-grid' });
       [
         { id: 'campaign', note: 'setup.note_campaign' },
@@ -649,7 +649,7 @@
       });
       root.appendChild(cardWith('setup.mode', modes));
 
-      // Escenario (DM-12).
+      // Scenario (DM-12).
       var scenarios = el('div', { class: 'setup-grid' });
       catalog.scenarios().forEach(function (scenario) {
         var objective = catalog.findObjective(scenario.objectiveId);
@@ -677,7 +677,7 @@
       });
       root.appendChild(cardWith('setup.scenario', scenarios));
 
-      // Dificultad (DM-13, S-10, S-11).
+      // Difficulty (DM-13, S-10, S-11).
       var difficulties = el('div', { class: 'setup-grid' });
       ['basic', 'intermediate', 'advanced'].forEach(function (difficultyId) {
         var profile = gameModuleProfile(difficultyId);
@@ -705,7 +705,7 @@
       });
       root.appendChild(cardWith('setup.difficulty', difficulties));
 
-      // Jugadores y roles (S7, S9).
+      // Players and roles (S7, S9).
       var crewBox = el('div', { class: 'stack' });
       var counts = el('div', { class: 'row' });
       for (var count = 1; count <= 4; count += 1) {
@@ -919,8 +919,8 @@
 
     function setLanguage(locale) {
       setPrefs({ locale: locale });
-      // `translator.setLocale` dispara `onChange`, que re-aplica accesibilidad y
-      // vuelve a montar la pantalla activa sin recargar (I-2, S71).
+      // `translator.setLocale` fires `onChange`, which re-applies accessibility
+      // and re-mounts the active screen without reloading (I-2, S71).
       translator.setLocale(locale);
       applyAccessibility();
       return translator.locale();
@@ -1023,7 +1023,7 @@
       if (state.lbRank) toast({ code: 'lb.added', params: { rank: state.lbRank } });
     }
 
-    /** Vacía un contenedor sin reconstruir la pantalla (S5). */
+    /** Empties a container without rebuilding the screen (S5). */
     function clear(node) {
       if (!node) return node;
       while (node.firstChild) node.removeChild(node.firstChild);
@@ -1059,7 +1059,7 @@
       finishMission: finishMission
     };
 
-    // El cambio de idioma re-renderiza sin recargar y conserva `state` (I-2).
+    // The language change re-renders without reloading and keeps `state` (I-2).
     translator.onChange(function () {
       applyAccessibility();
       render(false);

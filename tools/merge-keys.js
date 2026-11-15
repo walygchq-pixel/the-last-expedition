@@ -1,12 +1,12 @@
 /*
- * Fusiona un fragmento de claves i18n en `data/locales/en.json` y `es.json`.
+ * Merges an i18n key fragment into `data/locales/en.json` and `es.json`.
  *
- * Los workers entregan sus claves en `odd/tasks/keys-*.json` con la forma
- * `{ "en": {...}, "es": {...} }` para no pelear por el mismo archivo. Este script
- * es el único punto donde se escriben los diccionarios finales (I-3, I-4).
+ * Workers hand their keys over in `odd/tasks/keys-*.json` with the shape
+ * `{ "en": {...}, "es": {...} }` so they never fight over the same file. This
+ * script is the only place where the final dictionaries are written (I-3, I-4).
  *
- * Uso: `node tools/merge-keys.js odd/tasks/keys-world.json [más fragmentos…]`
- * Falla si el fragmento rompe la paridad o si redefine una clave con otro texto.
+ * Usage: `node tools/merge-keys.js odd/tasks/keys-world.json [more fragments…]`
+ * Fails if the fragment breaks parity or redefines a key with different text.
  */
 'use strict';
 
@@ -20,7 +20,7 @@ function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
-/** Ordena las claves para que el archivo resultante sea estable en `git diff`. */
+/** Sorts the keys so the resulting file stays stable in `git diff`. */
 function sorted(dict) {
   const out = {};
   for (const key of Object.keys(dict).sort()) out[key] = dict[key];

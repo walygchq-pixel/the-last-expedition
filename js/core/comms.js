@@ -1,9 +1,9 @@
 /*
- * Ventanas de comunicación (C-2, C-3, S-9).
+ * Communications windows (C-2, C-3, S-9).
  *
- * La órbita define el ciclo y la duración de la ventana; el estado de la antena
- * y del sistema de comunicaciones define el ancho de banda útil. Con ancho de
- * banda bajo hay que elegir qué datos se transmiten (C-3).
+ * The orbit defines the cycle and the duration of the window; the health of the
+ * antenna and of the comms system defines the useful bandwidth. With low
+ * bandwidth one has to choose which data gets transmitted (C-3).
  */
 (function (global, factory) {
   'use strict';
@@ -24,7 +24,7 @@
   }
 
   /**
-   * Estado de la ventana de enlace en una hora de misión dada.
+   * State of the link window at a given mission hour.
    * @param {Object} ctx `{orbit, hours, antennaHealth, commsHealth}`
    *   `orbit.comms = {cycleMinutes, windowMinutes, bandwidthFactor, continuous}`
    * @returns {{open:boolean, bandwidth:number, fraction:number,
@@ -37,7 +37,7 @@
     var hours = isFinite(context.hours) ? context.hours : 0;
     var antenna = clamp(isFinite(context.antennaHealth) ? context.antennaHealth : 100, 0, 100) / 100;
     var comms = clamp(isFinite(context.commsHealth) ? context.commsHealth : 100, 0, 100) / 100;
-    // La antena degradada no llega al ancho de banda nominal (V-7, C-2).
+    // A degraded antenna does not reach the nominal bandwidth (V-7, C-2).
     var quality = Math.min(antenna, comms);
     var factor = clamp((spec.bandwidthFactor === undefined ? 1 : spec.bandwidthFactor) * quality, 0, 1);
 
@@ -71,9 +71,9 @@
   }
 
   /**
-   * Capacidad total de transmisión de una ventana, expresada en unidades de datos.
-   * Se combina el ancho de banda con la duración de la ventana para que las
-   * órbitas bajas transmitan poco y a menudo y las altas mucho de golpe.
+   * Total transmission capacity of a window, expressed in data units.
+   * Bandwidth is combined with the duration of the window so that low orbits
+   * transmit little and often and high orbits a lot at once.
    */
   function windowCapacity(ctx) {
     var state = windowState(ctx);

@@ -1,17 +1,17 @@
 /*
- * Fase 2: pantalla de viaje (V-1 … V-18, C-2, C-3, RG-11, RG-12).
+ * Phase 2: travel screen (V-1 … V-18, C-2, C-3, RG-11, RG-12).
  *
- * El visor holográfico ocupa el marco completo y el HUD flota pegado a los
- * bordes: reloj arriba a la izquierda, tripulación arriba al centro, cintas de
- * objetivo/enlace/instrumentos a la izquierda, sistemas y recursos a la derecha
- * y dock de inventario/acciones/consecuencias abajo. Nada tapa el centro del
- * visor ni al personaje. La tipografía es monoespaciada y los tamaños van en
- * `rem` para que 100/125/150 % escalen juntos (S82, E-5).
+ * The holographic viewport fills the whole frame and the HUD floats flush to the
+ * edges: clock top left, crew top centre, objective/link/instrument ribbons on
+ * the left, systems and resources on the right and the inventory/actions/
+ * consequences dock at the bottom. Nothing covers the centre of the viewport or
+ * the character. The type is monospaced and sizes go in `rem` so that
+ * 100/125/150 % scale together (S82, E-5).
  *
- * Los tokens `--bevel-hi`, `--bevel-lo`, `--scanline`, `--hinge`, `--screw`,
- * `--stamp` y `--gauge-track` todavía no viven en `css/main.css`; se declaran
- * aquí con los valores propuestos en `design/system.md` (§10) y con alcance al
- * viaje, sin introducir colores nuevos.
+ * The `--bevel-hi`, `--bevel-lo`, `--scanline`, `--hinge`, `--screw`, `--stamp`
+ * and `--gauge-track` tokens do not live in `css/main.css` yet; they are declared
+ * here with the values proposed in `design/system.md` (§10) and scoped to
+ * travel, without introducing new colours.
  */
 
 .travel-screen {
@@ -39,7 +39,7 @@
   background: #04060b;
 }
 
-/* --- Visor ------------------------------------------------------------ */
+/* --- Viewport --------------------------------------------------------- */
 
 .canvas-wrap {
   position: absolute;
@@ -59,7 +59,7 @@
   outline-offset: -3px;
 }
 
-/* --- Placas flotantes del HUD ---------------------------------------- */
+/* --- Floating HUD plates --------------------------------------------- */
 
 .hud {
   position: absolute;
@@ -113,7 +113,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* --- Reloj ------------------------------------------------------------ */
+/* --- Clock ------------------------------------------------------------ */
 
 .hud-clock {
   top: 0.7rem;
@@ -191,7 +191,7 @@
   font-weight: 700;
 }
 
-/* --- Tripulación ------------------------------------------------------ */
+/* --- Crew ------------------------------------------------------------- */
 
 .hud-crew {
   top: 0.7rem;
@@ -298,7 +298,7 @@
   color: var(--text-faint);
 }
 
-/* --- Utilidades (guardar, exportar, volver) --------------------------- */
+/* --- Utilities (save, export, back) ----------------------------------- */
 
 .hud-utility {
   top: 0.7rem;
@@ -328,7 +328,7 @@
   line-height: 1.35;
 }
 
-/* --- Cintas laterales ------------------------------------------------- */
+/* --- Side ribbons ----------------------------------------------------- */
 
 .hud-rail {
   display: flex;
@@ -474,7 +474,7 @@
   box-shadow: 0 0 6px rgba(111, 217, 138, 0.9);
 }
 
-/* --- Sistemas (gauges sin cifras) ------------------------------------ */
+/* --- Systems (gauges without numbers) -------------------------------- */
 
 .gauge-list {
   list-style: none;
@@ -577,7 +577,7 @@
   background: var(--text-faint);
 }
 
-/* --- Recursos --------------------------------------------------------- */
+/* --- Resources -------------------------------------------------------- */
 
 .res-list {
   list-style: none;
@@ -621,7 +621,7 @@
   color: var(--text);
 }
 
-/* --- Dock inferior ---------------------------------------------------- */
+/* --- Bottom dock ------------------------------------------------------ */
 
 .hud-dock {
   left: 0.7rem;
@@ -754,7 +754,7 @@
   font-size: 0.54rem;
 }
 
-/* --- Chip del objeto cercano ----------------------------------------- */
+/* --- Nearby-object chip ---------------------------------------------- */
 
 .travel-chip {
   position: absolute;
@@ -773,8 +773,8 @@
   transform: translate(-50%, -100%);
 }
 
-/* `display: flex` de la clase gana al `[hidden]` del navegador: hay que
-   apagarlo explícitamente para que el chip no quede detrás del radial. */
+/* The class's `display: flex` beats the browser's `[hidden]`: it has to be
+   switched off explicitly so the chip does not stay behind the radial. */
 .travel-chip[hidden] {
   display: none;
 }
@@ -788,7 +788,7 @@
   color: var(--focus);
 }
 
-/* --- Radial de acciones junto al jugador ------------------------------ */
+/* --- Action radial next to the player --------------------------------- */
 
 .travel-interaction {
   position: absolute;
@@ -891,7 +891,7 @@
   font-size: 0.46rem;
 }
 
-/* --- Prioridad de datos (C-3) y votación (S-5) ------------------------ */
+/* --- Data priority (C-3) and voting (S-5) ----------------------------- */
 
 .priority-list {
   list-style: none;
@@ -962,7 +962,7 @@
   color: var(--text-dim);
 }
 
-/* --- Conflictos de prioridad (RG-12) ---------------------------------- */
+/* --- Priority conflicts (RG-12) --------------------------------------- */
 
 .conflict-notice {
   display: flex;
@@ -975,7 +975,7 @@
   font-size: 0.54rem;
 }
 
-/* --- Eventos (V-15, V-13) --------------------------------------------- */
+/* --- Events (V-15, V-13) ---------------------------------------------- */
 
 .event-options {
   display: flex;
@@ -995,7 +995,7 @@
   color: var(--text-dim);
 }
 
-/* --- Pantallas angostas ----------------------------------------------- */
+/* --- Narrow screens --------------------------------------------------- */
 
 @media (max-width: 78rem) {
   .hud-crew {
@@ -1013,8 +1013,8 @@
 }
 
 @media (max-width: 60rem) {
-  /* Pantalla angosta: el visor sigue siendo el héroe (marco propio) y el HUD
-     pasa a fluir debajo, sin superponerse ni tapar el tablero. */
+  /* Narrow screen: the viewport is still the hero (its own frame) and the HUD
+     starts flowing below it, without overlapping or covering the board. */
   .travel-screen {
     height: auto;
     min-height: 0;
@@ -1077,7 +1077,7 @@
   }
 }
 
-/* --- Movimiento reducido (E-5, S66) ----------------------------------- */
+/* --- Reduced motion (E-5, S66) ---------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
   .hud-plate,
@@ -1088,11 +1088,11 @@
 }
 
 /* ---------------------------------------------------------------------------
- * El dock inferior se ancla a la ventana, no al alto del contenido
+ * The bottom dock is anchored to the window, not to the content height
  *
- * Con `position: absolute` dentro de la cubierta, el dock quedaba por debajo del
- * pliegue cuando la pantalla crecía (acciones y decisiones cortadas a 900 px).
- * Anclado a la ventana siempre está visible y con tope de alto propio.
+ * With `position: absolute` inside the shell, the dock ended up below the fold
+ * when the screen grew (actions and decisions cut off at 900 px).
+ * Anchored to the window it is always visible and has its own max height.
  * ------------------------------------------------------------------------ */
 .hud-dock {
   position: fixed;
@@ -1116,9 +1116,9 @@
   }
 }
 
-/* El dock reparte sus secciones en columnas: con una sola columna la lista de
-   acciones y las decisiones colectivas quedaban dentro de un scroll interno, que
-   es exactamente lo que el jugador no ve. */
+/* The dock spreads its sections into columns: with a single column the list of
+   actions and the collective decisions ended up inside an inner scroll, which
+   is exactly what the player does not see. */
 .dock-body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));

@@ -198,6 +198,14 @@ que cada clave exista en los dos idiomas.
 | T13 | S69–S70 (edición bilingüe): `README.md` pasa a inglés como cara del repositorio y el español queda en `README.es.md` con enlaces cruzados | parent | hecho |
 | T14 | S69–S70: `REQUIREMENTS.md` en inglés como espejo de `REQUISITOS.md`, con enlaces cruzados y con el mismo destino de trazabilidad | parent | hecho |
 | T15 | S69–S70: `tests/docs-parity.test.js` falla si las dos ediciones divergen en esqueleto de secciones o cifras declaradas, y corrige el «83 / 95 pruebas» del README | parent | hecho |
+| T16 | S69/T-4: comentarios en inglés en `js/core` (game, scoring, resources, rng, time, datastore) | worker | pendiente |
+| T17 | S69/T-4: comentarios en inglés en `js/core` (systems, crew, consequences, food, effects, events, comms) | worker | pendiente |
+| T18 | S69/T-4: comentarios en inglés en `js/world` (renderer, shipMap, pathfinding, world) | worker | pendiente |
+| T19 | S69/T-4: comentarios en inglés en `js/world` (players, objects, input) | worker | pendiente |
+| T20 | S69/T-4: comentarios en inglés en `js/ui` (travelScreen, tutorial, shell) | worker | pendiente |
+| T21 | S69/T-4: comentarios en inglés en `js/ui` (designScreen, settingsScreen, reportScreen) + `js/mission` + `js/main.js` | worker | pendiente |
+| T22 | S69/T-4: comentarios en inglés en `js/storage` + `js/i18n` | worker | pendiente |
+| T23 | S69/T-4: comentarios en inglés en `tools` + `css` | worker | pendiente |
 
 ## Log
 
@@ -346,3 +354,34 @@ que cada clave exista en los dos idiomas.
   Cada una hace fallar su caso y ningún otro; restaurado el archivo, verde.
   Suite: **101 pruebas** en verde. ASSESS del rebanada: `nativeRisk: medium`,
   `reviewDue: false` (`under_budget`), así que el proveedor no exige otra revisión.
+
+- **L14 (comentarios del código al inglés).** El humano pidió seguir con los comentarios y
+  propuso repartirlos en varios subagentes «ya que este es solo traducir nada que realmente
+  afecte al código». Decisión: sí se reparte, porque son unidades independientes con
+  superficies disjuntas, pero con una corrección al razonamiento: una traducción descuidada no
+  rompe el código, **lo vuelve mentiroso**, y ninguna prueba detecta prosa falsa. Por eso cada
+  rebanada se acepta solo si (a) la suite sigue verde y (b) una auditoría de `git diff -U0`
+  demuestra que toda línea tocada es un comentario; cualquier línea de código en el diff se
+  rechaza. Además cada worker informa qué comentarios describen contratos (C-1…C-9) y cómo los
+  tradujo, porque ahí es donde una paráfrasis inventa una promesa. Regla de convivencia: los
+  comentarios de `data/locales/*.json`, las claves i18n y los identificadores no se tocan; el
+  producto sigue bilingüe (esto es documentación interna, no UI).
+  Reparto medido: 1.214 líneas de comentario en 43 archivos, ocho rebanadas de ~150.
+
+- **L15 (comentarios del código en inglés).** Ocho rebanadas en paralelo sobre `docs/english-comments`,
+  una por módulo y con superficies disjuntas: `core` A y B, `world` A y B, `ui` A y B, `storage`+`i18n`,
+  `tools`+`css`. Total: **1.214 líneas de comentario en 43 archivos**. Suite **101/101** en verde
+  después de cada rebanada y del conjunto.
+  *La auditoría fue el defecto, no el trabajo.* El filtro que repartí (`git diff | grep -v` línea que
+  empieza con marcador de comentario) no puede ser vacío en dos casos legítimos: comentarios al final
+  de una línea de código (`var MAX_STEP = 0.25; // …`, prefijo de código idéntico) y bloques CSS con
+  continuación sin `*`. Dos workers devolvieron `partial` en vez de forzar el verde, y probaron
+  identidad de código quitando comentarios y comparando bytes. Se reemplazó el método: un verificador
+  que borra comentarios respetando cadenas —lo que está dentro de un template literal no es comentario—
+  y compara el código de `HEAD` contra el del árbol. Resultado: **44 archivos, 0 con código alterado**.
+  Omisiones deliberadas: los comentarios en español dentro del template `String.raw` de
+  `tools/smoke.js` (son contenido de un string, no comentarios del archivo) y los literales de consola
+  en español (`js/i18n/index.js`, `js/main.js`), que son comportamiento y no documentación.
+  Hallazgo preexistente que la traducción dejó a la vista: el comentario de `js/ui/designScreen.js`
+  dice «12 grupos de piezas» y `data/parts.json` tiene 12, mientras S15/DM-3 declara nueve. Se tradujo
+  como estaba: es una discrepancia de spec, no de idioma.

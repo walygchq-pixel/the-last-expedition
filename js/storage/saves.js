@@ -1,9 +1,9 @@
 /*
- * Partidas y diseños guardados en `localStorage` (G-1, S-17).
+ * Saves and designs stored in `localStorage` (G-1, S-17).
  *
- * Se guarda el estado serializable de la simulación (contrato C-5) y el diseño de
- * misión como claves y valores, nunca texto traducido (G-2, I-10): una partida
- * guardada en inglés se puede abrir en español y viceversa.
+ * It stores the serializable simulation state (contract C-5) and the mission
+ * design as keys and values, never translated text (G-2, I-10): a save written in
+ * English can be opened in Spanish and vice versa.
  */
 (function (global, factory) {
   'use strict';
@@ -29,7 +29,7 @@
     return prefix + String(now || Date.now()) + '-' + Math.floor((now || Date.now()) % 1000);
   }
 
-  /** Guarda una partida en curso. */
+  /** Saves a game in progress. */
   function saveGame(state, options) {
     var opts = options || {};
     var id = opts.id || newId('g', opts.now);
@@ -47,7 +47,7 @@
     };
     var result = store.write(SAVE_PREFIX + id, payload);
     if (result.ok) {
-      // Máximo de ranuras: se descartan las partidas más viejas (R3-004).
+      // Slot cap: the oldest saves are dropped (R3-004).
       var all = listSaves();
       if (all.length > MAX_SLOTS) {
         all.slice(MAX_SLOTS).forEach(function (save) {
@@ -91,7 +91,7 @@
     return store.remove(SAVE_PREFIX + id);
   }
 
-  /** Guarda un diseño de misión (fase 1). */
+  /** Saves a mission design (phase 1). */
   function saveDesign(design, options) {
     var opts = options || {};
     var id = opts.id || newId('d', opts.now);
@@ -141,7 +141,7 @@
     return store.remove(DESIGN_PREFIX + id);
   }
 
-  /** Poda las partidas más viejas cuando se supera el límite de ranuras. */
+  /** Prunes the oldest saves once the slot limit is exceeded. */
   function prune(now) {
     var cutoff = (now || Date.now()) - 1000 * 60 * 60 * 24 * 30;
     listSaves().forEach(function (save) {

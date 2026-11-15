@@ -1,9 +1,9 @@
 /*
- * Libro de consecuencias (V-10 … V-13, S-5, S-7).
+ * Consequence book (V-10 … V-13, S-5, S-7).
  *
- * Es el núcleo del juego: toda decisión importante se registra acá con un
- * disparador temporal o de evento y se resuelve más tarde. El libro guarda
- * códigos y parámetros (nunca texto) para que la UI los traduzca al mostrarlos.
+ * It is the core of the game: every important decision is recorded here with a
+ * time or event trigger and is resolved later. The book stores codes and
+ * parameters (never text) so that the UI translates them when showing them.
  */
 (function (global, factory) {
   'use strict';
@@ -21,16 +21,16 @@
     return {
       entries: [],
       nextId: 1,
-      // Posición actual de la misión usada para evaluar los disparadores.
+      // Current mission position used to evaluate the triggers.
       now: { day: 0, events: 0 }
     };
   }
 
   /**
-   * Agenda una consecuencia.
+   * Schedules a consequence.
    * @param {Object} log
    * @param {Object} entry `{code, params, whyKey, severity, dueDay, dueEvents,
-   *   cause, origin}`. `dueDay`/`dueEvents` son absolutos; se dispara el primero.
+   *   cause, origin}`. `dueDay`/`dueEvents` are absolute; the first one fires.
    */
   function schedule(log, entry) {
     var source = entry || {};
@@ -41,13 +41,13 @@
       whyKey: source.whyKey || 'cons.why.generic',
       severity: source.severity || 'info',
       cause: source.cause || 'decision',
-      // Efectos declarativos que se aplican cuando el disparador vence.
+      // Declarative effects that are applied when the trigger expires.
       effects: (source.effects || []).slice(),
       origin: source.origin || null,
       createdDay: log.now.day,
       createdEvents: log.now.events,
-      // Un disparador puramente por eventos no tiene día: si se calculara 0 + hoy,
-      // la consecuencia vencería en el acto y la deuda técnica sería instantánea.
+      // A purely event-based trigger has no day: computing 0 + today would make
+      // the consequence expire on the spot and the technical debt instantaneous.
       dueDay: isFinite(source.dueDay)
         ? source.dueDay
         : source.dueInDays === undefined
@@ -58,7 +58,7 @@
       resolvedDay: null
     };
     if (scheduled.dueEvents === null) {
-      // Disparador puramente temporal: se evalúa contra el día de misión.
+      // Purely time-based trigger: it is evaluated against the mission day.
       scheduled.dueEvents = Infinity;
     }
     log.nextId += 1;
@@ -66,7 +66,7 @@
     return scheduled;
   }
 
-  /** Actualiza la posición de la misión y devuelve las consecuencias vencidas. */
+  /** Updates the mission position and returns the consequence that came due. */
   function advance(log, position) {
     var next = position || {};
     if (isFinite(next.day)) log.now.day = next.day;
@@ -81,14 +81,14 @@
     return dayHit || eventHit;
   }
 
-  /** Consecuencias cuyo disparador ya se cumplió y todavía no se resolvieron. */
+  /** Consequences whose trigger was already met and were not resolved yet. */
   function due(log) {
     return log.entries.filter(function (entry) {
       return isDue(entry, log.now);
     });
   }
 
-  /** Marca una consecuencia como resuelta (el efecto ya se aplicó). */
+  /** Marks a consequence as resolved (the effect was already applied). */
   function resolve(log, id) {
     var entry = log.entries.find(function (item) {
       return item.id === id;
@@ -99,7 +99,7 @@
     return entry;
   }
 
-  /** Consecuencias pendientes con su cuenta regresiva, para el panel de pausa. */
+  /** Pending consequences with their countdown, for the pause panel. */
   function pending(log) {
     return log.entries
       .filter(function (entry) {
@@ -122,7 +122,7 @@
       });
   }
 
-  /** Historial completo para el informe de misión (P-2). */
+  /** Full history for the mission report (P-2). */
   function history(log) {
     return log.entries.map(function (entry) {
       return {
@@ -138,9 +138,9 @@
   }
 
   /**
-   * Invalida (sin disparar) las consecuencias que cumplan un predicado.
-   * Se usa cuando una reparación completa o una decisión posterior neutraliza
-   * el disparador: la consecuencia queda como anulada y se informa.
+   * Invalidates (without firing) the consequences that match a predicate.
+   * It is used when a full repair or a later decision neutralizes the trigger:
+   * the consequence stays as cancelled and this is reported.
    */
   function cancel(log, predicate) {
     var cancelled = [];

@@ -1,10 +1,10 @@
 /*
- * Informe de misión, análisis posterior y comparador (P-2, P-3, P-4, G-3, M-3).
+ * Mission report, post-analysis and comparator (P-2, P-3, P-4, G-3, M-3).
  *
- * El informe llega ya construido por `core/game` (`game.report`) y el análisis
- * por `core/scoring.analyze`; esta pantalla sólo traduce códigos, claves y
- * números. El comparador reutiliza `core/scoring.compare` a través de
- * `storage/transfer.compare`, y acepta dos informes o dos diseños.
+ * The report arrives already built by `core/game` (`game.report`) and the analysis
+ * from `core/scoring.analyze`; this screen only translates codes, keys and
+ * numbers. The comparator reuses `core/scoring.compare` through
+ * `storage/transfer.compare`, and accepts two reports or two designs.
  */
 (function (global, factory) {
   'use strict';
@@ -32,7 +32,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (scoring, catalog, designModule, saves, transfer, leaderboard) {
   'use strict';
 
-  /** Pantalla de informe o de comparador. */
+  /** Report screen or comparator screen. */
   function create(ctx) {
     var t = ctx.t;
     var tr = ctx.tr;
@@ -288,7 +288,7 @@
     return card;
   }
 
-  /* --- Comparador (G-3, M-3) ---------------------------------------- */
+  /* --- Comparator (G-3, M-3) ---------------------------------------- */
 
   function compareState(ctx) {
     if (!ctx.state.compare) ctx.state.compare = { a: null, b: null };
@@ -301,8 +301,8 @@
     var slotData = compare[key];
     var wrap = ctx.el('div', { class: 'stack' });
 
-    // Claves explícitas: el escáner de cobertura i18n lee literales, no
-    // concatenaciones (C-8).
+    // Explicit keys: the i18n coverage scanner reads literals, not
+    // concatenations (C-8).
     var slotLabelKey = key === 'a' ? 'compare.slot_a' : 'compare.slot_b';
     var select = ctx.el('select', {
       'aria-label': t(slotLabelKey)

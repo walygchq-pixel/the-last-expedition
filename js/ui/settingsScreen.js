@@ -1,11 +1,11 @@
 /*
- * Ajustes (I-2, E-5, S-18, RG-8).
+ * Settings (I-2, E-5, S-18, RG-8).
  *
- * Idioma, tamaño de texto, contraste, animaciones, subtítulos, tutorial y
- * reasignación de controles por jugador. Los cambios se aplican en el acto: el
- * idioma cambia sin recargar (I-2) y las clases de accesibilidad viven en
- * `<html>` para que escalen todo el diseño (S66). Se persisten con
- * `storage/prefs`, que sólo guarda claves y valores (I-10).
+ * Language, text size, contrast, animations, captions, tutorial and per-player
+ * control rebinding. Changes apply at once: the language changes without
+ * reloading (I-2) and the accessibility classes live on `<html>` so they scale
+ * the whole design (S66). They are persisted with `storage/prefs`, which only
+ * stores keys and values (I-10).
  */
 (function (global, factory) {
   'use strict';
@@ -21,7 +21,7 @@
 
   var PLAYER_IDS = ['p1', 'p2', 'p3', 'p4'];
 
-  /** Pantalla de ajustes completa. */
+  /** Complete settings screen. */
   function create(ctx) {
     var t = ctx.t;
     var root = ctx.el('section', { id: 'settings-screen', class: 'stack', 'aria-label': t('settings.title') });
@@ -47,8 +47,8 @@
     }
 
     /**
-     * Espera la próxima tecla para reasignarla (RG-8). No re-renderiza: cambia
-     * sólo la etiqueta del botón, así el listener no se pierde con el montaje.
+     * Waits for the next key to rebind it (RG-8). Does not re-render: it changes
+     * only the button label, so the listener is not lost with the re-mount.
      */
     function startCapture(playerId, action, buttonNode) {
       stopCapture();
@@ -88,7 +88,7 @@
       persist({ bindings: cloneBindings(input.bindings) }, 'settings.saved');
     }
 
-    /* --- Idioma ------------------------------------------------------ */
+    /* --- Language ---------------------------------------------------- */
 
     function languageSection() {
       var card = ctx.el('section', { class: 'card settings-section' }, [
@@ -115,7 +115,7 @@
       return card;
     }
 
-    /* --- Accesibilidad ----------------------------------------------- */
+    /* --- Accessibility ----------------------------------------------- */
 
     function accessibilitySection() {
       var card = ctx.el('section', { class: 'card settings-section' }, [ctx.el('h2', { text: t('settings.accessibility') })]);
@@ -188,7 +188,7 @@
       return card;
     }
 
-    /* --- Controles (RG-8) -------------------------------------------- */
+    /* --- Controls (RG-8) --------------------------------------------- */
 
     function controlsSection() {
       var card = ctx.el('section', { class: 'card settings-section' }, [
@@ -254,7 +254,7 @@
       return card;
     }
 
-    /* --- Datos y reinicio ------------------------------------------- */
+    /* --- Data and reset --------------------------------------------- */
 
     function dataSection() {
       return ctx.el('section', { class: 'card settings-section' }, [

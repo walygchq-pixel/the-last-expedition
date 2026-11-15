@@ -1,10 +1,10 @@
 /*
- * Motor de eventos aleatorios y programados (V-14, V-15, V-16).
+ * Random and scheduled event engine (V-14, V-15, V-16).
  *
- * Los eventos y sus respuestas viven en `data/events.json` con efectos declarativos
- * (ver `core/effects.js`). La dificultad cambia la frecuencia, la gravedad y si los
- * eventos severos están disponibles. Ninguna respuesta es siempre la mejor: cada
- * una tiene un coste en otro recurso.
+ * Events and their answers live in `data/events.json` with declarative effects
+ * (see `core/effects.js`). Difficulty changes the frequency, the severity and
+ * whether severe events are available. No answer is always the best one: each
+ * of them has a cost in another resource.
  */
 (function (global, factory) {
   'use strict';
@@ -18,7 +18,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  // Perfiles por dificultad (DM-13, V-16, S-11).
+  // Profiles per difficulty (DM-13, V-16, S-11).
   var DIFFICULTIES = {
     basic: {
       id: 'basic',
@@ -71,7 +71,7 @@
     };
   }
 
-  /** Un evento está disponible si cumple día mínimo, enfriamiento y requisitos. */
+  /** An event is available if it meets the minimum day, the cooldown and the requirements. */
   function isEligible(definition, engine, ctx) {
     var context = ctx || {};
     var day = isFinite(context.day) ? context.day : 0;
@@ -111,9 +111,9 @@
   }
 
   /**
-   * Sortea los eventos de este paso.
+   * Rolls the events of this step.
    * @param {Object} ctx `{catalog, day, days, systems, crew, pantry, flags, rng}`
-   * @returns {Array} eventos disparados, ya materializados
+   * @returns {Array} fired events, already materialized
    */
   function roll(engine, ctx) {
     var context = ctx || {};
@@ -125,7 +125,7 @@
     if (!rng || step <= 0 || catalog.length === 0) return [];
     var fired = [];
 
-    // A lo sumo dos eventos por paso: el juego debe seguir siendo legible.
+    // At most two events per step: the game must stay readable.
     for (var attempt = 0; attempt < 2; attempt += 1) {
       var eligible = catalog.filter(function (definition) {
         return isEligible(definition, engine, context);
@@ -147,7 +147,7 @@
     return fired;
   }
 
-  /** Convierte una definición de datos en una instancia de evento para la partida. */
+  /** Turns a data definition into an event instance for the game. */
   function materialize(definition, day) {
     return {
       uid: definition.id + '@' + Math.round((day || 0) * 10),
@@ -170,7 +170,7 @@
     };
   }
 
-  /** Opciones de un evento (para el panel de decisiones). */
+  /** Options of an event (for the decision panel). */
   function options(event) {
     return (event && event.options) || [];
   }
@@ -182,8 +182,8 @@
   }
 
   /**
-   * Eventos programados por el escenario (tormenta solar al día 30, etc.).
-   * Devuelve los que caen en la ventana `[fromDay, toDay)`.
+   * Events scheduled by the scenario (solar storm on day 30, etc.).
+   * Returns the ones that fall inside the window `[fromDay, toDay)`.
    */
   function scheduled(catalog, fromDay, toDay) {
     return (catalog || [])

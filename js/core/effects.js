@@ -1,10 +1,10 @@
 /*
- * Intérprete de efectos declarativos.
+ * Interpreter of declarative effects.
  *
- * Eventos, objetos de la nave y acciones describen sus consecuencias como datos
- * (`{type:'system', id:'power', op:'degrade', value:12}`) y este módulo las aplica
- * sobre el estado de la partida. Así el contenido vive en `data/` y la lógica de
- * aplicación vive en un solo lugar, sin texto y sin DOM.
+ * Events, ship objects and actions describe their consequences as data
+ * (`{type:'system', id:'power', op:'degrade', value:12}`) and this module applies
+ * them over the state of the game. That way the content lives in `data/` and the
+ * applying logic lives in a single place, without text and without DOM.
  */
 (function (global, factory) {
   'use strict';
@@ -29,11 +29,11 @@
   }
 
   /**
-   * Aplica una lista de efectos.
+   * Applies a list of effects.
    * @param {Object} target `{systems, crew, resources, pantry, log, datastore, flags, stats}`
-   * @param {Array} effects descriptores declarativos
+   * @param {Array} effects declarative descriptors
    * @param {Object} ctx `{rng, day, severity, actorRole, engagement}`
-   * @returns {{applied:Array, codes:Array}} descriptores aplicados y códigos para la UI
+   * @returns {{applied:Array, codes:Array}} applied descriptors and codes for the UI
    */
   function applyEffects(target, effects, ctx) {
     var context = ctx || {};
@@ -59,9 +59,9 @@
             if (!member.alive) return;
             if (effect.condition === 'ill') member.illnessDays = Math.max(member.illnessDays, days);
             member.health = clamp(member.health - (effect.damage || 0), 0, 100);
-            // Un daño que deja la salud en cero mata al tripulante: si no, el conteo
-            // de vivos lo seguiría sumando y la partida nunca cerraría por pérdida
-            // de tripulación (hallazgo R3-CREW-DEATH).
+            // Damage that leaves health at zero kills the crew member: otherwise the
+            // alive count would keep adding them and the game would never close by
+            // crew loss (finding R3-CREW-DEATH).
             if (member.health <= 0) member.alive = false;
             if (member.conditions.indexOf(effect.condition) === -1) member.conditions.push(effect.condition);
           });
@@ -98,10 +98,10 @@
             severity: effect.severity || 'warn',
             cause: effect.cause || 'event',
             origin: effect.origin || context.origin || null,
-            // Los efectos anidados son los que convierten la consecuencia en un
-            // daño real cuando vence el disparador (V-10, V-11).
+            // The nested effects are what turn the consequence into real
+            // damage when the trigger expires (V-10, V-11).
             effects: effect.effects || [],
-            // `dueInDays` es relativo al día actual; el libro suma la posición.
+            // `dueInDays` is relative to the current day; the book adds the position.
             dueInDays: isFinite(effect.dueInDays) ? effect.dueInDays : undefined,
             dueAfterEvents: effect.dueAfterEvents
           });
@@ -115,12 +115,12 @@
           applied.push({ type: 'flag', id: effect.id });
           break;
         case 'data':
-          // Pérdida o ganancia de datos almacenados (C-1, C-4).
+          // Loss or gain of stored data (C-1, C-4).
           target.datastore.total = Math.max(0, (target.datastore.total || 0) + value);
           applied.push({ type: 'data', value: value });
           break;
         case 'chance': {
-          // Efecto condicional: solo se aplica si el azar acompaña.
+          // Conditional effect: it is only applied if chance agrees.
           var probability = isFinite(effect.p) ? effect.p : 0.5;
           if (rng && rng.chance(probability)) {
             var nested = applyEffects(target, effect.effects || [], context);

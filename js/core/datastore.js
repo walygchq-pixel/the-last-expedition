@@ -1,10 +1,10 @@
 /*
- * Memoria de datos científicos (C-1, C-3, C-4).
+ * Scientific data memory (C-1, C-3, C-4).
  *
- * Los instrumentos producen datos a un ritmo propio; la memoria tiene un límite
- * fijo y lo que no entra se pierde. Solo se transmiten datos durante una ventana
- * de comunicación y en el orden de prioridad que elija la tripulación. Al cerrar
- * la misión, los datos no transmitidos valen menos: por eso conviene decidir.
+ * The instruments produce data at their own rate; the memory has a fixed limit
+ * and whatever does not fit is lost. Data is only transmitted during a comm
+ * window and in the priority order the crew chooses. When the mission closes,
+ * the data that was not transmitted is worth less: that is why it pays to decide.
  */
 (function (global, factory) {
   'use strict';
@@ -28,14 +28,14 @@
     return {
       capacity: isFinite(capacity) ? capacity : 60,
       total: 0,
-      // Datos por instrumento, para poder priorizar por origen.
+      // Data per instrument, so it can be prioritized by origin.
       items: {},
       transmitted: 0,
       lost: 0
     };
   }
 
-  /** Agrega datos producidos. Devuelve cuánto entró y cuánto se perdió (C-1). */
+  /** Adds produced data. Returns how much went in and how much was lost (C-1). */
   function produce(store, instrumentId, amount) {
     var incoming = Math.max(0, Number(amount) || 0);
     if (incoming === 0) return { stored: 0, lost: 0 };
@@ -51,8 +51,8 @@
   }
 
   /**
-   * Transmite según prioridad (C-3). `priority` es el orden deseado de orígenes;
-   * `capacity` es lo que la ventana permite enviar.
+   * Transmits by priority (C-3). `priority` is the desired order of origins;
+   * `capacity` is what the window allows sending.
    */
   function transmit(store, priority, capacity) {
     var budget = Math.max(0, Number(capacity) || 0);
@@ -78,7 +78,7 @@
     return { sent: sent, total: totalSent, remaining: store.total, capacityLeft: round1(budget) };
   }
 
-  /** Valor científico efectivo al cerrar la misión (C-4). */
+  /** Effective scientific value when the mission closes (C-4). */
   function scienceValue(store) {
     return round1(store.transmitted + store.total * LEFTOVER_VALUE);
   }
@@ -87,7 +87,7 @@
     return store.items[instrumentId] || 0;
   }
 
-  /** Orden de prioridad por defecto: lo que más hay primero. */
+  /** Default priority order: whatever there is most of goes first. */
   function defaultPriority(store) {
     return Object.keys(store.items).sort(function (a, b) {
       return (store.items[b] || 0) - (store.items[a] || 0);

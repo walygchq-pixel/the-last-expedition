@@ -1,9 +1,9 @@
 /*
- * Panel de recursos de misión (sección 5).
+ * Mission resource panel (section 5).
  *
- * `evaluate()` es el único lugar donde se decide el estado de cada recurso, para
- * que el HUD del diseño y el del viaje muestren exactamente lo mismo (RG-5/RN-1)
- * y para que el código de color viaje acompañado siempre de forma e icono (RN-2).
+ * `evaluate()` is the only place where the status of each resource is decided, so
+ * that the design HUD and the travel HUD show exactly the same thing (RG-5/RN-1)
+ * and so that the colour code always travels together with shape and icon (RN-2).
  */
 (function (global, factory) {
   'use strict';
@@ -17,12 +17,12 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  // Orden fijo del panel: masa, potencia, presupuesto, datos, comunicaciones, tiempo.
+  // Fixed order of the panel: mass, power, budget, data, comms, time.
   var ORDER = ['mass', 'power', 'budget', 'data', 'comms', 'time'];
 
   /*
-   * Forma geométrica e icono por recurso (RN-2, S-15). Viven acá y no en la UI
-   * porque son parte del contrato de datos (C-6): la UI nunca los inventa.
+   * Geometric shape and icon per resource (RN-2, S-15). They live here and not in
+   * the UI because they are part of the data contract (C-6): the UI never invents them.
    */
   var SHAPES = {
     mass: 'square',
@@ -42,22 +42,22 @@
     time: 'clock'
   };
 
-  /** Estado cualitativo a partir de una razón normalizada 0..1. */
+  /** Qualitative status from a normalized 0..1 ratio. */
   function statusFromRatio(ratio, direction) {
     var value = isFinite(ratio) ? ratio : 0;
     if (direction === 'usage') {
-      // Cuanto más se usa de lo disponible, peor.
+      // The more of what is available gets used, the worse.
       if (value > 1) return 'critical';
       if (value > 0.8) return 'warn';
       return 'ok';
     }
     if (direction === 'margin') {
-      // Margen remanente: si es negativo o mínimo, es crítico.
+      // Remaining margin: if it is negative or minimal, it is critical.
       if (value <= 0.02) return 'critical';
       if (value < 0.15) return 'warn';
       return 'ok';
     }
-    // 'stock': existencia remanente (presupuesto, tiempo, ventana de enlace).
+    // 'stock': remaining amount (budget, time, comms window).
     if (value <= 0.1) return 'critical';
     if (value < 0.3) return 'warn';
     return 'ok';
@@ -72,10 +72,10 @@
   }
 
   /**
-   * Construye el estado de recursos de una misión.
-   * @param {Object} input datos planos (masa, masa máxima, potencia generada y
-   *   consumida, presupuesto disponible y gastado, datos almacenados y capacidad,
-   *   fracción de ancho de banda, días restantes y vida útil total, recurso crítico).
+   * Builds the resource state of a mission.
+   * @param {Object} input flat data (mass, max mass, power generated and consumed,
+   *   budget available and spent, data stored and capacity, bandwidth fraction,
+   *   days left and total service life, critical resource).
    */
   function createResources(input) {
     var source = input || {};
@@ -106,15 +106,15 @@
     return Math.min(1, Math.max(0, n));
   }
 
-  /** Ajusta un campo del estado de recursos (masa, potencia, presupuesto, …). */
+  /** Sets a field of the resource state (mass, power, budget, …). */
   function set(state, field, value) {
     if (field in state) state[field] = numberOr(value, state[field]);
     return state;
   }
 
   /**
-   * Gasta un recurso cuando se puede. Devuelve `true` si la operación se aplicó.
-   * Presupuesto y datos comparten la misma semántica de tope.
+   * Spends a resource when it can. Returns `true` if the operation was applied.
+   * Budget and data share the same cap semantics.
    */
   function spend(state, id, amount) {
     var cost = Math.max(0, numberOr(amount, 0));
@@ -136,9 +136,9 @@
   }
 
   /**
-   * Evalúa todos los recursos y devuelve el panel listo para pintar.
-   * `critical` es el recurso declarado crítico por el escenario (RN-1) y `worst`
-   * el que está peor ahora mismo.
+   * Evaluates every resource and returns the panel ready to paint.
+   * `critical` is the resource declared critical by the scenario (RN-1) and `worst`
+   * the one that is worst right now.
    */
   function evaluate(state) {
     var powerMargin = state.powerGen - state.powerDraw;

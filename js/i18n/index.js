@@ -1,15 +1,15 @@
 /*
- * Sistema de traducción (sección 13).
+ * Translation system (section 13).
  *
- * Reglas que implementa este módulo:
- *  - I-3/I-11: los textos viven en `data/locales/<lang>.json` con claves planas
- *    separadas por puntos (`hud.power.label`). El código nunca escribe texto visible.
- *  - I-5: interpolación con marcadores nombrados `{name}`, nunca concatenación.
- *  - I-6: variantes de plural (categorías CLDR) y de género, anidables.
- *  - I-7: números, fechas y duraciones con `Intl` según el idioma activo.
- *  - I-8: detección `preferencia -> navegador -> inglés` sin tocar el DOM.
- *  - I-12: si falta una clave en el idioma activo se usa el inglés y se avisa por
- *    consola; si falta en ambos se devuelve un guion, jamás la clave cruda.
+ * Rules this module implements:
+ *  - I-3/I-11: texts live in `data/locales/<lang>.json` with flat dot-separated
+ *    keys (`hud.power.label`). The code never writes visible text.
+ *  - I-5: interpolation with named placeholders `{name}`, never concatenation.
+ *  - I-6: plural variants (CLDR categories) and gender variants, nestable.
+ *  - I-7: numbers, dates and durations with `Intl` for the active language.
+ *  - I-8: detection `preference -> browser -> English` without touching the DOM.
+ *  - I-12: if a key is missing in the active language English is used and the
+ *    console is warned; if it is missing in both a dash is returned, never the raw key.
  */
 (function (global, factory) {
   'use strict';
@@ -25,8 +25,8 @@
   var SUPPORTED = ['en', 'es'];
   var FALLBACK_LOCALE = 'en';
 
-  // Marcador neutro cuando una clave no existe en ninguno de los dos idiomas.
-  // Un guion es preferible a una clave cruda en pantalla (I-12).
+  // Neutral marker when a key exists in neither of the two languages.
+  // A dash is preferable to a raw key on screen (I-12).
   var MISSING_TEXT = '\u2014';
 
   var PLURAL_CATEGORIES = ['zero', 'one', 'two', 'few', 'many', 'other'];
@@ -34,8 +34,8 @@
   var GENDER_ALIASES = { n: 'neutral', m: 'male', f: 'female', neutral: 'neutral', male: 'male', female: 'female' };
 
   /**
-   * Normaliza una etiqueta de idioma (`es-AR`, `ES`, `en_GB`) a `en`/`es`.
-   * Devuelve `null` si el idioma no está soportado.
+   * Normalizes a language tag (`es-AR`, `ES`, `en_GB`) to `en`/`es`.
+   * Returns `null` if the language is not supported.
    */
   function normalizeLocale(tag) {
     if (typeof tag !== 'string' || !tag) return null;
@@ -44,8 +44,8 @@
   }
 
   /**
-   * Detección de idioma de I-8: preferencia guardada, si no el navegador,
-   * si no el inglés. Es una función pura para poder probarla en Node.
+   * Language detection from I-8: saved preference, else the browser, else
+   * English. It is a pure function so it can be tested in Node.
    */
   function detectLocale(savedLocale, navigatorLanguage) {
     return normalizeLocale(savedLocale) || normalizeLocale(navigatorLanguage) || FALLBACK_LOCALE;
@@ -71,7 +71,7 @@
     return false;
   }
 
-  /** Primer valor de texto que haya dentro de un objeto de variantes. */
+  /** First text value found inside a variants object. */
   function firstString(value) {
     var keys = Object.keys(value);
     for (var i = 0; i < keys.length; i += 1) {
@@ -86,9 +86,9 @@
   }
 
   /**
-   * Elige la variante de plural o género. Los objetos pueden anidar un nivel de
-   * género dentro de plural (o al revés): por eso el resultado puede seguir siendo
-   * un objeto y el llamador vuelve a resolver.
+   * Picks the plural or gender variant. Objects can nest one level of gender
+   * inside plural (or the other way round): that is why the result can still be
+   * an object and the caller resolves again.
    */
   function selectVariant(value, params, locale) {
     if (hasPluralForm(value)) {
@@ -117,7 +117,7 @@
     return firstString(value);
   }
 
-  /** Sustituye los marcadores `{nombre}` por el parámetro correspondiente. */
+  /** Replaces the `{name}` placeholders with the matching parameter. */
   function interpolate(template, params, locale, onMissing) {
     if (typeof template !== 'string') return MISSING_TEXT;
     if (!params) return template;
@@ -128,7 +128,7 @@
         return '';
       }
       if (typeof value === 'number') {
-        // I-7: los números dentro de mensajes respetan el idioma activo.
+        // I-7: numbers inside messages respect the active language.
         return isFinite(value) ? format.formatNumber(value, locale, { maximumFractionDigits: 3 }) : String(value);
       }
       return String(value);
@@ -136,7 +136,7 @@
   }
 
   /**
-   * Crea un traductor.
+   * Creates a translator.
    * @param {{dicts:Object, locale:string, fallback:string, logger:Object}} options
    */
   function createTranslator(options) {
@@ -178,7 +178,7 @@
       });
     }
 
-    /** Traduce una clave. Devuelve `—` si no existe en ningún idioma (I-12). */
+    /** Translates a key. Returns `—` if it exists in no language (I-12). */
     function t(key, params) {
       var text = resolve(locale, key, params);
       if (text !== undefined) return text;
@@ -218,7 +218,7 @@
       };
     }
 
-    /** Claves pedidas que no existen en el idioma activo o en el de respaldo. */
+    /** Requested keys that are missing in the active or the fallback language. */
     function missingKeys() {
       return { active: Object.keys(missingActive), fallback: Object.keys(missingFallback) };
     }
@@ -240,8 +240,8 @@
     }
 
     /**
-     * Duración legible a partir de horas simuladas: `3 d 04 h`, `5 h 30 min`.
-     * Las etiquetas son claves (`unit.day.short`, `unit.hour.short`, …).
+     * Readable duration from simulated hours: `3 d 04 h`, `5 h 30 min`.
+     * The labels are keys (`unit.day.short`, `unit.hour.short`, …).
      */
     function formatDuration(hours) {
       var total = Number(hours);
@@ -260,7 +260,7 @@
       return t('unit.minutes_short', { minute: formatNumber(Math.round(abs * 60)) });
     }
 
-    /** Valor con su unidad: `12 kg`, `4,5 M€`. La etiqueta de la unidad se traduce. */
+    /** Value with its unit: `12 kg`, `4,5 M€`. The unit label is translated. */
     function formatUnit(value, unitKey, opts) {
       var number = formatNumber(value, opts);
       var label = t(unitKey);
@@ -297,7 +297,7 @@
     };
   }
 
-  /** Crea los diccionarios a partir del registro de datos (`GS.data`). */
+  /** Builds the dictionaries from the data registry (`GS.data`). */
   function dictsFromRegistry(registry) {
     var source = registry || {};
     return {

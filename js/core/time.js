@@ -1,9 +1,9 @@
 /*
- * Reloj de misión (V-17, S-1).
+ * Mission clock (V-17, S-1).
  *
- * Un día de misión dura 15 segundos reales a velocidad ×1 (S-1 permite 10–20 s)
- * y se puede acelerar ×2, ×4 y ×8. El reloj no conoce el DOM: `advance()` recibe
- * milisegundos reales y devuelve cuánto avanzó la misión.
+ * One mission day lasts 15 real seconds at speed ×1 (S-1 allows 10–20 s) and it
+ * can be accelerated ×2, ×4 and ×8. The clock does not know the DOM: `advance()`
+ * receives real milliseconds and returns how far the mission advanced.
  */
 (function (global, factory) {
   'use strict';
@@ -28,15 +28,15 @@
       hours: isFinite(opts.startHours) ? opts.startHours : 0,
       speed: 1,
       paused: false,
-      // Fracción del día que la nave pasa en sombra (depende de la órbita).
+      // Fraction of the day the ship spends in shadow (depends on the orbit).
       eclipseFraction: isFinite(opts.eclipseFraction) ? opts.eclipseFraction : 0.35,
       elapsedRealMs: 0
     };
   }
 
   /**
-   * Avanza el reloj. Devuelve los días de misión transcurridos en este paso
-   * (puede ser fraccionario) para que la simulación use el mismo delta que la UI.
+   * Advances the clock. Returns the mission days elapsed in this step (it can be
+   * fractional) so that the simulation uses the same delta as the UI.
    */
   function advance(clock, realMs) {
     var ms = Number(realMs);
@@ -87,7 +87,7 @@
     return clock.hours % HOURS_PER_DAY;
   }
 
-  /** Día de misión transcurrido (0 al inicio, fraccionario). */
+  /** Mission day elapsed (0 at the start, fractional). */
   function days(clock) {
     return clock.hours / HOURS_PER_DAY;
   }
@@ -96,7 +96,7 @@
     return Math.max(0, clock.missionDays - days(clock));
   }
 
-  /** `true` si la nave está en sombra; sin paneles la batería cubre el pico. */
+  /** `true` if the ship is in shadow; without panels the battery covers the peak. */
   function isEclipse(clock) {
     var fraction = Math.min(0.95, Math.max(0, clock.eclipseFraction));
     if (fraction <= 0) return false;
@@ -104,7 +104,7 @@
     return positionInDay < fraction;
   }
 
-  /** Se acabó la vida útil del escenario (V-18, S-10). */
+  /** The service life of the scenario is over (V-18, S-10). */
   function expired(clock) {
     return days(clock) >= clock.missionDays;
   }

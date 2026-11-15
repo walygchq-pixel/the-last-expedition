@@ -1,16 +1,16 @@
 /*
- * Tutorial asistencial (E-1, S-18, S62).
+ * Coaching tutorial (E-1, S-18, S62).
  *
- * Nueve llamadas cortas ancladas al control que enseñan, no un panel fijo al pie:
- * cada paso declara en qué pantalla vive (`design` o `travel`), a qué elemento
- * apunta (`target`) y de qué lado conviene colocarse (`place`). Al cambiar de
- * pantalla el tutorial salta al primer paso pendiente de esa pantalla, así que
- * nunca queda mostrando «paso 1 de 5» encima del viaje.
+ * Nine short callouts anchored to the control they teach, not a fixed panel at
+ * the bottom: each step declares which screen it lives on (`design` or `travel`),
+ * which element it points at (`target`) and on which side it is best placed
+ * (`place`). When the screen changes the tutorial jumps to the first pending step
+ * of that screen, so it never sits showing «step 1 of 5» on top of the travel screen.
  *
- * Se muestra solo en dificultad Basic y en la primera partida, y se puede
- * desactivar desde los ajustes o desde la propia llamada (S-18).
+ * It shows only on Basic difficulty and in the first game, and it can be
+ * turned off from the settings or from the callout itself (S-18).
  *
- * Este módulo no toca el DOM al cargarse: todo se construye dentro de `create()`.
+ * This module does not touch the DOM on load: everything is built inside `create()`.
  */
 (function (global, factory) {
   'use strict';
@@ -24,7 +24,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (catalog) {
   'use strict';
 
-  // Copia de seguridad si el bundle todavía no incluye `data/tutorial.json`.
+  // Fallback copy if the bundle does not include `data/tutorial.json` yet.
   var FALLBACK = [
     { id: 'design_objective', screen: 'design', titleKey: 'tutorial.design_objective.title', bodyKey: 'tutorial.design_objective.body', target: '[data-tutorial="design-objective"]', place: 'bottom' },
     { id: 'design_components', screen: 'design', titleKey: 'tutorial.design_components.title', bodyKey: 'tutorial.design_components.body', target: '[data-tutorial="design-component"]', place: 'right' },
@@ -36,7 +36,7 @@
 
   var PANEL_WIDTH_REM = 19;
 
-  /** Pasos del tutorial: datos canónicos o la copia de seguridad. */
+  /** Tutorial steps: canonical data or the fallback copy. */
   function steps() {
     var fromData = [];
     try {
@@ -64,7 +64,7 @@
     });
   }
 
-  /** El tutorial está activo solo si la preferencia lo permite y es la primera partida en Basic. */
+  /** The tutorial is active only if the preference allows it and it is the first game on Basic. */
   function isActive(prefs, difficultyId, state) {
     if (!prefs || prefs.tutorialEnabled === false) return false;
     if (prefs.tutorialSeen) return false;
@@ -78,8 +78,8 @@
   }
 
   /**
-   * Pantalla activa deducida de los ganchos `data-tutorial` que dejaron las
-   * pantallas. Evita acoplar el tutorial al router del shell.
+   * Active screen deduced from the `data-tutorial` hooks the screens left
+   * behind. Avoids coupling the tutorial to the shell router.
    */
   function detectScreen(ctx) {
     var doc = ctx && ctx.doc;
@@ -98,14 +98,14 @@
     return doneMap(ctx)[stepId] === true;
   }
 
-  /** Pasos de una pantalla, en el orden de los datos. */
+  /** Steps of one screen, in data order. */
   function stepsFor(screen) {
     return steps().filter(function (step) {
       return !screen || step.screen === screen;
     });
   }
 
-  /** Primer paso pendiente de la pantalla activa, o `null` si ya no queda ninguno. */
+  /** First pending step of the active screen, or `null` if none is left. */
   function currentStep(ctx) {
     var screen = detectScreen(ctx);
     var list = stepsFor(screen);
@@ -123,7 +123,7 @@
     };
   }
 
-  /** Marca el paso actual como hecho y repinta. */
+  /** Marks the current step as done and repaints. */
   function advance(ctx, eventId) {
     var info = currentStep(ctx);
     if (!info.step) return false;
@@ -133,8 +133,8 @@
     if (typeof ctx.renderTutorial === 'function') ctx.renderTutorial();
     var after = currentStep(ctx);
     if (!after.step) {
-      // Se terminaron los pasos de esta pantalla; si tampoco quedan en la otra,
-      // el tutorial queda visto para no volver a aparecer en la próxima partida.
+      // The steps of this screen ran out; if none are left on the other one
+      // either, the tutorial stays seen so it never appears again in the next game.
       var left = steps().filter(function (step) {
         return !isDone(ctx, step.id);
       });
@@ -143,7 +143,7 @@
     return true;
   }
 
-  /** Retrocede al paso anterior de la misma pantalla. */
+  /** Goes back to the previous step of the same screen. */
   function back(ctx) {
     var list = stepsFor(detectScreen(ctx));
     var pending = list.filter(function (step) {
@@ -156,7 +156,7 @@
     if (typeof ctx.renderTutorial === 'function') ctx.renderTutorial();
   }
 
-  /** Cierra el tutorial de esta partida sin desactivarlo para siempre. */
+  /** Closes the tutorial for this game without disabling it for good. */
   function dismiss(ctx) {
     ctx.state.tutorialDismissed = true;
     markSeen(ctx);
@@ -164,7 +164,7 @@
     if (typeof ctx.renderTutorial === 'function') ctx.renderTutorial();
   }
 
-  /** Desactiva el tutorial en los ajustes (S-18). */
+  /** Turns the tutorial off in the settings (S-18). */
   function disablePermanently(ctx) {
     ctx.state.tutorialDismissed = true;
     ctx.setPrefs({ tutorialEnabled: false, tutorialSeen: true });
@@ -172,7 +172,7 @@
     if (typeof ctx.renderTutorial === 'function') ctx.renderTutorial();
   }
 
-  /** Las pantallas avisan cuando ocurre el hecho que enseña el paso actual. */
+  /** The screens report when the event taught by the current step happens. */
   function notify(ctx, eventId) {
     if (!ctx.state || !isActive(ctx.getPrefs(), ctx.state.difficultyId, ctx.state)) return false;
     return advance(ctx, eventId);
@@ -199,7 +199,7 @@
     return node;
   }
 
-  /** Coloca la llamada junto a su objetivo, sin taparlo ni salirse de la ventana. */
+  /** Places the callout next to its target, without covering it or leaving the window. */
   function place(panel, node, hint, win) {
     if (!panel || !panel.style || !node || typeof node.getBoundingClientRect !== 'function') return;
     var doc = panel.ownerDocument;
@@ -251,9 +251,9 @@
   }
 
   /**
-   * Construye la llamada del tutorial.
-   * @param {Object} ctx shell de `js/ui/shell`
-   * @param {Object} [options] `{preview:true}` para el repaso desde el menú
+   * Builds the tutorial callout.
+   * @param {Object} ctx shell from `js/ui/shell`
+   * @param {Object} [options] `{preview:true}` for the review from the menu
    */
   function create(ctx, options) {
     var opts = options || {};
@@ -334,13 +334,13 @@
         try {
           target.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
         } catch (error) {
-          /* navegadores que no aceptan `behavior: instant` */
+          /* browsers that do not accept `behavior: instant` */
         }
       }
     }
 
-    // Se posiciona después del montaje: el shell lo agrega al documento y recién
-    // ahí hay medidas reales del objetivo y del propio panel.
+    // It is positioned after mounting: the shell adds it to the document and only
+    // then are there real measurements of the target and of the panel itself.
     var reposition = function () {
       if (target) place(panel, target, info.step.place, win);
       else if (panel.style) panel.classList.add('tutorial-callout--corner');
@@ -360,7 +360,7 @@
     return panel;
   }
 
-  /** Repaso completo desde el menú: los pasos agrupados por pantalla. */
+  /** Full review from the menu: the steps grouped by screen. */
   function buildPreview(ctx, t) {
     var panel = ctx.el('div', { class: 'tutorial-preview' });
     panel.appendChild(ctx.el('h3', { text: t('tutorial.title') }));

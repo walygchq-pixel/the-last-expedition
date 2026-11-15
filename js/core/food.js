@@ -1,10 +1,10 @@
 /*
- * Alimentos y frescura (V-11, S-8).
+ * Food and freshness (V-11, S-8).
  *
- * La frescura baja 2 % por día a temperatura nominal y 8 % por día con la nevera
- * averiada. Con frescura menor al 30 % hay 35 % de probabilidad de enfermedad
- * leve, que aparece 1 a 3 días después. Los alimentos en mal estado dejan además
- * residuos que degradan el soporte vital.
+ * Freshness drops 2 % per day at nominal temperature and 8 % per day with a
+ * broken fridge. Below 30 % freshness there is a 35 % chance of mild illness,
+ * which shows up 1 to 3 days later. Spoiled food also leaves waste behind that
+ * degrades life support.
  */
 (function (global, factory) {
   'use strict';
@@ -37,8 +37,8 @@
   }
 
   /**
-   * Crea la despensa. Cada ítem declara `id` (clave de datos), `qty` y
-   * opcionalmente su frescura inicial.
+   * Creates the pantry. Every item declares `id` (data key), `qty` and
+   * optionally its initial freshness.
    */
   function createPantry(items) {
     return {
@@ -55,7 +55,7 @@
   }
 
   /**
-   * Avanza la frescura durante `days` días.
+   * Advances freshness over `days` days.
    * @param {Object} ctx `{fridgeOk:boolean, temperature:0..1}`
    */
   function tick(state, days, ctx) {
@@ -63,8 +63,8 @@
     var step = Math.max(0, isFinite(days) ? days : 0);
     if (step === 0) return { spoiled: [], wasteAdded: 0 };
     var rate = context.fridgeOk === false ? BROKEN_FRIDGE_RATE : NOMINAL_RATE;
-    // Una nave caliente estropea la comida más rápido: la temperatura no es un
-    // detalle decorativo, está conectada con esta regla.
+    // A hot ship spoils food faster: temperature is not a decorative
+    // detail, it is connected to this rule.
     if (isFinite(context.temperature) && context.temperature < 0.75) rate *= 1.5;
     var spoiled = [];
     var wasteAdded = 0;
@@ -84,14 +84,14 @@
     return { spoiled: spoiled, wasteAdded: round1(wasteAdded) };
   }
 
-  /** `true` si el ítem ya no es seguro. */
+  /** `true` if the item is no longer safe. */
   function isSpoiled(item) {
     return !!item && item.freshness < SPOILED_THRESHOLD;
   }
 
   /**
-   * Come una unidad de un ítem. Devuelve la decisión de enfermedad ya sorteada
-   * para que el juego la agende como consecuencia diferida (1–3 días).
+   * Eats one unit of an item. Returns the illness decision already rolled so
+   * that the game schedules it as a deferred consequence (1–3 days).
    */
   function eat(state, memberId, itemId, rng) {
     var item = state.items.find(function (candidate) {
@@ -124,12 +124,12 @@
     };
   }
 
-  /** Nivel de contaminación 0..100 que castiga al soporte vital. */
+  /** Contamination level 0..100 that punishes life support. */
   function contamination(state) {
     return round1(clamp(state.waste, 0, 100));
   }
 
-  /** Cuántas unidades comestibles quedan por encima del umbral de seguridad. */
+  /** How many edible units remain above the safety threshold. */
   function safeServings(state) {
     return state.items.reduce(function (sum, item) {
       return sum + (item.freshness >= SPOILED_THRESHOLD ? item.qty : 0);
@@ -142,7 +142,7 @@
     }, 0);
   }
 
-  /** Limpia residuos (acción de la cocina). Devuelve lo que se limpió. */
+  /** Cleans waste (galley action). Returns what was cleaned. */
   function clean(state, amount) {
     var before = state.waste;
     state.waste = round1(clamp(state.waste - Math.max(0, amount || 30), 0, 100));

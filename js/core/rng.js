@@ -1,9 +1,9 @@
 /*
- * Generador pseudoaleatorio determinista (contrato C-4).
+ * Deterministic pseudo-random generator (contract C-4).
  *
- * Toda la aleatoriedad de la simulación pasa por acá con una semilla explícita:
- * así una partida se puede repetir, guardar y comparar, y las pruebas no dependen
- * del azar real. No se usa `Math.random()` en `core/`, `mission/` ni `world/`.
+ * All the randomness of the simulation goes through here with an explicit seed,
+ * so a game can be repeated, saved and compared, and the tests do not depend on
+ * real chance. `Math.random()` is not used in `core/`, `mission/` or `world/`.
  */
 (function (global, factory) {
   'use strict';
@@ -17,7 +17,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  /** Convierte un texto en un entero de 32 bits estable (FNV-1a). */
+  /** Turns a text into a stable 32-bit integer (FNV-1a). */
   function hashSeed(text) {
     var source = String(text === undefined || text === null ? 'seed' : text);
     var hash = 0x811c9dc5;
@@ -29,8 +29,8 @@
   }
 
   /**
-   * Crea un generador determinista (mulberry32) a partir de una semilla numérica
-   * o de texto. Devuelve además el estado interno para poder guardarlo.
+   * Creates a deterministic generator (mulberry32) from a numeric or text seed.
+   * It also returns the internal state so that it can be saved.
    */
   function createRng(seed) {
     var state = (typeof seed === 'number' && isFinite(seed) ? seed : hashSeed(seed)) >>> 0;
@@ -43,25 +43,25 @@
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     }
 
-    /** Entero uniforme en [min, max] (ambos inclusive). */
+    /** Uniform integer in [min, max] (both inclusive). */
     function int(min, max) {
       var low = Math.ceil(Math.min(min, max));
       var high = Math.floor(Math.max(min, max));
       return low + Math.floor(next() * (high - low + 1));
     }
 
-    /** Número real uniforme en [min, max). */
+    /** Uniform real number in [min, max). */
     function float(min, max) {
       return min + next() * (max - min);
     }
 
-    /** Elemento aleatorio de un arreglo (o `undefined` si está vacío). */
+    /** Random element of an array (or `undefined` if it is empty). */
     function pick(items) {
       if (!items || items.length === 0) return undefined;
       return items[Math.floor(next() * items.length)];
     }
 
-    /** `true` con probabilidad `p` (0..1). */
+    /** `true` with probability `p` (0..1). */
     function chance(p) {
       var probability = Number(p);
       if (!isFinite(probability) || probability <= 0) return false;
@@ -69,7 +69,7 @@
       return next() < probability;
     }
 
-    /** Elige un elemento según pesos: `[{value, weight}]`. */
+    /** Picks an element by weight: `[{value, weight}]`. */
     function weighted(entries) {
       if (!entries || entries.length === 0) return undefined;
       var total = 0;
@@ -84,7 +84,7 @@
       return entries[entries.length - 1].value;
     }
 
-    /** Baraja una copia del arreglo (Fisher-Yates). */
+    /** Shuffles a copy of the array (Fisher-Yates). */
     function shuffle(items) {
       var copy = items.slice();
       for (var i = copy.length - 1; i > 0; i -= 1) {

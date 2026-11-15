@@ -1,12 +1,12 @@
 /*
- * Humo real en navegador (S1, RG-1, RG-5): abre `index.html` con `file://` en
- * Chrome headless, recorre el flujo principal y falla si hay excepciones, errores
- * de consola o claves de traducción sin resolver. Guarda capturas para revisión
- * visual.
+ * Real browser smoke run (S1, RG-1, RG-5): opens `index.html` over `file://` in
+ * headless Chrome, walks the main flow and fails on any exception, console error,
+ * untranslated translation key or horizontal overflow. Saves screenshots for visual
+ * review.
  *
- * Sin dependencias: usa el protocolo DevTools por WebSocket (nativo en Node ≥22).
+ * No dependencies: it speaks the DevTools protocol over WebSocket (native in Node ≥22).
  *
- * Uso: `node tools/smoke.js [--url file:///ruta/index.html] [--out tools/.smoke]`
+ * Usage: `node tools/smoke.js [--url file:///path/index.html] [--out tools/.smoke]`
  */
 'use strict';
 
@@ -18,9 +18,9 @@ const { spawn } = require('node:child_process');
 const ROOT = path.resolve(__dirname, '..');
 
 /**
- * Lee los argumentos de línea de comandos. Es estricto a propósito: un flag mal
- * escrito aborta en lugar de ignorarse, porque el humo terminaría corriendo
- * contra el destino por defecto y aun así informando éxito (R3-001).
+ * Reads the command-line arguments. It is strict on purpose: a mistyped flag
+ * aborts instead of being ignored, because the smoke run would end up running
+ * against the default target and still reporting success (R3-001).
  */
 function parseArgs(argv) {
   const options = { url: 'file://' + path.join(ROOT, 'index.html'), out: path.join(ROOT, 'tools', '.smoke'), port: 9333 };
@@ -51,7 +51,7 @@ function parseArgs(argv) {
   return options;
 }
 
-/** Espera a que la página termine de cargar y monte la primera pantalla. */
+/** Waits for the page to finish loading and mount the first screen. */
 async function waitForReady(client, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -97,7 +97,7 @@ async function waitForEndpoint(port, timeoutMs) {
   throw new Error('Chrome no respondió en el puerto ' + port + (lastError ? ': ' + lastError.message : ''));
 }
 
-/** Cliente CDP mínimo: una sesión plana por WebSocket. */
+/** Minimal CDP client: one flat session per WebSocket. */
 function createClient(wsUrl) {
   const socket = new WebSocket(wsUrl);
   const pending = new Map();
@@ -354,10 +354,10 @@ async function main() {
 
   try {
     await waitForEndpoint(options.port, 15000);
-    // El target se crea en blanco: la navegación va después de `Runtime.enable`,
-    // porque CDP no reenvía las excepciones ni los mensajes de consola ocurridos
-    // antes de habilitar el dominio y un error de arranque quedaba invisible
-    // mientras el humo informaba éxito (R4-001).
+    // The target is created blank: navigation happens after `Runtime.enable`,
+    // because CDP does not replay the exceptions or console messages that
+    // occurred before the domain was enabled, and a startup error stayed
+    // invisible while the smoke run reported success (R4-001).
     const created = await fetch(`http://127.0.0.1:${options.port}/json/new?about:blank`, { method: 'PUT' });
     const target = await created.json();
     const client = createClient(target.webSocketDebuggerUrl);
@@ -379,7 +379,7 @@ async function main() {
     if (!screenChildren) problems.push('la pantalla principal no tiene contenido');
     screenshots.push(await capture(client, 'title'));
 
-    // Flujo principal: nueva misión → diseño → viaje, con capturas por etapa.
+    // Main flow: new mission → design → travel, with a screenshot per stage.
     const clicked = [];
     const steps = [
       { name: 'new-mission', labels: ['nueva misión', 'new mission'] },
@@ -410,9 +410,9 @@ async function main() {
       screenshots.push(await capture(client, step.name));
     }
 
-    // T12/S33: la tecla de interactuar tiene que provocar algo en el viaje — la capa
-    // de acciones del objeto cercano o el aviso de que no hay ninguno al alcance.
-    // Antes del arreglo el flanco sólo cambiaba el jugador seleccionado.
+    // T12/S33: the interact key has to produce something during travel — the action
+    // layer of the nearby object or the notice that none is in range.
+    // Before the fix the keypress only switched the selected player.
     const inTravel = await client.evaluate('!!document.querySelector("canvas")');
     if (inTravel) {
       const snapshot = () =>
@@ -430,10 +430,10 @@ async function main() {
       screenshots.push(await capture(client, 'interact'));
     }
 
-    // Cambio de idioma en vivo (I-2): el texto visible debe cambiar sin recargar.
+    // Live language switch (I-2): the visible text must change without a reload.
     const beforeLang = await client.evaluate('window.__tleSmoke.visibleText()');
-    // El botón de idioma muestra el idioma al que se va a cambiar: después del
-    // clic tiene que mostrar el otro, si no el cambio no ocurrió (R3-001).
+    // The language button shows the language it will switch to: after the
+    // click it has to show the other one, otherwise the switch did not happen (R3-001).
     const langLabel = await client.evaluate(`window.__tleSmoke.exact(['English', 'Español'])`);
     await sleep(400);
     const afterLang = await client.evaluate('window.__tleSmoke.visibleText()');
@@ -446,7 +446,7 @@ async function main() {
     }
     screenshots.push(await capture(client, 'language'));
 
-    // Claves crudas visibles (I-12) y errores de consola.
+    // Raw i18n keys visible on screen (I-12) and console errors.
     const rawKeys = await client.evaluate('window.__tleSmoke.rawKeys()');
     if (rawKeys.length > 0) problems.push('claves i18n visibles en pantalla: ' + rawKeys.slice(0, 10).join(', '));
 
@@ -456,7 +456,7 @@ async function main() {
     }
 
     const structure = await client.evaluate('window.__tleSmoke.structure()');
-    // Diagnóstico de layout: alto real de la ventana y caja del dock inferior.
+    // Layout diagnostic: real window height and the box of the bottom dock.
     const layout = await client.evaluate(
       '(() => { const d = document.querySelector(".hud-dock"); const s = document.querySelector(".travel-screen"); const r = (n) => n ? ({ top: Math.round(n.getBoundingClientRect().top), bottom: Math.round(n.getBoundingClientRect().bottom), height: Math.round(n.getBoundingClientRect().height) }) : null; return { innerHeight: window.innerHeight, dock: r(d), screen: r(s), dockPosition: d ? getComputedStyle(d).position : null, offsetParent: d && d.offsetParent ? (d.offsetParent.className || d.offsetParent.tagName) : null }; })()'
     );
@@ -525,7 +525,7 @@ async function main() {
     try {
       fs.rmSync(profile, { recursive: true, force: true });
     } catch (error) {
-      /* el perfil temporal puede quedar bloqueado: no es un fallo del humo */
+      /* the temporary profile may stay locked: it is not a smoke failure */
     }
   }
 }

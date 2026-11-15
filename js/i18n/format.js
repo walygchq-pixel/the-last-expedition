@@ -1,7 +1,7 @@
 /*
- * Formato de números, fechas, duraciones y unidades por idioma (I-7).
- * Módulo puro: sin DOM, sin acceso a `localStorage`. Lo usan tanto el navegador
- * como las pruebas de Node.
+ * Formatting of numbers, dates, durations and units per language (I-7).
+ * Pure module: no DOM, no access to `localStorage`. It is used both by the browser
+ * and by the Node tests.
  */
 (function (global, factory) {
   'use strict';
@@ -15,19 +15,19 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  // Idioma lógico -> etiqueta BCP 47 usada por `Intl`. `es-AR` da separador
-  // decimal `,` y separador de miles `.`, como pide I-7 para español.
+  // Logical language -> BCP 47 tag used by `Intl`. `es-AR` yields `,` as the
+  // decimal separator and `.` as the thousands separator, as I-7 requires for Spanish.
   var LOCALE_TAGS = {
     en: 'en-US',
     es: 'es-AR'
   };
 
-  // Cachés de formateadores: construir `Intl.*` en cada frame del HUD cuesta caro.
+  // Formatter caches: building `Intl.*` on every HUD frame is expensive.
   var numberCache = new Map();
   var dateCache = new Map();
   var pluralCache = new Map();
 
-  /** Devuelve la etiqueta BCP 47 del idioma lógico (`en`/`es`) o la de inglés. */
+  /** Returns the BCP 47 tag of the logical language (`en`/`es`), or the English one. */
   function tagFor(locale) {
     return LOCALE_TAGS[locale] || LOCALE_TAGS.en;
   }
@@ -62,14 +62,14 @@
     return cached;
   }
 
-  /** Formatea un número según el idioma activo. */
+  /** Formats a number according to the active language. */
   function formatNumber(value, locale, options) {
     var n = Number(value);
     if (!isFinite(n)) return String(value);
     return numberFormatter(locale, options).format(n);
   }
 
-  /** Formatea un porcentaje a partir de una fracción 0..1. */
+  /** Formats a percentage from a 0..1 fraction. */
   function formatPercent(ratio, locale, fractionDigits) {
     var n = Number(ratio);
     if (!isFinite(n)) return String(ratio);
@@ -81,7 +81,7 @@
     }).format(n);
   }
 
-  /** Formatea un número con signo explícito (+3 / -2), útil en el desglose de puntos. */
+  /** Formats a number with an explicit sign (+3 / -2), useful in the score breakdown. */
   function formatSigned(value, locale) {
     var n = Number(value);
     if (!isFinite(n)) return String(value);
@@ -89,8 +89,8 @@
   }
 
   /**
-   * Formatea una fecha del calendario real (ms o Date) según I-7.
-   * `options` por defecto: día y mes cortos, año numérico.
+   * Formats a real-calendar date (ms or Date) according to I-7.
+   * Default `options`: short day and month, numeric year.
    */
   function formatDate(value, locale, options) {
     var date = value instanceof Date ? value : new Date(Number(value));
@@ -99,8 +99,8 @@
   }
 
   /**
-   * Formatea una hora de misión expresada en horas simuladas como `D3 · 05:00`.
-   * El formato es independiente del idioma; las etiquetas las pone quien llama.
+   * Formats a mission time expressed in simulated hours as `D3 · 05:00`.
+   * The format is language-independent; the caller supplies the labels.
    */
   function missionClock(hours) {
     var total = Math.max(0, Number(hours) || 0);

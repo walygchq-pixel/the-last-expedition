@@ -1,9 +1,9 @@
 /*
- * Pegamento de la capa de mundo (`js/world`).
+ * Glue of the world layer (`js/world`).
  *
- * Junta mapa, objetos, jugadores y entrada en un único estado serializable que
- * consumen el render y la UI. No tiene lógica propia: solo compone los módulos
- * de la capa y expone `create`, `step` y `nearest`.
+ * It joins map, objects, players and input into a single serializable state
+ * consumed by the render and the UI. It has no logic of its own: it only composes
+ * the modules of the layer and exposes `create`, `step` and `nearest`.
  */
 (function (global, factory) {
   'use strict';
@@ -32,7 +32,7 @@
   }
 
   /**
-   * Crea el estado de mundo.
+   * Creates the world state.
    * @param {Object} opts `{design, catalog, map, game, roles, speed, capacity}`
    */
   function create(opts) {
@@ -49,13 +49,13 @@
     };
   }
 
-  /** Avanza el mundo con el estado de entrada del cuadro (delega en `players`). */
+  /** Advances the world with the input state of the frame (delegates to `players`). */
   function step(world, control, dt) {
     if (!world) return { moved: 0, active: 0 };
     return players.move(world, control, dt);
   }
 
-  /** Objeto más cercano a un jugador dentro de `maxDistance` casillas. */
+  /** Object nearest to a player within `maxDistance` cells. */
   function nearest(world, playerId, maxDistance) {
     if (!world || !world.map || !world.objects) return null;
     var player = players.byId(world, playerId);

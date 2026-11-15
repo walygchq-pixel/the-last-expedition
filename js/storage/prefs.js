@@ -1,8 +1,8 @@
 /*
- * Preferencias del jugador (I-8, I-9, E-5, RG-8).
+ * Player preferences (I-8, I-9, E-5, RG-8).
  *
- * Guarda idioma, accesibilidad, visibilidad del tutorial y controles reasignados.
- * Nunca guarda texto traducido: solo claves y valores (I-10).
+ * It stores language, accessibility, tutorial visibility and reassigned controls.
+ * It never stores translated text: only keys and values (I-10).
  */
 (function (global, factory) {
   'use strict';
@@ -37,7 +37,7 @@
     return Object.assign({}, DEFAULTS, saved);
   }
 
-  /** Aplica un parche parcial sobre las preferencias actuales. */
+  /** Applies a partial patch on top of the current preferences. */
   function set(patch) {
     var next = Object.assign(get(), patch || {});
     if (next.textSize !== 'normal' && next.textSize !== 'large' && next.textSize !== 'xlarge') next.textSize = 'normal';
@@ -51,7 +51,7 @@
     return get();
   }
 
-  /** Idioma inicial según I-8: preferencia, navegador o inglés. */
+  /** Initial language per I-8: preference, browser or English. */
   function initialLocale(navigatorLanguage) {
     var prefs = get();
     var language = navigatorLanguage;

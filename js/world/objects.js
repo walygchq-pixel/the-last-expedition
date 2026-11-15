@@ -1,12 +1,12 @@
 /*
- * Objetos interactuables de la nave (S32, S33, V-3, V-4).
+ * Interactable objects of the ship (S32, S33, V-3, V-4).
  *
- * Cada objeto colocado por `world/shipMap` se instancia acá con estado propio
- * (usos, acciones consumidas y quién lo lleva). `interact` aplica los efectos
- * declarativos del objeto sobre la partida con `core/effects`, que es el único
- * intérprete de consecuencias del juego.
+ * Every object placed by `world/shipMap` is instantiated here with its own state
+ * (uses, consumed actions and who carries it). `interact` applies the object's
+ * declarative effects to the game through `core/effects`, which is the only
+ * interpreter of consequences in the game.
  *
- * El módulo no produce texto ni toca el DOM: devuelve códigos y claves (C-3).
+ * No text and no DOM from this module: it returns codes and keys (C-3).
  */
 (function (global, factory) {
   'use strict';
@@ -20,7 +20,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (effects) {
   'use strict';
 
-  // Distancia máxima (en casillas) para poder usar un objeto.
+  // Maximum distance (in cells) at which an object can be used.
   var REACH = 2.5;
 
   function round1(value) {
@@ -35,7 +35,7 @@
     return { ok: false, codes: [code(name, params)], estimate: null, applied: [] };
   }
 
-  /** Día de misión actual, sin depender de `core/time` (el juego lo lleva). */
+  /** Current mission day, without depending on `core/time` (the game tracks it). */
   function currentDay(game) {
     if (!game) return 0;
     if (game.log && game.log.now && isFinite(game.log.now.day)) return round1(game.log.now.day);
@@ -49,7 +49,7 @@
   }
 
   /**
-   * Crea las instancias de los objetos de un mapa.
+   * Creates the object instances of one map.
    * @returns {{map:Object, items:Object, order:Array<string>}}
    */
   function create(map) {
@@ -81,7 +81,7 @@
     return { map: map || null, items: items, order: order };
   }
 
-  /** Estado de objetos de un mundo (`world.objects`) o `null`. */
+  /** Object state of a world (`world.objects`) or `null`. */
   function store(world) {
     if (!world) return null;
     if (world.objects && world.objects.items) return world.objects;
@@ -95,7 +95,7 @@
     return container.items[objectId] || null;
   }
 
-  /** Lista de objetos en orden de colocación (útil para paneles y pruebas). */
+  /** Object list in placement order (handy for panels and tests). */
   function list(world) {
     var container = store(world);
     if (!container) return [];
@@ -105,8 +105,8 @@
   }
 
   /**
-   * Acciones disponibles de un objeto. Las de un solo uso desaparecen una vez
-   * consumidas; cada descriptor conserva su `labelKey` y su `estimateKey` (S33).
+   * Available actions of an object. Single-use ones disappear once consumed;
+   * every descriptor keeps its `labelKey` and its `estimateKey` (S33).
    */
   function actions(object) {
     if (!object || !object.actions) return [];
@@ -121,7 +121,7 @@
       });
   }
 
-  /** Resuelve el mundo y la partida admitiendo varias formas de llamada. */
+  /** Resolves the world and the game accepting several call shapes. */
   function resolveContext(target) {
     if (!target) return { world: null, game: null };
     if (target.world && store(target.world)) {
@@ -146,12 +146,12 @@
   }
 
   /**
-   * Aplica una acción de un objeto.
-   * @param {Object} target mundo (`{map, game, objects, players}`), `{world, game}`
-   *   o la partida con `game.world`
+   * Applies one action of an object.
+   * @param {Object} target world (`{map, game, objects, players}`), `{world, game}`
+   *   or the game with `game.world`
    * @param {string} objectId
    * @param {string} actionId
-   * @param {string} playerId jugador que interactúa
+   * @param {string} playerId player who interacts
    * @returns {{ok:boolean, codes:Array, estimate:(string|null), applied:Array}}
    */
   function interact(target, objectId, actionId, playerId) {
@@ -163,7 +163,7 @@
 
     var object = find(world, objectId);
     if (!object) return fail('err.world_unknown_object', { object: objectId });
-    // Si un jugador lo lleva encima, ya no está en el mapa para usarlo (R3-003).
+    // If a player carries it, it is no longer on the map to be used (R3-003).
     if (object.carriedBy) return fail('err.world_object_carried', { object: object.nameKey });
 
     var action = object.actions.find(function (item) {
@@ -175,7 +175,7 @@
     var actor = playerOf(world, playerId);
     if (playerId !== undefined && playerId !== null && !actor) return fail('err.world_unknown_player');
 
-    // En solitario (S10) un jugador cubre todos los roles de la nave.
+    // In solo play (S10) one player covers every role on the ship.
     var solo = !world.players || !world.players.list || world.players.list.length === 1;
     if (action.requiresRole && !solo && (!actor || actor.role !== action.requiresRole)) {
       return fail('err.world_role_required', { role: 'role.' + action.requiresRole + '.name' });
@@ -215,7 +215,7 @@
     };
   }
 
-  /** Marca quién lleva un objeto (lo usa `world/players`). */
+  /** Marks who carries an object (used by `world/players`). */
   function setCarrier(world, objectId, playerId) {
     var object = find(world, objectId);
     if (!object) return false;

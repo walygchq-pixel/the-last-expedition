@@ -107,6 +107,12 @@ function createClient(wsUrl) {
     socket.addEventListener('open', () => resolve());
     socket.addEventListener('error', (error) => reject(error));
   });
+  const requestTimeoutMs = 20000;
+  socket.addEventListener('close', () => {
+    const error = new Error('la conexión con Chrome se cerró');
+    pending.forEach((item) => item.reject(error));
+    pending.clear();
+  });
   socket.addEventListener('message', (event) => {
     const message = JSON.parse(event.data);
     if (message.id && pending.has(message.id)) {
@@ -123,7 +129,20 @@ function createClient(wsUrl) {
     const id = nextId++;
     const payload = JSON.stringify({ id, method, params: params || {} });
     return new Promise((resolve, reject) => {
-      pending.set(id, { resolve, reject });
+      const timer = setTimeout(() => {
+        pending.delete(id);
+        reject(new Error('sin respuesta de Chrome para ' + method + ' (' + requestTimeoutMs + ' ms)'));
+      }, requestTimeoutMs);
+      pending.set(id, {
+        resolve: (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        reject: (error) => {
+          clearTimeout(timer);
+          reject(error);
+        }
+      });
       socket.send(payload);
     });
   }
@@ -169,6 +188,30 @@ const helpers = String.raw`
         for (var j = 0; j < wanted.length; j += 1) {
           if (label.indexOf(wanted[j]) !== -1) { node.click(); return label; }
         }
+      }
+      return null;
+    },
+    // Clic por etiqueta exacta: evita que 'EN' coincida con cualquier palabra.
+    exact: function (texts) {
+      var wanted = texts.map(function (t) { return t.toLowerCase(); });
+      var nodes = window.__tleSmoke.nodes();
+      for (var i = 0; i < nodes.length; i += 1) {
+        var node = nodes[i];
+        if (node.disabled) continue;
+        var label = window.__tleSmoke.label(node);
+        if (wanted.indexOf(label) === -1) continue;
+        node.click();
+        return label;
+      }
+      return null;
+    },
+    // Devuelve la etiqueta exacta presente, sin hacer clic.
+    find: function (texts) {
+      var wanted = texts.map(function (t) { return t.toLowerCase(); });
+      var nodes = window.__tleSmoke.nodes();
+      for (var i = 0; i < nodes.length; i += 1) {
+        var label = window.__tleSmoke.label(nodes[i]);
+        if (wanted.indexOf(label) !== -1) return label;
       }
       return null;
     },
@@ -350,7 +393,7 @@ async function main() {
     ];
     for (const step of steps) {
       const expression = step.card
-        ? `window.__tleSmoke.clickCard(${JSON.stringify(step.card[0])}, ${JSON.stringify(step.labels)})`
+        ? `(${JSON.stringify(step.card)}).reduce(function (acc, needle) { return acc || window.__tleSmoke.clickCard(needle, ${JSON.stringify(step.labels)}); }, null)`
         : step.under
         ? `var u = ${JSON.stringify(step.under)}, l = ${JSON.stringify(step.labels)}; u.reduce(function (acc, word) { return acc || window.__tleSmoke.clickUnder(word, l); }, null)`
         : step.context
@@ -369,10 +412,18 @@ async function main() {
 
     // Cambio de idioma en vivo (I-2): el texto visible debe cambiar sin recargar.
     const beforeLang = await client.evaluate('window.__tleSmoke.visibleText()');
-    const langLabel = await client.evaluate(`window.__tleSmoke.click(['ES', 'Español', 'English', 'EN', 'Idioma', 'Language'])`);
+    // El botón de idioma muestra el idioma al que se va a cambiar: después del
+    // clic tiene que mostrar el otro, si no el cambio no ocurrió (R3-001).
+    const langLabel = await client.evaluate(`window.__tleSmoke.exact(['English', 'Español'])`);
     await sleep(400);
     const afterLang = await client.evaluate('window.__tleSmoke.visibleText()');
-    if (langLabel && beforeLang === afterLang) problems.push('el cambio de idioma no modificó el texto visible');
+    if (!langLabel) {
+      problems.push('no se encontró un control de idioma con etiqueta exacta English/Español');
+    } else {
+      const flipped = await client.evaluate(`window.__tleSmoke.find(['English', 'Español'])`);
+      if (flipped === langLabel) problems.push('el control de idioma no cambió de estado tras el clic');
+      if (beforeLang === afterLang) problems.push('el cambio de idioma no modificó el texto visible');
+    }
     screenshots.push(await capture(client, 'language'));
 
     // Claves crudas visibles (I-12) y errores de consola.
@@ -396,6 +447,12 @@ async function main() {
     const consoleErrors = client.events.filter(
       (event) => event.method === 'Runtime.consoleAPICalled' && (event.params.type === 'error' || event.params.type === 'assert')
     );
+    const logErrors = client.events.filter(
+      (event) => event.method === 'Log.entryAdded' && event.params.entry && event.params.entry.level === 'error'
+    );
+    for (const event of logErrors.slice(0, 8)) {
+      problems.push('error del navegador: ' + event.params.entry.text);
+    }
     const consoleWarnings = client.events.filter(
       (event) => event.method === 'Runtime.consoleAPICalled' && event.params.type === 'warning'
     );
@@ -421,6 +478,7 @@ async function main() {
       screenshots: screenshots,
       exceptions: exceptions.length,
       consoleErrors: consoleErrors.length,
+      browserLogErrors: logErrors.length,
       i18nWarnings: i18nWarnings.length,
       problems: problems,
       structure: structure

@@ -253,3 +253,20 @@ que cada clave exista en los dos idiomas.
   ~0,18 USD. Suite: **93 pruebas** en verde y humo en Chrome sin problemas.
   Pendientes de revisión: la interfaz (`32df2dc`, ~5.6k líneas) y el contenido
   inicial de datos (`2ab63b4`), ambos por encima del presupuesto sin partir.
+
+- **L8 (cierre de la cadena).** Se partieron las dos rebanadas que faltaban. La
+  interfaz quedó en tres commits (shell, pantallas de diseño y viaje, informe y
+  ajustes) y el contenido inicial en cuatro (catálogos, objetivos/escenarios/
+  despensa, eventos, y cada diccionario por separado). Los siete commits nuevos
+  dieron `reviewDue: false` en ASSESS (`nativeRisk: medium`, `under_budget`): el
+  proveedor no exige revisión para ellos.
+  Sí exigió revisión la rebanada de arneses (`tools/smoke.js` + cobertura de
+  claves), que era la que había disparado el riesgo alto del candidato completo
+  por lanzar un proceso de shell. Se revisó con **cuatro lentes** dos veces (una
+  vez la versión original y otra la corregida) y dejó dos CRITICAL más:
+  *R3-001* (`parseArgs` ignoraba en silencio los argumentos desconocidos, así que
+  un flag mal escrito hacía correr el humo contra el destino por defecto y podía
+  informar éxito) y *R4-001* (el target se navegaba antes de habilitar `Runtime`,
+  así que las excepciones del arranque no se veían).
+  Total de la cadena: **8 transacciones aprobadas**, 25 ejecuciones de modelo,
+  ~820k tokens, ~0,31 USD. Suite: **95 pruebas** en verde y humo sin problemas.

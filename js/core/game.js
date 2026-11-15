@@ -1,9 +1,9 @@
 /*
- * Orquestador de la simulación (RG-4, V-17, V-18, RG-11).
+ * Simulation orchestrator (RG-4, V-17, V-18, RG-11).
  *
- * Este módulo es el único punto de entrada que la UI y los tests usan para hacer
- * avanzar una partida: no conoce el DOM, no produce texto y todo su estado es
- * serializable (contrato C-5). Devuelve códigos de traducción que la UI resuelve.
+ * This module is the only entry point that the UI and the tests use to advance a
+ * game: it does not know the DOM, it produces no text and all of its state is
+ * serializable (contract C-5). It returns translation codes that the UI resolves.
  */
 (function (global, factory) {
   'use strict';
@@ -60,8 +60,8 @@
   var VOTE_MS = 30000;
   var FOOD_FRESHNESS_DEFAULT = 92;
 
-  // Decisiones colectivas disponibles (RG-11, V-12). Cada opción tiene efectos
-  // declarativos y una explicación educativa del porqué (V-13).
+  // Collective decisions available (RG-11, V-12). Each option has declarative
+  // effects and an educational explanation of the why (V-13).
   var COLLECTIVE_DECISIONS = {
     ration: {
       code: 'decision.ration',
@@ -180,7 +180,7 @@
   }
 
   /**
-   * Crea una partida en fase de viaje a partir de un diseño validado.
+   * Creates a game in the travel phase from a validated design.
    * @param {Object} config `{mode, scenario, difficulty, design, players, seed,
    *   catalogs:{events, food}, evaluateObjective, now}`
    */
@@ -216,7 +216,7 @@
       eventHistory: [],
       flags: {},
       vote: null,
-      // Penalización temporal de eficiencia tras un desacuerdo (S-5).
+      // Temporary efficiency penalty after a disagreement (S-5).
       penalty: null,
       votes: { total: 0, agreed: 0 },
       stats: {
@@ -298,7 +298,7 @@
     if (game.notices.length > 20) game.notices.shift();
   }
 
-  /** Recalcula potencia, masa, tiempo y ancho de banda antes de cada lectura del HUD. */
+  /** Recomputes power, mass, time and bandwidth before every read of the HUD. */
   function recomputeResources(game) {
     var base = game.design.totals || {};
     var activeDraw = game.instruments.reduce(function (sum, instrument) {
@@ -333,7 +333,7 @@
     return game.resources;
   }
 
-  /** Evalúa el objetivo con el evaluador inyectado (mission/objectives). */
+  /** Evaluates the objective with the injected evaluator (mission/objectives). */
   function refreshObjective(game) {
     if (typeof game.evaluateObjective !== 'function') return game.objective;
     game.objective = game.evaluateObjective(game) || game.objective;
@@ -341,7 +341,7 @@
   }
 
   /**
-   * Avanza la simulación con milisegundos reales.
+   * Advances the simulation with real milliseconds.
    * @returns {{advancedDays:number, pendingEvents:number, ended:boolean}}
    */
   function tick(game, realMs) {
@@ -353,15 +353,15 @@
       if (game.status !== 'travel') return { advancedDays: 0, pendingEvents: game.pendingEvents.length, ended: true };
     }
 
-    // Un evento sin responder detiene el reloj: la tripulación tiene que decidir.
+    // An unanswered event stops the clock: the crew has to decide.
     if (game.pendingEvents.length > 0) {
       return { advancedDays: 0, pendingEvents: game.pendingEvents.length, ended: false };
     }
 
     var step = time.advance(game.clock, realMs);
-    // El reloj se avanza subpaso a subpaso: cada subpaso tiene que ver su propia
-    // hora de misión, y si un evento pendiente corta el bucle no queda tiempo
-    // simulado de más ni reloj adelantado (R3-TICK-PENDING).
+    // The clock is advanced substep by substep: each substep has to see its own
+    // mission hour, and if a pending event breaks the loop no excess simulated
+    // time is left over and the clock is not left ahead (R3-TICK-PENDING).
     game.clock.hours -= step.deltaHours;
     var remaining = step.deltaDays;
     while (remaining > 0) {
@@ -370,7 +370,7 @@
       simulateStep(game, slice);
       remaining -= slice;
       if (game.status !== 'travel') break;
-      // Un evento pendiente detiene el reloj en el acto.
+      // A pending event stops the clock on the spot.
       if (game.pendingEvents.length > 0) break;
     }
 
@@ -385,13 +385,13 @@
     };
   }
 
-  /** Un paso de simulación de como máximo 0,25 días. */
+  /** A simulation step of at most 0.25 days. */
   function simulateStep(game, days) {
     var look = systems.effects(game.systems);
     var day = time.days(game.clock);
     applyPenaltyDecay(game, days);
 
-    // 1. Sistemas: desgaste, averías y efectos visibles (V-6, V-7).
+    // 1. Systems: wear, failures and visible effects (V-6, V-7).
     var usage = {
       power: 0.7,
       lifeSupport: 0.6,
@@ -414,7 +414,7 @@
       });
     });
 
-    // 2. Tripulación: necesidades y condiciones (V-8, V-9).
+    // 2. Crew: needs and conditions (V-8, V-9).
     var crewResult = crew.tick(game.crew, days, {
       rng: game.rng,
       foodFactor: 1 - food.contamination(game.pantry) / 200,
@@ -443,7 +443,7 @@
       });
     });
 
-    // 3. Alimentos: frescura, residuos y contaminación (V-11).
+    // 3. Food: freshness, waste and contamination (V-11).
     var fridgeOk = !game.flags.fridgeBroken;
     var foodResult = food.tick(game.pantry, days, { fridgeOk: fridgeOk, temperature: look.temperature });
     if (foodResult.spoiled.length > 0) {
@@ -458,11 +458,11 @@
     }
     var contamination = food.contamination(game.pantry);
     if (contamination > 35 && game.systems.lifeSupport) {
-      // Los residuos en mal estado castigan al soporte vital (V-11).
+      // Spoiled waste punishes life support (V-11).
       systems.degrade(game.systems, 'lifeSupport', days * (contamination - 35) * 0.05, 'contamination');
     }
 
-    // 4. Datos científicos: producción de los instrumentos activos (C-1).
+    // 4. Scientific data: production by the active instruments (C-1).
     var dataQuality = look.dataQuality;
     game.instruments.forEach(function (instrument) {
       if (!instrument.active || instrument.rate <= 0) return;
@@ -478,13 +478,13 @@
       }
     });
 
-    // 5. Consecuencias diferidas (V-10 … V-13).
+    // 5. Deferred consequences (V-10 … V-13).
     consequences.advance(game.log, { day: day, events: game.stats.eventsResolved });
     consequences.due(game.log).forEach(function (entry) {
       resolveConsequence(game, entry);
     });
 
-    // 6. Eventos: los programados y los aleatorios (V-14, V-15, V-16).
+    // 6. Events: the scheduled ones and the random ones (V-14, V-15, V-16).
     var scheduledNow = events.scheduled(game.catalogs.events, day - days, day);
     scheduledNow.forEach(function (event) {
       queueEvent(game, event);
@@ -505,8 +505,8 @@
   }
 
   /**
-   * Consume la penalización de eficiencia vigente (S-5): sin acuerdo, la
-   * tripulación trabaja un 10 % peor durante 2 días de misión.
+   * Consumes the efficiency penalty in force (S-5): without agreement, the crew
+   * works 10 % worse for 2 mission days.
    */
   function applyPenaltyDecay(game, days) {
     if (!game.penalty) return;
@@ -514,7 +514,7 @@
     if (game.penalty.daysLeft <= 0) game.penalty = null;
   }
 
-  /** Multiplicador de eficiencia vigente: 1 sin penalización, 0,9 con desacuerdo. */
+  /** Efficiency multiplier in force: 1 without penalty, 0.9 with disagreement. */
   function penaltyFactor(game) {
     return game.penalty ? Math.max(0.5, 1 - game.penalty.factor) : 1;
   }
@@ -524,7 +524,7 @@
     return found ? found.nameKey : 'hud.crew';
   }
 
-  /** Aplica una consecuencia ya vencida usando sus efectos declarativos. */
+  /** Applies a consequence that is already due, using its declarative effects. */
   function resolveConsequence(game, entry) {
     var applied = effectsModule.applyEffects(game, entry.effects || [], {
       rng: game.rng,
@@ -568,7 +568,7 @@
     });
   }
 
-  /** Acciones sistémicas disponibles, con su estimación cuando se conoce (V-4). */
+  /** Systemic actions available, with their estimate when it is known (V-4). */
   function getActions(game) {
     var actions = [];
     var alive = game.crew.members.filter(function (member) {
@@ -618,7 +618,7 @@
       });
     });
 
-    // Canibalización: donantes posibles para cada sistema dañado (V-10).
+    // Cannibalization: possible donors for each damaged system (V-10).
     systems.SYSTEM_IDS.filter(function (id) {
       return game.systems[id] && game.systems[id].health < 100;
     }).forEach(function (targetId) {
@@ -664,8 +664,8 @@
   }
 
   /**
-   * Ejecuta una acción. Devuelve `{ok, codes:[{code, params}], severity}` listo
-   * para que la UI muestre el resultado y su explicación (V-13).
+   * Runs an action. Returns `{ok, codes:[{code, params}], severity}` ready for
+   * the UI to show the result and its explanation (V-13).
    */
   function applyAction(game, action) {
     var input = action || {};
@@ -806,7 +806,7 @@
     if (!result) return { ok: false, codes: [{ code: 'msg.unknown_system' }] };
     game.stats.cannibalizations += 1;
 
-    // V-10: la avería diferida queda agendada con su mensaje explicativo.
+    // V-10: the deferred fault stays scheduled together with its explanatory message.
     var faultMagnitude = 10 + Math.round(game.rng.float(0, 8));
     consequences.schedule(game.log, {
       code: 'cons.cannibal_fault',
@@ -955,8 +955,8 @@
       resolved: false
     };
 
-    // S-6: en modo individual la votación se resuelve sola contra una opción
-    // simulada, con un 15 % de eficiencia menos en las decisiones colectivas.
+    // S-6: in single-player mode the vote resolves on its own against a simulated
+    // option, with 15 % less efficiency in the collective decisions.
     if (game.crew.solo) {
       var simulated = game.rng.chance(0.5) ? decision.options[decision.options.length - 1].id : decision.defaultOption;
       game.vote.votes[game.crew.members[0].id] = simulated;
@@ -982,7 +982,7 @@
     return { ok: true, codes: [{ code: 'msg.vote_registered' }], severity: 'info' };
   }
 
-  /** Cierra la votación: unanimidad o, si no, opción por defecto con penalización. */
+  /** Closes the vote: unanimity or, failing that, the default option with a penalty. */
   function resolveVote(game, timedOut) {
     var vote = game.vote;
     if (!vote) return null;
@@ -1010,12 +1010,12 @@
     game.votes.total += 1;
     if (unanimous) game.votes.agreed += 1;
 
-    // S-5: sin acuerdo, penalización del 10 % en colaboración y eficiencia
-    // reducida durante 2 días de misión.
+    // S-5: without agreement, a 10 % penalty in collaboration and reduced
+    // efficiency for 2 mission days.
     if (!unanimous) {
-      // S-5: el desacuerdo cuesta 2 días con la eficiencia un 10 % más baja. La
-      // penalización se aplica de inmediato y se descuenta sola con el reloj; el
-      // libro de consecuencias conserva el registro para la bitácora.
+      // S-5: the disagreement costs 2 days with efficiency 10 % lower. The penalty
+      // is applied immediately and drains by itself with the clock; the consequence
+      // log keeps the record for the journal.
       game.penalty = { factor: 0.1, daysLeft: 2 };
       consequences.schedule(game.log, {
         code: 'cons.vote_default',
@@ -1039,7 +1039,7 @@
     return { ok: true, codes: [summary], severity: summary.severity };
   }
 
-  /** Termina la partida y arma el informe (V-18, P-2). */
+  /** Ends the game and assembles the report (V-18, P-2). */
   function finish(game, outcome) {
     if (game.status === 'report') return { ok: true, codes: [], report: game.report };
     game.outcome = outcome || game.outcome || 'manual';
@@ -1048,7 +1048,7 @@
     return { ok: true, codes: [{ code: 'msg.mission_finished', params: { outcome: 'report.outcome.' + game.outcome } }], report: game.report };
   }
 
-  /** Detecta las condiciones de final de partida (V-18). */
+  /** Detects the end-of-game conditions (V-18). */
   function checkEnd(game) {
     if (game.status !== 'travel') return game.outcome;
     var summary = systems.summary(game.systems);
@@ -1059,15 +1059,15 @@
     return null;
   }
 
-  /** Estado serializable (contrato C-5): sin funciones ni ciclos. */
+  /** Serializable state (contract C-5): no functions and no cycles. */
   function getState(game) {
     return {
       id: game.id,
       version: game.version,
       seed: game.seed,
-      // La semilla del generador se lee en el momento de guardar: si una acción
-      // consumió azar (comer, canibalizar, votar en solitario) el valor en caché
-      // quedaría viejo y al restaurar la partida el generador retrocedería.
+      // The generator state is read at the moment of saving: if an action
+      // consumed randomness (eating, cannibalizing, voting solo) the cached value
+      // would be stale and restoring the game would rewind the generator.
       rngState: game.rng.state(),
       mode: game.mode,
       scenarioId: game.scenarioId,
@@ -1081,8 +1081,8 @@
       pantry: game.pantry,
       datastore: game.datastore,
       log: game.log,
-      // Estado del motor de eventos: sin esto, un evento sorteado y todavía
-      // pendiente al guardar perdía su enfriamiento al restaurar (R3-RESTORE-COOLDOWN).
+      // Event engine state: without this, an event that was rolled and still
+      // pending when saving lost its cooldown on restore (R3-RESTORE-COOLDOWN).
       engine: { firedAt: Object.assign({}, game.engine.firedAt) },
       pendingEvents: game.pendingEvents,
       eventHistory: game.eventHistory,
@@ -1102,7 +1102,7 @@
     };
   }
 
-  /** Reconstruye una partida guardada (G-1, I-10). */
+  /** Rebuilds a saved game (G-1, I-10). */
   function restoreGame(saved, options) {
     var state = JSON.parse(JSON.stringify(saved));
     var generator = rngModule.createRng(state.rngState === undefined ? state.seed : state.rngState);
@@ -1115,8 +1115,8 @@
       food: (options && options.food) || []
     };
     game.evaluateObjective = (options && options.evaluateObjective) || null;
-    // Reconstruye los disparadores de enfriamiento: primero los que venían en el
-    // estado guardado (incluyen los eventos todavía pendientes) y después el historial.
+    // Rebuilds the cooldown triggers: first the ones that came in the saved
+    // state (they include the events still pending) and then the history.
     var savedFiredAt = state.engine && state.engine.firedAt ? state.engine.firedAt : null;
     if (savedFiredAt) {
       Object.keys(savedFiredAt).forEach(function (id) {
@@ -1130,12 +1130,12 @@
     return game;
   }
 
-  /** Panel de recursos listo para pintar (RN-1, RN-2). */
+  /** Resource panel ready to paint (RN-1, RN-2). */
   function resourcePanel(game) {
     return resources.evaluate(game.resources);
   }
 
-  /** Consecuencias pendientes para el panel de pausa (V-17). */
+  /** Pending consequences for the pause panel (V-17). */
   function pendingConsequences(game) {
     return consequences.pending(game.log);
   }

@@ -1,10 +1,10 @@
 /*
- * Puntuación, informe de misión y análisis posterior (P-1 … P-3).
+ * Scoring, mission report and post-mission analysis (P-1 … P-3).
  *
- * El puntaje reparte 1000 puntos entre misión, valor científico, eficiencia,
- * calidad de las decisiones, supervivencia y colaboración (P-1). El informe y el
- * análisis explican en lenguaje sencillo qué compensaciones pesaron más (P-3);
- * acá se devuelven códigos y parámetros, el texto lo pone la UI.
+ * The score splits 1000 points between mission, scientific value, efficiency,
+ * decision quality, survival and collaboration (P-1). The report and the analysis
+ * explain in plain language which trade-offs weighed most (P-3); here they come
+ * back as codes and parameters, and the text is supplied by the UI.
  */
 (function (global, factory) {
   'use strict';
@@ -45,14 +45,14 @@
   }
 
   /**
-   * Calcula el puntaje sobre el estado final de la partida.
-   * @param {Object} state estado de `core/game` con `objective`, `design`,
+   * Computes the score over the final state of the game.
+   * @param {Object} state state of `core/game` with `objective`, `design`,
    *   `crew`, `resources`, `log`, `votes`, `datastore`, `clock`, `stats`.
    */
   function score(state) {
     var breakdown = [];
 
-    // 1. Éxito de la misión (P-1): objetivo cumplido y cobertura de requisitos.
+    // 1. Mission success (P-1): objective met and coverage of the requirements.
     var objective = state.objective || { met: false, coverage: 0 };
     var missionPoints = objective.met
       ? MAX.mission
@@ -66,7 +66,7 @@
       params: { coverage: round((objective.coverage || 0) * 100) }
     });
 
-    // 2. Valor científico (P-1, C-4): lo transmitido vale 1, lo que quedó a bordo 0,6.
+    // 2. Scientific value (P-1, C-4): what was transmitted is worth 1, what stayed on board 0.6.
     var required = (state.scenario && state.scenario.requiredData) || 60;
     var science = datastore.scienceValue(state.datastore || { transmitted: 0, total: 0 });
     var sciencePoints = round(MAX.science * ratio(science, required));
@@ -79,7 +79,7 @@
       params: { value: science, required: required }
     });
 
-    // 3. Uso eficiente de recursos (P-1).
+    // 3. Efficient use of resources (P-1).
     var budgetLeft = ratio(state.resources.budget, state.resources.budgetTotal);
     var powerLeft = state.resources.powerGen > 0 ? clamp((state.resources.powerGen - state.resources.powerDraw) / state.resources.powerGen, 0, 1) : 0;
     var timeLeft = ratio(state.resources.daysLeft, state.resources.missionDays);
@@ -97,7 +97,7 @@
       }
     });
 
-    // 4. Toma de decisiones eficaz (P-1): consecuencias negativas evitadas.
+    // 4. Effective decision making (P-1): negative consequences avoided.
     var fired = (state.log.entries || []).filter(function (entry) {
       return entry.resolved && !entry.cancelled;
     }).length;
@@ -112,7 +112,7 @@
       params: { fired: fired, scheduled: scheduled }
     });
 
-    // 5. Supervivencia de la tripulación (P-1).
+    // 5. Survival of the crew (P-1).
     var totalCrew = state.crew.members.length || 1;
     var alive = state.crew.members.filter(function (member) {
       return member.alive;
@@ -132,7 +132,7 @@
       params: { alive: alive, total: totalCrew }
     });
 
-    // 6. Colaboración (P-1, RG-11): acuerdos alcanzados y roles cumplidos.
+    // 6. Collaboration (P-1, RG-11): agreements reached and roles fulfilled.
     var votes = state.votes || { total: 0, agreed: 0 };
     var agreement = votes.total === 0 ? (state.crew.solo ? 0.85 : 1) : ratio(votes.agreed, votes.total);
     breakdown.push({
@@ -158,8 +158,8 @@
   }
 
   /**
-   * Construye el informe de misión (P-2): resultado, desglose, recursos
-   * consumidos, decisiones clave y sus consecuencias.
+   * Builds the mission report (P-2): outcome, breakdown, resources
+   * consumed, key decisions and their consequences.
    */
   function buildReport(state, meta) {
     var scores = score(state);
@@ -232,8 +232,8 @@
   }
 
   /**
-   * Análisis posterior (P-3): qué compensaciones pesaron más, en códigos.
-   * Ordenado por impacto descendente sobre el puntaje perdido.
+   * Post-mission analysis (P-3): which trade-offs weighed most, in codes.
+   * Sorted by descending impact on the score lost.
    */
   function analyze(report) {
     var findings = [];
@@ -253,7 +253,7 @@
       return b.lost - a.lost;
     });
 
-    // Compensaciones explícitas: el contraste entre dos rúbricas es lo educativo.
+    // Explicit trade-offs: the contrast between two rubrics is what teaches the lesson.
     var byId = {};
     report.breakdown.forEach(function (item) {
       byId[item.id] = item;
@@ -279,7 +279,7 @@
     };
   }
 
-  /** Compara dos informes o dos diseños para el comparador (G-3). */
+  /** Compares two reports or two designs for the comparator (G-3). */
   function compare(a, b) {
     var rows = [];
     var numeric = function (label, valueA, valueB, higherIsBetter) {

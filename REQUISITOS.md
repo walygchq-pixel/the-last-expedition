@@ -1,3 +1,5 @@
+> **Leer en inglés:** [REQUIREMENTS.md](REQUIREMENTS.md) — la edición inglesa es la cara del repositorio.
+
 # Trazabilidad de requisitos
 
 Mapa entre la hoja de requerimientos original (§1–§14, 150 requisitos) y este
@@ -130,7 +132,7 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 | --- | --- | --- | --- |
 | T-1 | HTML5, CSS3, JS ES2020+, Canvas 2D, sin frameworks | `index.html`, `js/**` | — |
 | T-2 | Estructura de módulos sugerida | `js/{core,mission,world,ui,i18n,storage}`, `data/` | — |
-| T-3 | Pruebas de `core/`, `mission/` e `i18n/` en Node | `tests/*.test.js` | **T**: 95 pruebas |
+| T-3 | Pruebas de `core/`, `mission/` e `i18n/` en Node | `tests/*.test.js` | **T**: `npm test` |
 | T-4 | Comentarios en español, identificadores en inglés | todo `js/**` | M |
 
 ## §13 Internacionalización
@@ -152,7 +154,7 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 ## §14 Suposiciones (S-1 … S-20)
 
 Las veinte suposiciones están implementadas y documentadas una por una en la
-sección **«Decisiones de diseño»** de [README.md](README.md), con la columna
+sección **«Decisiones de diseño»** de [README.es.md](README.es.md), con la columna
 «Dónde» indicando el archivo que las garantiza.
 
 ## Lo que no está verificado

@@ -195,6 +195,9 @@ que cada clave exista en los dos idiomas.
 | T8 | integración `index.html`, `data/data-bundle.js`, `main.js` | parent | hecho |
 | T9 | S68, C-8, C-2: suite completa + cobertura de claves + smoke en Chrome (`tools/smoke.js`) | parent | hecho |
 | T10 | README con §14 documentada | parent | hecho |
+| T13 | S69–S70 (edición bilingüe): `README.md` pasa a inglés como cara del repositorio y el español queda en `README.es.md` con enlaces cruzados | parent | hecho |
+| T14 | S69–S70: `REQUIREMENTS.md` en inglés como espejo de `REQUISITOS.md` (que no se toca) con enlaces cruzados | parent | hecho |
+| T15 | S69–S70: `tests/docs-parity.test.js` falla si las dos ediciones divergen en esqueleto de secciones o cifras declaradas, y corrige el «83 / 95 pruebas» del README | parent | hecho |
 
 ## Log
 
@@ -297,3 +300,21 @@ que cada clave exista en los dos idiomas.
   encima del viaje). El dock inferior se ancla a la ventana y reparte sus secciones en
   columnas para que las acciones no queden dentro de un scroll.
   Suite: **95 pruebas** en verde y humo sin problemas.
+
+- **L12 (cambio de idioma de la documentación).** Pedido del humano: «este repositorio
+  está destinado para que lo pueda revisar y ver y probar una institución, en este caso
+  la NASA … la documentación actualmente está en español, pero como va a ser visto por
+  una institución internacional, supongo que la mejor práctica sería cambiar toda la
+  documentación a inglés». Decisión del humano: no se reemplaza el español, se **agrega**
+  la edición inglesa; «de cara al repositorio debe estar la versión en inglés ya que es
+  lo que primero se va a leer», pero el lector puede elegir idioma. Por lo tanto la regla
+  S69/S70 no se deroga: el español sigue siendo la documentación normativa y el inglés es
+  la edición de cara al repositorio, con obligación de estar sincronizada. `REQUISITOS.md`
+  queda intacto por ser la hoja fuente. Los comentarios del código quedan en español por
+  ahora (decisión explícita del humano: «vamos a dejar los comentarios en español puesto
+  que son muchos cambios»); su traducción por módulos queda como trabajo posterior.
+  Bitácora (`odd/tasks/`) y `design/system.md` se quedan en español por decisión del
+  humano, y el README los declara artefactos internos de proceso.
+  Motivo del candado: el README ya declaraba «95 pruebas» en la cabecera y «83 pruebas»
+  en «Verificación»; una copia que envejece es peor que no tenerla, así que la paridad
+  pasa a ser una prueba más, como la de claves i18n y la del bundle de datos.

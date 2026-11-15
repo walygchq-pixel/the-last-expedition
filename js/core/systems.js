@@ -1,11 +1,11 @@
 /*
- * Sistemas de la nave (V-6, V-7) y canibalización (V-10, S-7).
+ * Ship systems (V-6, V-7) and cannibalization (V-10, S-7).
  *
- * Cada sistema tiene estado 0..100 y fiabilidad 0..100. El estado se degrada con
- * el uso y con la fiabilidad baja; la fiabilidad baja con el uso y con los fallos.
- * Los efectos se exponen como multiplicadores 0..1 que consumen el resto de los
- * módulos (luz, temperatura, agua, enlace), para que la degradación se vea en la
- * nave y no solo en un número.
+ * Every system has health 0..100 and reliability 0..100. Health degrades with use
+ * and with low reliability; reliability drops with use and with failures. The
+ * effects are exposed as 0..1 multipliers that the rest of the modules consume
+ * (light, temperature, water, link), so that degradation is visible in the ship
+ * and not only in a number.
  */
 (function (global, factory) {
   'use strict';
@@ -39,9 +39,9 @@
   }
 
   /**
-   * Crea el estado de sistemas a partir del diseño de misión.
-   * `design.parts` es una lista de piezas con `system`, `reliability` e `id`;
-   * de ahí sale también el origen de cada sistema (DM-6).
+   * Creates the system state from the mission design.
+   * `design.parts` is a list of parts with `system`, `reliability` and `id`;
+   * the origin of each system comes from there too (DM-6).
    */
   function createSystems(design) {
     var parts = (design && design.parts) || [];
@@ -83,8 +83,8 @@
   }
 
   /**
-   * Degrada un sistema y devuelve el descriptor del fallo para el libro de
-   * consecuencias o la bitácora.
+   * Degrades a system and returns the failure descriptor for the consequence
+   * book or the log.
    */
   function degrade(state, id, points, cause) {
     var system = state && state[id];
@@ -102,7 +102,7 @@
     };
   }
 
-  /** Repara un sistema. Devuelve los puntos realmente aplicados. */
+  /** Repairs a system. Returns the points actually applied. */
   function repair(state, id, points) {
     var system = state && state[id];
     if (!system) return 0;
@@ -111,7 +111,7 @@
     return round1(system.health - before);
   }
 
-  /** Repara la fiabilidad (mantenimiento preventivo), sin tocar el estado. */
+  /** Restores reliability (preventive maintenance) without touching health. */
   function service(state, id, points) {
     var system = state && state[id];
     if (!system) return 0;
@@ -121,7 +121,7 @@
   }
 
   /**
-   * Avanza el desgaste durante `days` días de misión.
+   * Advances the wear over `days` mission days.
    * @param {Object} ctx `{rng, usage:{system:0..1}, severity:number}`
    * @returns {{failures:Array, worn:Array}}
    */
@@ -139,10 +139,10 @@
       if (!system) return;
       var load = isFinite(usage[id]) ? clamp(usage[id], 0, 1) : 0.5;
 
-      // 1. La fiabilidad baja con el uso (V-6).
+      // 1. Reliability drops with use (V-6).
       system.reliability = round1(clamp(system.reliability - step * (0.12 + load * 0.5) * severity, 0, 100));
 
-      // 2. Probabilidad de avería: crece con el uso y con la fiabilidad baja.
+      // 2. Failure probability: it grows with use and with low reliability.
       var hazard = (0.004 + load * 0.012 + (100 - system.reliability) / 100 * 0.02) * severity;
       var chancePerDay = 1 - Math.pow(1 - Math.min(0.95, hazard), 1);
       var probability = 1 - Math.pow(1 - chancePerDay, step);
@@ -151,7 +151,7 @@
         failures.push(degrade(state, id, magnitude, 'random_failure'));
       }
 
-      // 3. Una fiabilidad muy baja corroe el estado aunque no haya avería.
+      // 3. Very low reliability corrodes health even when there is no failure.
       if (system.reliability < 50) {
         system.health = round1(clamp(system.health - step * (50 - system.reliability) * 0.06 * severity, 0, 100));
       }
@@ -161,9 +161,9 @@
   }
 
   /**
-   * Canibaliza un sistema para reparar otro al instante (V-10).
-   * Devuelve el descriptor que el libro de consecuencias convierte en avería
-   * diferida: fiabilidad del donante −15…−25 y disparo a 3–6 días o 5 eventos.
+   * Cannibalizes one system to repair another instantly (V-10).
+   * Returns the descriptor that the consequence book turns into a deferred
+   * fault: donor reliability −15…−25 and a trigger at 3–6 days or 5 events.
    */
   function cannibalize(state, donorId, targetId, rng) {
     var donor = state && state[donorId];
@@ -187,8 +187,8 @@
   }
 
   /**
-   * Multiplicadores 0..1 que consume el resto de la simulación y el render.
-   * `lighting` y `temperature` son los que se ven en la nave (V-7).
+   * 0..1 multipliers consumed by the rest of the simulation and by the render.
+   * `lighting` and `temperature` are the ones seen in the ship (V-7).
    */
   function effects(state) {
     var power = clamp(state.power.health / 100, 0, 1);
@@ -208,7 +208,7 @@
     };
   }
 
-  /** Resumen para el HUD y para detectar que la nave quedó inoperativa (V-18). */
+  /** Summary for the HUD and to detect that the ship became inoperable (V-18). */
   function summary(state) {
     var worst = null;
     var criticalCount = 0;
@@ -222,7 +222,7 @@
       average: round1(average(state)),
       worst: worst,
       criticalCount: criticalCount,
-      // Nave inoperativa: los cinco sistemas de supervivencia están muertos.
+      // Inoperable ship: the five survival systems are dead.
       inoperable: criticalCount >= 4 && state.lifeSupport.health <= 5
     };
   }

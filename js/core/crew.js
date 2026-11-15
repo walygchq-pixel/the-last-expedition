@@ -1,10 +1,10 @@
 /*
- * Tripulación y supervivencia (V-8, V-9, RG-9, RG-10).
+ * Crew and survival (V-8, V-9, RG-9, RG-10).
  *
- * Cada jugador tiene salud, estrés, moral, sueño, hambre, sed e higiene. Las
- * necesidades suben con el tiempo y con la actividad; los niveles críticos
- * generan condiciones que penalizan la eficiencia y, en el peor caso, matan al
- * personaje. Nada de esto produce texto: se devuelven códigos para la UI.
+ * Every player has health, stress, morale, sleep, hunger, thirst and hygiene. The
+ * needs rise with time and with activity; critical levels produce conditions that
+ * penalize efficiency and, in the worst case, kill the character. None of this
+ * produces text: codes are returned for the UI.
  */
 (function (global, factory) {
   'use strict';
@@ -20,7 +20,7 @@
 
   var ROLES = ['mission_planner', 'engineer', 'scientist', 'communications', 'medic_cook'];
 
-  // Eficiencia por rol según la tarea (RG-9). 1 = neutro, >1 = bonificado.
+  // Efficiency per role depending on the task (RG-9). 1 = neutral, >1 = bonus.
   var ROLE_MODIFIERS = {
     mission_planner: { budget: 0.85, vote: 1.1, planning: 1.2 },
     engineer: { repair: 1.35, service: 1.2, cannibalize: 1.15 },
@@ -47,7 +47,7 @@
       role: ROLES.indexOf(role) === -1 ? 'engineer' : role,
       nameKey: nameKey || 'role.' + role + '.name',
       health: 100,
-      // Necesidades: hambre, sed, falta de sueño y estrés suben; higiene baja.
+      // Needs: hunger, thirst, lack of sleep and stress go up; hygiene goes down.
       hunger: 12,
       thirst: 12,
       sleep: 88,
@@ -62,8 +62,8 @@
   }
 
   /**
-   * Crea la tripulación. `players` es `[{id, role}]`; en modo individual hay un
-   * solo jugador con todos los roles y penalización de eficiencia (RG-10).
+   * Creates the crew. `players` is `[{id, role}]`; in solo mode there is a single
+   * player holding every role, with an efficiency penalty (RG-10).
    */
   function createCrew(players) {
     var list = (players && players.length ? players : [{ id: 'p1', role: 'engineer' }]).map(function (player, index) {
@@ -72,7 +72,7 @@
     return {
       members: list,
       solo: list.length === 1,
-      // S-6: en solitario las decisiones colectivas pierden un 15 % de eficiencia.
+      // S-6: when solo, collective decisions lose 15 % of efficiency.
       collectiveEfficiency: list.length === 1 ? 0.85 : 1
     };
   }
@@ -83,7 +83,7 @@
     });
   }
 
-  /** Aplica una variación a una necesidad o atributo concreto. */
+  /** Applies a variation to a specific need or attribute. */
   function apply(state, id, delta) {
     var target = member(state, id);
     if (!target) return null;
@@ -95,7 +95,7 @@
     return target;
   }
 
-  /** Modificador de eficiencia por rol y tipo de tarea. */
+  /** Efficiency modifier by role and task type. */
   function roleModifier(role, task) {
     var table = ROLE_MODIFIERS[role];
     if (!table || !isFinite(table[task])) return 1;
@@ -103,7 +103,7 @@
   }
 
   /**
-   * Avanza las necesidades durante `days` días de misión.
+   * Advances the needs over `days` mission days.
    * @param {Object} ctx `{rng, foodFactor, waterFactor, temperature, moraleFactor}`
    */
   function tick(state, days, ctx) {
@@ -121,18 +121,18 @@
       if (!target.alive) return;
       var activity = clamp(target.activity, 0, 1);
 
-      // Necesidades básicas (V-9). La sed sube más rápido que el hambre.
+      // Basic needs (V-9). Thirst rises faster than hunger.
       target.hunger = round1(clamp(target.hunger + step * (11 + activity * 6) * (2 - food), 0, 100));
       target.thirst = round1(clamp(target.thirst + step * (15 + activity * 8) * (2 - water), 0, 100));
       target.sleep = round1(clamp(target.sleep - step * (13 + activity * 12), 0, 100));
       target.hygiene = round1(clamp(target.hygiene - step * 6, 0, 100));
 
-      // Estrés: sube con el desorden térmico y el aislamiento, baja con moral.
+      // Stress: it rises with thermal disorder and isolation, falls with morale.
       var stressRate = 1.6 + (1 - clamp(temperature, 0, 1)) * 6 + (target.morale < 45 ? 2 : 0);
       target.stress = round1(clamp(target.stress + step * stressRate * (2 - moraleFactor) * 0.5, 0, 100));
       target.morale = round1(clamp(target.morale + step * (clamp(moraleFactor, 0, 1) * 2 - target.stress * 0.03), 0, 100));
 
-      // Condiciones críticas progresivas (V-9).
+      // Progressive critical conditions (V-9).
       var conditions = [];
       if (target.hunger >= 85) conditions.push('starving');
       if (target.thirst >= 85) conditions.push('dehydrated');
@@ -146,7 +146,7 @@
       target.conditions = conditions;
       if (conditions.length > 0) criticals.push({ memberId: target.id, conditions: conditions.slice() });
 
-      // Daño por condiciones: lento al principio, acumulativo en el tiempo.
+      // Damage from conditions: slow at first, cumulative over time.
       var damage = 0;
       if (conditions.indexOf('starving') !== -1) damage += 2.2;
       if (conditions.indexOf('dehydrated') !== -1) damage += 3.4;
@@ -155,7 +155,7 @@
       if (conditions.indexOf('anxious') !== -1) damage += 0.6;
       if (damage > 0) target.health = round1(clamp(target.health - step * damage, 0, 100));
       else if (target.hunger < 55 && target.thirst < 55 && target.sleep > 45) {
-        // Recuperación lenta cuando las necesidades están cubiertas.
+        // Slow recovery when the needs are covered.
         target.health = round1(clamp(target.health + step * 1.4, 0, 100));
       }
 
@@ -169,7 +169,7 @@
     return { deaths: deaths, criticals: criticals };
   }
 
-  /** Estado legible de un miembro para la UI (sin texto). */
+  /** Readable state of a member for the UI (no text). */
   function status(target) {
     if (!target) return { severity: 0, conditions: [] };
     var worst = Math.max(target.hunger, target.thirst, target.stress, 100 - target.sleep);
@@ -182,7 +182,7 @@
     };
   }
 
-  /** Eficiencia media de la tripulación viva, para puntuar colaboración (P-1). */
+  /** Average efficiency of the living crew, to score collaboration (P-1). */
   function efficiency(state) {
     var alive = state.members.filter(function (target) {
       return target.alive;

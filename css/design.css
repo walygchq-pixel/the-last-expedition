@@ -1,16 +1,16 @@
 /*
- * Fase 1: diseño de misión (DM-1 … DM-14) — consola de ingeniería.
+ * Phase 1: mission design (DM-1 … DM-14) — engineering console.
  *
- * Chasis único de panel físico: cabecera de instrumentación, tres columnas
- * densas con scroll propio y franja de autorización de lanzamiento al pie.
- * Todo se mide en `rem` para que 100/125/150 % escale junto y ninguno de los
- * textos un 30 % más largos rompa botones ni paneles (I-14, S82). Los tokens
- * `--bevel-hi`, `--bevel-lo`, `--scanline`, `--screw` y `--stamp` todavía no
- * viven en `css/main.css`; acá se declaran en el propio chasis y se derivan de
- * los tokens base de `design/system.md`, sin colores nuevos.
+ * Single physical-panel chassis: instrumentation header, three dense columns
+ * with their own scroll and a launch authorisation strip at the foot.
+ * Everything is measured in `rem` so that 100/125/150 % scale together and none of the
+ * text 30 % longer breaks buttons or panels (I-14, S82). The tokens
+ * `--bevel-hi`, `--bevel-lo`, `--scanline`, `--screw` and `--stamp` still do not
+ * live in `css/main.css`; here they are declared in the chassis itself and derived from
+ * the base tokens of `design/system.md`, with no new colours.
  */
 
-/* --- Chasis ----------------------------------------------------------- */
+/* --- Chassis ---------------------------------------------------------- */
 
 .design-screen {
   --bevel-hi: rgba(230, 236, 251, 0.14);
@@ -44,7 +44,7 @@
     0 0.625rem 1.875rem rgba(0, 0, 0, 0.6);
 }
 
-/* Textura de pantalla: por encima del fondo, nunca por encima del contenido. */
+/* Screen texture: above the background, never above the content. */
 .design-screen::after {
   content: "";
   position: absolute;
@@ -109,7 +109,7 @@
   right: 0.5rem;
 }
 
-/* --- Cabecera de estado ---------------------------------------------- */
+/* --- Status header --------------------------------------------------- */
 
 .console-status {
   display: grid;
@@ -304,7 +304,7 @@
   color: var(--critical);
 }
 
-/* --- Rejilla de tres columnas ---------------------------------------- */
+/* --- Three-column grid ----------------------------------------------- */
 
 .console-deck {
   display: grid;
@@ -373,7 +373,7 @@
   color: var(--text-faint);
 }
 
-/* --- Columna izquierda: palancas de versión --------------------------- */
+/* --- Left column: version levers -------------------------------------- */
 
 .part-rack {
   display: flex;
@@ -457,7 +457,7 @@
   box-shadow: none;
 }
 
-/* --- Columna central: mesa de instrumentos ---------------------------- */
+/* --- Middle column: instrument bench ---------------------------------- */
 
 .bench {
   display: flex;
@@ -528,7 +528,7 @@
   line-height: 1.3;
 }
 
-/* Lanzador y órbita. */
+/* Launcher and orbit. */
 .console-pair {
   flex: 0 0 auto;
   display: grid;
@@ -604,7 +604,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* --- Columna derecha: telemetría -------------------------------------- */
+/* --- Right column: telemetry ------------------------------------------ */
 
 .console-resources {
   display: flex;
@@ -749,7 +749,7 @@
   min-width: 0;
 }
 
-/* Totales del diseño: lecturas compactas, sin sombra de tarjeta. */
+/* Design totals: compact readouts, without the card shadow. */
 .design-totals {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 6rem), 1fr));
@@ -770,7 +770,7 @@
   line-height: 1.25;
 }
 
-/* Lista verificable ✔/✘ (DM-2): separadores, no tarjetas. */
+/* Verifiable list ✔/✘ (DM-2): separators, not cards. */
 .requirements {
   display: flex;
   flex-direction: column;
@@ -814,7 +814,7 @@
   color: var(--critical);
 }
 
-/* --- Franja de autorización de lanzamiento ---------------------------- */
+/* --- Launch authorisation strip --------------------------------------- */
 
 .console-permit {
   position: relative;
@@ -994,7 +994,7 @@
   color: var(--text-dim);
 }
 
-/* --- Diseños guardados (panel temporal de la columna izquierda) ------- */
+/* --- Saved designs (temporary left-column panel) ---------------------- */
 
 .saved-list {
   display: flex;
@@ -1013,10 +1013,10 @@
   border-bottom: 0.0625rem dotted var(--line);
 }
 
-/* --- Adaptación: rem escala con el tamaño de texto -------------------- */
+/* --- Adaptation: rem scales with the text size ------------------------ */
 
-/* Por debajo de 62 rem de ancho disponible, la consola pasa a una sola
-   columna y el scroll queda dentro del mazo, nunca en la página. */
+/* Below 62 rem of available width, the console drops to a single
+   column and the scroll stays inside the deck, never on the page. */
 @media (max-width: 62rem) {
   .console-deck {
     grid-template-columns: minmax(0, 1fr);
@@ -1028,8 +1028,8 @@
   }
 }
 
-/* Debajo de 40 rem la cabecera y la franja de permiso también se apilan; el
-   mazo conserva su scroll interno para que la página nunca desborde. */
+/* Below 40 rem the header and the permission strip also stack; the
+   deck keeps its inner scroll so the page never overflows. */
 @media (max-width: 40rem) {
   .console-status {
     grid-template-columns: minmax(0, 1fr);

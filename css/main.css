@@ -1,10 +1,10 @@
 /*
- * Tema base de la interfaz (E-5, S66, S82).
+ * Base theme of the interface (E-5, S66, S82).
  *
- * Consola de misión oscura, sin fuentes ni imágenes externas (RG-6). Todo el
- * texto se dimensiona en `rem` para que los tamaños 100/125/150 % escalen juntos
- * (clase `text-large` / `text-xlarge` en `<html>`), y cada contenedor tolera
- * textos un 30 % más largos sin romper botones, paneles ni HUD (I-14).
+ * Dark mission console, with no external fonts or images (RG-6). All the text
+ * is sized in `rem` so that the 100/125/150 % sizes scale together (class
+ * `text-large` / `text-xlarge` on `<html>`), and every container tolerates
+ * text 30 % longer without breaking buttons, panels or the HUD (I-14).
  */
 
 :root {
@@ -27,9 +27,9 @@
   --critical: #ff7a7a;
   --focus: #ffe082;
 
-  /* Tokens de la consola (design/system.md §11): biseles, tornillos, sello y
-     riel de gauge. Los usan el chasis de diseño, el dock del viaje y la llamada
-     del tutorial. */
+  /* Console tokens (design/system.md §11): bevels, screws, stamp and gauge
+     rail. Used by the design chassis, the travel dock and the tutorial
+     callout. */
   --bevel-hi: rgba(230, 236, 251, 0.14);
   --bevel-lo: rgba(0, 0, 0, 0.55);
   --scanline: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 3px);
@@ -104,14 +104,14 @@ h4 {
   letter-spacing: 0.02em;
 }
 
-/* Las etiquetas de recurso nunca se parten por la mitad: si el texto crece
-   (I-14) el contenedor se reacomoda y la palabra se mantiene entera. */
+/* Resource labels never break in the middle: if the text grows (I-14) the
+   container reflows and the word stays whole. */
 .resource-item__name,
 .resource-item__value,
 .resource-item__status {
-  /* Se permite cortar con guion antes que desbordar la tarjeta: la palabra
-     entera se conserva cuando entra, y el panel nunca empuja el ancho de la
-     pantalla (I-14, S82). */
+  /* Hyphenation is allowed rather than overflowing the card: the whole word
+     is kept when it fits, and the panel never pushes the width of the
+     screen (I-14, S82). */
   overflow-wrap: break-word;
   word-break: normal;
   hyphens: auto;
@@ -139,7 +139,7 @@ a {
   color: var(--accent);
 }
 
-/* --- Estructura ------------------------------------------------------- */
+/* --- Structure -------------------------------------------------------- */
 
 .app-shell {
   display: grid;
@@ -194,7 +194,7 @@ a {
   outline-offset: -4px;
 }
 
-/* --- Controles -------------------------------------------------------- */
+/* --- Controls --------------------------------------------------------- */
 
 button,
 input,
@@ -284,7 +284,7 @@ input[type="search"] {
   max-width: 100%;
 }
 
-/* --- Bloques reutilizables ------------------------------------------- */
+/* --- Reusable blocks ------------------------------------------------- */
 
 .card {
   border: 1px solid var(--line);
@@ -398,7 +398,7 @@ input[type="search"] {
   background: var(--critical);
 }
 
-/* Formas: el estado nunca depende solo del color (RN-2, S29). */
+/* Shapes: status never depends on colour alone (RN-2, S29). */
 .shape {
   display: inline-block;
   width: 0.9rem;
@@ -441,7 +441,7 @@ input[type="search"] {
   color: var(--text-dim);
 }
 
-/* --- Pantallas de título y configuración ----------------------------- */
+/* --- Title and settings screens -------------------------------------- */
 
 .title-screen {
   display: flex;
@@ -493,7 +493,7 @@ input[type="search"] {
   font-size: 0.88rem;
 }
 
-/* --- Tabla simple ----------------------------------------------------- */
+/* --- Simple table ----------------------------------------------------- */
 
 .table {
   width: 100%;
@@ -514,7 +514,7 @@ input[type="search"] {
   font-weight: 600;
 }
 
-/* --- Movimiento reducido --------------------------------------------- */
+/* --- Reduced motion -------------------------------------------------- */
 
 html.reduce-motion *,
 html.reduce-motion *::before,
@@ -535,7 +535,7 @@ html.reduce-motion *::after {
   }
 }
 
-/* --- Disposición estrecha -------------------------------------------- */
+/* --- Narrow layout --------------------------------------------------- */
 
 @media (max-width: 48rem) {
   .screen {

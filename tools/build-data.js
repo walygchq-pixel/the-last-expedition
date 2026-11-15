@@ -1,12 +1,12 @@
 /*
- * Genera `data/data-bundle.js` a partir de los JSON canónicos de `data/`.
+ * Generates `data/data-bundle.js` from the canonical JSON files in `data/`.
  *
- * Motivo (ver contrato C-2 del documento de tareas): `fetch()` de archivos locales
- * está bloqueado por CORS cuando el juego se abre con `file://`, y RG-1 exige abrir
- * `index.html` sin servidor. Los JSON siguen siendo la fuente de verdad; este script
- * los empaqueta en un único script clásico que registra todo en `GS.data`.
+ * Why (see contract C-2 in the task document): `fetch()` of local files
+ * is blocked by CORS when the game is opened with `file://`, and RG-1 requires
+ * opening `index.html` without a server. The JSON files remain the source of truth; this script
+ * packs them into a single classic script that registers everything in `GS.data`.
  *
- * Uso: `node tools/build-data.js` (o `npm run build:data`).
+ * Usage: `node tools/build-data.js` (or `npm run build:data`).
  */
 'use strict';
 
@@ -26,7 +26,7 @@ const HEADER = [
   ' */'
 ].join('\n');
 
-/** Recorre `data/` y devuelve las rutas de todos los `.json`. */
+/** Walks `data/` and returns the paths of every `.json` file. */
 function listJsonFiles(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
@@ -39,12 +39,12 @@ function listJsonFiles(dir, out = []) {
   return out.sort();
 }
 
-/** Clave del registro: ruta relativa a `data/` sin extensión y con `/`. */
+/** Registry key: path relative to `data/`, without the extension and with `/`. */
 function registryKey(file) {
   return path.relative(DATA_DIR, file).split(path.sep).join('/').replace(/\.json$/, '');
 }
 
-/** Serialización canónica: claves ordenadas, para que el hash sea estable. */
+/** Canonical serialization: sorted keys, so the hash stays stable. */
 function canonicalize(value) {
   if (Array.isArray(value)) return value.map(canonicalize);
   if (value && typeof value === 'object') {
@@ -55,7 +55,7 @@ function canonicalize(value) {
   return value;
 }
 
-/** Carga todos los JSON de `data/` y calcula el hash del conjunto. */
+/** Loads every JSON file under `data/` and hashes the whole set. */
 function loadData() {
   const files = listJsonFiles(DATA_DIR).map((file) => ({
     file,
@@ -80,7 +80,7 @@ function loadData() {
   return { registry, hash: hasher.digest('hex'), keys: files.map((item) => item.key) };
 }
 
-/** Construye el texto del bundle. */
+/** Builds the bundle text. */
 function renderBundle(registry, hash, keys) {
   const lines = [HEADER, '(function (global) {', "  'use strict';", '  var GS = (global.GS = global.GS || {});', '  GS.data = GS.data || {};'];
   for (const key of keys) {

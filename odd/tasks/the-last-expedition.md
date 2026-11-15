@@ -187,6 +187,7 @@ que cada clave exista en los dos idiomas.
 | T2 | S70–S83: `js/i18n/*` + locales base + pruebas | parent | hecho |
 | T3 | S27–S54: `js/core/*` (rng, recursos, sistemas, tripulación, comida, consecuencias, eventos, efectos, datos, comms, tiempo, puntaje, game) | parent | hecho |
 | T4 | S13–S26: `js/mission/{catalog,design}.js` | parent | hecho |
+| T12 | S33 (V-4): la tecla de interactuar no ejecutaba ninguna acción; sólo cambiaba el jugador seleccionado. Afecta a los cuatro jugadores. | worker | hecho |
 | T11 | S21–S26, S43–S45, S84: `data/{launchers,orbits,objectives,scenarios,food,events}.json` + claves EN/ES + `tests/mission.test.js` | worker | hecho |
 | T5 | S59–S61: `js/storage/*` + `tests/storage.test.js` | parent | hecho |
 | T6 | S7–S12, S30–S34, S86: `js/world/*` + `data/{shipLayout,objects}.json` + `tests/world.test.js` | worker | hecho |
@@ -270,3 +271,14 @@ que cada clave exista en los dos idiomas.
   así que las excepciones del arranque no se veían).
   Total de la cadena: **8 transacciones aprobadas**, 25 ejecuciones de modelo,
   ~820k tokens, ~0,31 USD. Suite: **95 pruebas** en verde y humo sin problemas.
+
+- **L9 (reporte del humano).** «encontre un error muy notable que es que con el jugador 1
+  no puedo interactuar con nada esto con la tecla E, no se si pase con el resto de
+  jugadores». Reproducido por lectura: `js/ui/travelScreen.js` consume el flanco de
+  `interact` sólo para fijar `runtime.selected`; nunca busca el objeto cercano ni
+  ejecuta la acción, así que la tecla no hace nada con ninguno de los cuatro
+  jugadores y la interacción queda únicamente en los botones del panel.
+  Arreglado en `js/ui/travelScreen.js`: el flanco ahora busca el objeto al alcance
+  del jugador que pulsó, ejecuta la acción si es única y abre una capa modal con
+  etiqueta y consecuencia estimada si hay varias; sin objeto, avisa. El humo
+  despacha un `keydown` real de `KeyE` en el viaje y exige una reacción.

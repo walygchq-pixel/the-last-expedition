@@ -262,9 +262,14 @@
 
     var overlayHost = ctx.el('div', { id: 'travel-event' });
     sections.event = overlayHost;
+    // Capa de interacción por teclado (V-4): se dibuja encima del canvas cuando
+    // el objeto al alcance tiene más de una acción aplicable.
+    var interactionHost = ctx.el('div', { id: 'travel-interaction' });
+    sections.interaction = interactionHost;
     root.appendChild(view);
     root.appendChild(side);
     root.appendChild(overlayHost);
+    root.appendChild(interactionHost);
 
     /* --- Acciones ---------------------------------------------------- */
 
@@ -611,10 +616,7 @@
           type: 'button',
           class: 'action-button',
           onclick: function () {
-            var result = objectsModule.interact(world, object.id, action.id, selectedId());
-            if (result && result.codes && typeof ctx.toastCodes === 'function') ctx.toastCodes(result.codes);
-            gameModule.recomputeResources(game);
-            invalidate();
+            applyObjectAction(selectedId(), object, action);
           }
         }, [ctx.el('span', { text: t(action.labelKey) })]);
         if (action.estimateKey) {
@@ -992,6 +994,173 @@
       return overlay;
     }
 
+    /* --- Interacción con la tecla de interactuar (S33, V-4) ---------- */
+
+    /**
+     * Estados en los que el flanco de `interact` se ignora: con el reloj en
+     * pausa se están revisando consecuencias, y un evento o una votación ya
+     * tienen su propia capa encima del canvas (V-4).
+     */
+    function interactionBlocked() {
+      if (!game || !game.clock) return true;
+      if (game.clock.paused) return true;
+      if (game.vote) return true;
+      return (game.pendingEvents || []).length > 0;
+    }
+
+    /** Objeto al alcance del jugador; respeta `objects.REACH` (V-4). */
+    function objectInReach(playerId) {
+      var near = worldModule.nearest(world, playerId);
+      return near ? near.object : null;
+    }
+
+    /**
+     * Ejecuta una acción del objeto por la misma ruta que los botones del panel:
+     * `world/objects.interact` aplica los efectos y `core/game` recalcula los
+     * recursos (C-7). El `estimate` de la acción sigue visible en el panel.
+     */
+    function applyObjectAction(playerId, object, action) {
+      var result = objectsModule.interact(world, object.id, action.id, playerId);
+      if (result && result.codes && typeof ctx.toastCodes === 'function') ctx.toastCodes(result.codes);
+      gameModule.recomputeResources(game);
+      invalidate();
+      return result;
+    }
+
+    function closeInteraction() {
+      if (!runtime.interaction) return false;
+      runtime.interaction = null;
+      invalidate();
+      return true;
+    }
+
+    /**
+     * Atiende el flanco de `interact` de un jugador: lo selecciona, busca el
+     * objeto al alcance y ejecuta la única acción aplicable o abre la capa de
+     * interacción. Devuelve un código estable para las pruebas:
+     * `blocked` | `no_object` | `no_action` | `acted` | `overlay`.
+     */
+    function handleInteract(playerId) {
+      var member = memberById(playerId);
+      // Un tripulante muerto no interactúa: `runtime.selected` tiene que seguir
+      // apuntando a alguien vivo para el resto de la pantalla.
+      if (!member || !member.alive) return 'blocked';
+      if (interactionBlocked()) return 'blocked';
+      runtime.selected = playerId;
+      invalidate();
+
+      var object = objectInReach(playerId);
+      if (!object) {
+        if (typeof ctx.toastCodes === 'function') ctx.toastCodes([{ code: 'travel.no_object_in_reach' }]);
+        return 'no_object';
+      }
+
+      var actions = objectsModule.actions(object);
+      if (actions.length === 0) {
+        if (typeof ctx.toastCodes === 'function') ctx.toastCodes([{ code: 'travel.no_action_available' }]);
+        return 'no_action';
+      }
+      if (actions.length === 1) {
+        applyObjectAction(playerId, object, actions[0]);
+        return 'acted';
+      }
+
+      runtime.interaction = { playerId: playerId, objectId: object.id };
+      invalidate();
+      return 'overlay';
+    }
+
+    /** Jugadores que pulsaron interactuar en este cuadro, en orden de jugador. */
+    function interactFlanks(controls) {
+      return Object.keys(controls).filter(function (playerId) {
+        return !!(controls[playerId] && controls[playerId].interact);
+      });
+    }
+
+    /**
+     * Capa de interacción (V-4): nombre, descripción y un botón por acción con
+     * su etiqueta y su consecuencia estimada. Sigue el patrón de la capa de
+     * eventos: `overlay` + `dialog` modal con el foco dentro y Escape para
+     * cerrar; un botón Cancelar o un clic fuera también la cierran.
+     */
+    function buildInteraction() {
+      var current = runtime.interaction;
+      if (!current) return null;
+      var object = objectsModule.find(world, current.objectId);
+      var actions = object ? objectsModule.actions(object) : [];
+      // La capa nunca convive con un evento, una votación o una pausa.
+      if (!object || actions.length === 0 || interactionBlocked()) return null;
+
+      var overlay = ctx.el('div', {
+        class: 'overlay',
+        id: 'travel-interaction-overlay',
+        onclick: function (event) {
+          if (!event || event.target === overlay) closeInteraction();
+        }
+      });
+      var dialog = ctx.el('div', {
+        class: 'dialog dialog--narrow',
+        role: 'dialog',
+        'aria-modal': 'true',
+        'aria-labelledby': 'interaction-title',
+        'aria-describedby': 'interaction-desc',
+        onkeydown: function (event) {
+          if (!event || event.key !== 'Escape') return;
+          if (typeof event.preventDefault === 'function') event.preventDefault();
+          closeInteraction();
+        }
+      });
+      dialog.appendChild(
+        ctx.el('div', { class: 'dialog__head' }, [
+          ctx.el('h2', { id: 'interaction-title', text: t(object.nameKey) }),
+          ctx.el('span', { class: 'badge', text: t('travel.object_title') })
+        ])
+      );
+      dialog.appendChild(ctx.el('p', { id: 'interaction-desc', text: t(object.descKey) }));
+
+      var list = ctx.el('div', {
+        class: 'event-options',
+        role: 'group',
+        'aria-label': t('travel.interaction_label')
+      });
+      actions.forEach(function (action) {
+        var content = [ctx.el('strong', { text: t(action.labelKey) })];
+        if (action.estimateKey) content.push(ctx.el('span', { class: 'estimate', text: t(action.estimateKey) }));
+        list.appendChild(
+          ctx.el('button', {
+            type: 'button',
+            class: 'event-option',
+            onclick: function () {
+              closeInteraction();
+              applyObjectAction(current.playerId, object, action);
+            }
+          }, content)
+        );
+      });
+      list.appendChild(
+        ctx.el('button', {
+          type: 'button',
+          class: 'ghost',
+          text: t('common.cancel'),
+          onclick: function () {
+            closeInteraction();
+          }
+        })
+      );
+      dialog.appendChild(list);
+      overlay.appendChild(dialog);
+
+      // El foco entra en la capa para recorrerla y cerrarla con el teclado.
+      if (ctx.doc && typeof setTimeout === 'function') {
+        setTimeout(function () {
+          if (!runtime.interaction) return;
+          var first = typeof dialog.querySelector === 'function' ? dialog.querySelector('button') : null;
+          if (first && typeof first.focus === 'function' && ctx.doc.activeElement !== first) first.focus();
+        }, 0);
+      }
+      return overlay;
+    }
+
     function paintAll() {
       var clock = game.clock;
       var currentPrefs = ctx.getPrefs();
@@ -1159,6 +1328,20 @@
       var lastNotice = (game.notices || [])[game.notices.length - 1];
       paint('caption', JSON.stringify({ captions: ctx.getPrefs().captions, note: lastNotice ? lastNotice.id : null }), buildCaption);
       paint('event', game.pendingEvents.length > 0 ? game.pendingEvents[0].uid : 'none', buildEvent);
+
+      // La capa de interacción se cierra sola si el objeto deja de estar al
+      // alcance o si aparece un evento, una votación o una pausa (V-4).
+      if (runtime.interaction && interactionBlocked()) runtime.interaction = null;
+      var interactionSignature = 'none';
+      if (runtime.interaction) {
+        var interactionObject = objectsModule.find(world, runtime.interaction.objectId);
+        interactionSignature = [
+          runtime.interaction.playerId,
+          runtime.interaction.objectId,
+          interactionObject ? objectsModule.actions(interactionObject).length : 0
+        ].join('|');
+      }
+      paint('interaction', interactionSignature, buildInteraction);
     }
 
     /* --- Bucle ------------------------------------------------------- */
@@ -1186,12 +1369,17 @@
       lastTs = timestamp;
 
       var controls = inputModule.poll(input);
-      Object.keys(controls).forEach(function (playerId) {
-        if (controls[playerId] && controls[playerId].interact) {
-          runtime.selected = playerId;
-          invalidate();
-        }
-      });
+      // Interacción por teclado (S33, V-4): se atiende un jugador por cuadro y
+      // los demás flancos esperan al siguiente, así dos teclas pulsadas a la vez
+      // no se pisan.
+      var interactQueue = (runtime.interactQueue || []).concat(interactFlanks(controls));
+      runtime.interactQueue = [];
+      if (interactQueue.length > 0) {
+        // Si el flanco se ignora (pausa, evento, votación o tripulante muerto)
+        // no queda nada pendiente: la cola se descarta entera.
+        var outcome = handleInteract(interactQueue[0]);
+        runtime.interactQueue = outcome === 'blocked' ? [] : interactQueue.slice(1);
+      }
 
       worldModule.step(world, controls, delta / 1000);
       var result = gameModule.tick(game, delta);

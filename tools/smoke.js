@@ -410,6 +410,26 @@ async function main() {
       screenshots.push(await capture(client, step.name));
     }
 
+    // T12/S33: la tecla de interactuar tiene que provocar algo en el viaje — la capa
+    // de acciones del objeto cercano o el aviso de que no hay ninguno al alcance.
+    // Antes del arreglo el flanco sólo cambiaba el jugador seleccionado.
+    const inTravel = await client.evaluate('!!document.querySelector("canvas")');
+    if (inTravel) {
+      const snapshot = () =>
+        client.evaluate(
+          'document.getElementById("toasts").childElementCount + "/" + (document.getElementById("travel-interaction") ? document.getElementById("travel-interaction").childElementCount : -1)'
+        );
+      const beforeInteract = await snapshot();
+      await client.send('Input.dispatchKeyEvent', { type: 'keyDown', code: 'KeyE', key: 'e', windowsVirtualKeyCode: 69, nativeVirtualKeyCode: 69 });
+      await client.send('Input.dispatchKeyEvent', { type: 'keyUp', code: 'KeyE', key: 'e', windowsVirtualKeyCode: 69, nativeVirtualKeyCode: 69 });
+      await sleep(700);
+      const afterInteract = await snapshot();
+      if (afterInteract === beforeInteract) {
+        problems.push('la tecla de interactuar (E) no produjo ninguna reacción en el viaje (' + beforeInteract + ')');
+      }
+      screenshots.push(await capture(client, 'interact'));
+    }
+
     // Cambio de idioma en vivo (I-2): el texto visible debe cambiar sin recargar.
     const beforeLang = await client.evaluate('window.__tleSmoke.visibleText()');
     // El botón de idioma muestra el idioma al que se va a cambiar: después del

@@ -1,0 +1,12 @@
+{
+  "en": {
+    "travel.interaction_label": "Actions of the object in reach",
+    "travel.no_action_available": "This object has no actions left.",
+    "travel.no_object_in_reach": "Nothing within reach: walk closer to an object."
+  },
+  "es": {
+    "travel.interaction_label": "Acciones del objeto al alcance",
+    "travel.no_action_available": "Este objeto no tiene acciones disponibles.",
+    "travel.no_object_in_reach": "No hay nada al alcance: acércate a un objeto."
+  }
+}

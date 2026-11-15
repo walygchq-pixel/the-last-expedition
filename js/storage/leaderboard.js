@@ -1,8 +1,8 @@
 /*
- * Tabla de clasificación local por escenario y dificultad (P-4, S-17).
+ * Local leaderboard by scenario and difficulty (P-4, S-17).
  *
- * Guarda solo valores y claves: escenario, dificultad, puntaje, resultado y día
- * final. Al mostrarla, la UI traduce nombres y etiquetas con el idioma activo.
+ * It stores only values and keys: scenario, difficulty, score, outcome and final
+ * day. When displaying it, the UI translates names and labels into the active language.
  */
 (function (global, factory) {
   'use strict';
@@ -25,13 +25,13 @@
   }
 
   /**
-   * Agrega una entrada a partir de un informe de misión.
-   * @param {Object} report informe de `core/scoring.buildReport`
+   * Appends an entry from a mission report.
+   * @param {Object} report report from `core/scoring.buildReport`
    */
   function add(report, now) {
     if (!report || !report.scenarioId || !report.difficultyId) return { ok: false, code: 'lb.invalid_report' };
     var entry = {
-      // Sin `Math.random()`: el identificador sale del reloj y del largo actual (C-4).
+      // No `Math.random()`: the identifier comes from the clock and current length (C-4).
       id: String(now || Date.now()) + '-' + (readAll().length + 1),
       createdAt: new Date(now || Date.now()).toISOString(),
       scenarioId: report.scenarioId,
@@ -57,7 +57,7 @@
     return { ok: result.ok, code: result.code || null, entry: entry, rank: trimmed.indexOf(entry) + 1 };
   }
 
-  /** Entradas de un escenario y dificultad, de mayor a menor puntaje. */
+  /** Entries for a scenario and difficulty, from highest to lowest score. */
   function list(scenarioId, difficultyId) {
     return readAll()
       .filter(function (entry) {
@@ -68,7 +68,7 @@
       });
   }
 
-  /** Mejor puntaje conocido para una combinación escenario/dificultad. */
+  /** Best known score for a scenario/difficulty combination. */
   function best(scenarioId, difficultyId) {
     var entries = list(scenarioId, difficultyId);
     return entries.length > 0 ? entries[0] : null;

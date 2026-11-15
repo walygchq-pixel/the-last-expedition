@@ -1,10 +1,10 @@
 /*
- * Exportación e importación de diseños, partidas e informes como JSON (G-2, M-3).
+ * Exporting and importing designs, saves and reports as JSON (G-2, M-3).
  *
- * El archivo guarda claves, identificadores y valores; nunca texto traducido
- * (I-10). Un informe o diseño exportado en un idioma se puede importar en el otro
- * sin pérdida. También vive acá el comparador de dos piezas (G-3), delegando el
- * cálculo a `core/scoring.compare`.
+ * The file stores keys, identifiers and values; never translated text (I-10).
+ * A report or design exported in one language can be imported in the other
+ * without loss. The two-piece comparator (G-3) also lives here, delegating the
+ * calculation to `core/scoring.compare`.
  */
 (function (global, factory) {
   'use strict';
@@ -21,7 +21,7 @@
   var FORMAT = 'the-last-expedition';
   var KIND = { DESIGN: 'design', SAVE: 'save', REPORT: 'report' };
 
-  /** Serializa una pieza a texto JSON con cabecera identificable. */
+  /** Serializes a piece to JSON text with an identifiable header. */
   function exportJson(kind, payload, options) {
     var opts = options || {};
     return JSON.stringify(
@@ -39,8 +39,8 @@
   }
 
   /**
-   * Lee un texto exportado. Devuelve `{ok, kind, data}` o `{ok:false, code}`.
-   * No interpreta ni traduce el contenido: solo valida la envoltura.
+   * Reads exported text. Returns `{ok, kind, data}` or `{ok:false, code}`.
+   * It neither interprets nor translates the content: it only validates the envelope.
    */
   function importJson(text) {
     var parsed;
@@ -52,15 +52,15 @@
     if (!parsed || parsed.format !== FORMAT) return { ok: false, code: 'import.invalid_format' };
     if (parsed.version !== 1) return { ok: false, code: 'import.unsupported_version', params: { version: parsed.version } };
     if (!parsed.data || typeof parsed.data !== 'object') return { ok: false, code: 'import.invalid_payload' };
-    // I-10: si el archivo trae texto ya traducido, se descarta en silencio.
+    // I-10: if the file carries already translated text, it is dropped silently.
     var sanitized = stripTranslatedText(parsed.data);
     return { ok: true, kind: parsed.kind, data: sanitized, exportedAt: parsed.exportedAt };
   }
 
   /*
-   * Campos que, por convención, llevarían el texto ya traducido. Las claves i18n
-   * (`*Key`) siempre se conservan: el archivo importado guarda claves y valores,
-   * nunca texto (I-10, hallazgo R3-001).
+   * Fields that, by convention, would carry already translated text. i18n keys
+   * (`*Key`) are always kept: the imported file stores keys and values, never
+   * text (I-10, finding R3-001).
    */
   var TRANSLATED_FIELDS = {
     translatedText: true,
@@ -74,7 +74,7 @@
     title: true
   };
 
-  /** Elimina en profundidad cualquier campo con texto ya traducido. */
+  /** Removes, in depth, any field holding already translated text. */
   function stripTranslatedText(node) {
     if (Array.isArray(node)) return node.map(stripTranslatedText);
     if (!node || typeof node !== 'object') return node;
@@ -86,14 +86,14 @@
     return out;
   }
 
-  /** Compara dos diseños o dos informes (G-3). */
+  /** Compares two designs or two reports (G-3). */
   function compare(a, b) {
     return scoring.compare(a, b);
   }
 
   /**
-   * Descarga un archivo en el navegador. Aislado para que los tests de Node no
-   * necesiten DOM.
+   * Downloads a file in the browser. Isolated so the Node tests do not need a
+   * DOM.
    */
   function download(filename, text) {
     if (typeof document === 'undefined') return false;
@@ -109,7 +109,7 @@
     return true;
   }
 
-  /** Lee un archivo elegido por el jugador. Devuelve una promesa con el texto. */
+  /** Reads a file chosen by the player. Returns a promise with the text. */
   function readFile(file) {
     return new Promise(function (resolve, reject) {
       if (!file) {
@@ -127,7 +127,7 @@
     });
   }
 
-  /** Nombre de archivo estable derivado de las claves, sin texto traducido. */
+  /** Stable file name derived from the keys, without translated text. */
   function filenameFor(kind, subject, now) {
     var date = new Date(now || Date.now()).toISOString().slice(0, 10);
     var subjectId = (subject || 'mission').replace(/[^a-zA-Z0-9_.-]/g, '-');

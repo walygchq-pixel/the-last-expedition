@@ -1,12 +1,12 @@
 /*
- * Jugadores dentro de la nave (S7, S8, S19, S34).
+ * Players inside the ship (S7, S8, S19, S34).
  *
- * Movimiento por casillas con colisión únicamente contra paredes: los jugadores
- * **sí** pueden ocupar la misma casilla, porque S19 prohíbe la colisión entre
- * jugadores. El inventario es limitado (2 objetos, 3 con mochila mejorada) y se
- * puede intercambiar objetos entre jugadores.
+ * Cell movement with collision against walls only: players **can** share the
+ * same cell, because S19 forbids collision between players. The inventory is
+ * limited (2 objects, 3 with the upgraded backpack) and objects can be
+ * exchanged between players.
  *
- * Nada de DOM ni de texto: devuelve códigos y claves (C-3, RG-4).
+ * No DOM and no text: it returns codes and keys (C-3, RG-4).
  */
 (function (global, factory) {
   'use strict';
@@ -20,11 +20,11 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (pathfinding, objects) {
   'use strict';
 
-  var DEFAULT_SPEED = 2.4; // casillas por segundo
+  var DEFAULT_SPEED = 2.4; // cells per second
   var DEFAULT_CAPACITY = 2;
   var UPGRADED_CAPACITY = 3;
   var REACH = 2.5;
-  var MAX_STEP = 0.25; // evita atravesar paredes con dt grandes
+  var MAX_STEP = 0.25; // prevents walking through walls with large dt
 
   function code(name, params) {
     return { code: name, params: params || {} };
@@ -56,9 +56,9 @@
   }
 
   /**
-   * Crea los jugadores sobre sus puntos de aparición.
-   * @param {Object} map mapa de `world/shipMap`
-   * @param {Array<string|{id:string,role:string}>} roles 1–4 roles de tripulación
+   * Creates the players on their spawn points.
+   * @param {Object} map map from `world/shipMap`
+   * @param {Array<string|{id:string,role:string}>} roles 1–4 crew roles
    * @param {Object} [options] `{speed, capacity}`
    */
   function create(map, roles, options) {
@@ -67,7 +67,7 @@
     var list = players.map(function (entry, index) {
       var base = normalizeRole(entry, index);
       var cell = { x: 0, y: 0 };
-      // `map.spawn` ya viene validado por `world/shipMap`; se reparte en ciclo.
+      // `map.spawn` is already validated by `world/shipMap`; it wraps around.
       if (map && map.spawn && map.spawn.length) {
         var point = map.spawn[index % map.spawn.length];
         cell = { x: point.x, y: point.y };
@@ -101,12 +101,12 @@
 
   function canStand(map, x, y) {
     if (!map) return false;
-    // La casilla que ocupa el jugador es la que contiene su posición: así el
-    // cuerpo nunca se solapa con una pared (solo hay colisión con paredes, S19).
+    // The cell the player occupies is the one holding its position: that way
+    // the body never overlaps a wall (travel collides with walls only, S19).
     return pathfinding.walkable(map, { x: Math.floor(x), y: Math.floor(y) });
   }
 
-  /** Mueve un jugador en línea recta con pasos pequeños y colisión por eje. */
+  /** Moves one player in a straight line with small steps and per-axis collision. */
   function movePlayer(map, player, dx, dy) {
     if (dx === 0 && dy === 0) {
       player.moving = false;
@@ -136,12 +136,12 @@
   }
 
   /**
-   * Avanza a todos los jugadores con el estado de entrada de un cuadro.
-   * @param {Object} target mundo o estado de jugadores
-   * @param {Object} input estado de `world/input.poll` (o el controlador entero)
-   * @param {number} dt segundos reales transcurridos
-   * @param {Object} [grid] mapa cuando se pasa el estado de jugadores suelto
-   * @returns {{moved:number, blocked:number}} casillas recorridas en total
+   * Advances every player with one frame's input state.
+   * @param {Object} target world or players state
+   * @param {Object} input state from `world/input.poll` (or the whole controller)
+   * @param {number} dt real seconds elapsed
+   * @param {Object} [grid] map when the players state is passed on its own
+   * @returns {{moved:number, blocked:number}} cells travelled in total
    */
   function move(target, input, dt, grid) {
     var state = playersOf(target);
@@ -175,7 +175,7 @@
     return { moved: Math.round(total * 100) / 100, active: active };
   }
 
-  /** Capacidad de inventario, con la mejora de mochila (S34). */
+  /** Inventory capacity, with the backpack upgrade (S34). */
   function capacityOf(world, player) {
     if (!player) return DEFAULT_CAPACITY;
     var upgraded = world && world.game && world.game.flags && world.game.flags.backpackUpgraded;
@@ -191,9 +191,9 @@
   }
 
   /**
-   * Recoge un objeto portable y lo guarda en el inventario del jugador.
-   * Respeta el límite de 2 objetos (3 con mochila mejorada) y evita que dos
-   * jugadores lleven el mismo objeto.
+   * Picks up a portable object and stores it in the player's inventory.
+   * It honours the limit of 2 objects (3 with the upgraded backpack) and keeps
+   * two players from carrying the same object.
    */
   function pickup(world, playerId, objectId) {
     var state = playersOf(world);
@@ -226,11 +226,11 @@
   }
 
   /**
-   * Intercambia un objeto entre dos jugadores (V-5, S34).
+   * Exchanges an object between two players (V-5, S34).
    * @param {Object} world
-   * @param {string|Object} fromId jugador que entrega
-   * @param {string|Object} toId jugador que recibe
-   * @param {string} itemId objeto que ya lleva el primero
+   * @param {string|Object} fromId player handing it over
+   * @param {string|Object} toId player receiving it
+   * @param {string} itemId object the first one already carries
    */
   function give(world, fromId, toId, itemId) {
     var state = playersOf(world);

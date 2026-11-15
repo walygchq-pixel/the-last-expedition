@@ -1,13 +1,13 @@
 /*
- * Entrada local para 1–4 jugadores (S8, S14).
+ * Local input for 1–4 players (S8, S14).
  *
- * Teclados por defecto: P1 WASD + E, P2 flechas + Enter, P3 IJKL + Ñ, P4 teclado
- * numérico. Los enlaces son reasignables (`bind`) y opcionalmente se puede sumar
- * un mando por la Gamepad API.
+ * Default keyboards: P1 WASD + E, P2 arrows + Enter, P3 IJKL + Ñ, P4 numeric
+ * keypad. Bindings can be reassigned (`bind`) and a gamepad can optionally be
+ * added through the Gamepad API.
  *
- * El módulo no toca el DOM al cargarse: los listeners se registran recién en el
- * primer `poll` y solo si existe `document` (C-1). Las pruebas usan `press` y
- * `release` para simular teclas sin navegador.
+ * The module does not touch the DOM at load time: listeners are registered only
+ * on the first `poll` and only if `document` exists (C-1). Tests use `press` and
+ * `release` to simulate keys without a browser.
  */
 (function (global, factory) {
   'use strict';
@@ -25,8 +25,8 @@
   var MAX_PLAYERS = 4;
 
   /**
-   * Enlaces por defecto. La tecla Ñ tiene el código físico `Semicolon` en las
-   * distribuciones latinoamericanas y españolas, que es lo que entrega el DOM.
+   * Default bindings. The Ñ key has the physical code `Semicolon` on Latin
+   * American and Spanish layouts, which is what the DOM reports.
    */
   function defaults() {
     return {
@@ -45,7 +45,7 @@
     return out;
   }
 
-  /** Crea el controlador de entrada a partir de unos enlaces (o los de fábrica). */
+  /** Creates the input controller from some bindings (or the factory ones). */
   function createInput(bindings) {
     return {
       bindings: cloneBindings(bindings || defaults()),
@@ -56,7 +56,7 @@
     };
   }
 
-  /** Reasigna una tecla de un jugador (S8). Devuelve `false` si la acción no existe. */
+  /** Rebinds one player's key (S8). Returns `false` if the action does not exist. */
   function bind(input, playerId, action, code) {
     if (!input || ACTIONS.indexOf(action) === -1 || !playerId || !code) return false;
     input.bindings[playerId] = input.bindings[playerId] || {};
@@ -84,14 +84,14 @@
     });
   }
 
-  /** Registra los listeners de teclado una sola vez y solo si hay DOM. */
+  /** Registers the keyboard listeners only once and only if a DOM exists. */
   function attach(input) {
     if (!input || input.attached) return false;
     if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return false;
     input.handler = function (event) {
       if (event.type === 'keydown') {
-        // `event.repeat` marca la repetición automática del sistema: para el
-        // juego no es una pulsación nueva (R3-002).
+        // `event.repeat` marks the system's automatic repeat: for the game it
+        // is not a new press (R3-002).
         if (!event.repeat) press(input, event.code);
         if (event.preventDefault && isGameCode(input, event.code)) event.preventDefault();
       } else {
@@ -114,8 +114,8 @@
   }
 
   /**
-   * Estado de los mandos conectados (S14). Devuelve un arreglo con un estado por
-   * mando (posiciones vacías para los no conectados) y `[]` si no hay Gamepad API.
+   * State of the connected gamepads (S14). Returns an array with one state per
+   * pad (empty entries for the unconnected ones) and `[]` if there is no Gamepad API.
    */
   function gamepad() {
     var nav = typeof navigator !== 'undefined' ? navigator : null;
@@ -164,8 +164,8 @@
   }
 
   /**
-   * Lee el estado del cuadro. Devuelve `{p1:{up,down,left,right,interact}, …}`.
-   * `interact` es de flanco: solo es `true` en el cuadro en que se presionó.
+   * Reads the frame's state. Returns `{p1:{up,down,left,right,interact}, …}`.
+   * `interact` is edge-triggered: it is only `true` on the frame it was pressed.
    */
   function poll(input) {
     var out = {};

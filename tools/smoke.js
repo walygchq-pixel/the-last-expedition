@@ -51,6 +51,22 @@ function parseArgs(argv) {
   return options;
 }
 
+/** Espera a que la página termine de cargar y monte la primera pantalla. */
+async function waitForReady(client, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const state = await client.evaluate('document.readyState');
+    if (state === 'complete') {
+      const mounted = await client.evaluate(
+        '!!(document.getElementById("screen") && document.getElementById("screen").childElementCount > 0)'
+      );
+      if (mounted) return true;
+    }
+    await sleep(120);
+  }
+  return false;
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -295,14 +311,20 @@ async function main() {
 
   try {
     await waitForEndpoint(options.port, 15000);
-    const created = await fetch(`http://127.0.0.1:${options.port}/json/new?${encodeURIComponent(options.url)}`, { method: 'PUT' });
+    // El target se crea en blanco: la navegación va después de `Runtime.enable`,
+    // porque CDP no reenvía las excepciones ni los mensajes de consola ocurridos
+    // antes de habilitar el dominio y un error de arranque quedaba invisible
+    // mientras el humo informaba éxito (R4-001).
+    const created = await fetch(`http://127.0.0.1:${options.port}/json/new?about:blank`, { method: 'PUT' });
     const target = await created.json();
     const client = createClient(target.webSocketDebuggerUrl);
     await client.ready;
     await client.send('Page.enable');
     await client.send('Runtime.enable');
     await client.send('Log.enable');
-    await sleep(1800);
+    await client.send('Page.navigate', { url: options.url });
+    const ready = await waitForReady(client, 10000);
+    if (!ready) problems.push('la aplicación no llegó a montar la primera pantalla en 10 s');
     await client.evaluate(helpers);
 
     const screenshots = [];

@@ -1,16 +1,16 @@
 /*
- * Fase 1: diseño de misión (DM-1 … DM-14).
+ * Phase 1: mission design (DM-1 … DM-14).
  *
- * La pantalla no guarda estado propio: el diseño vive en `shell.state.design`,
- * así que cambiar de idioma o re-renderizar no pierde ninguna elección (I-2).
- * Cada cambio de pieza llama a `mission/design`, que recalcula los totales, y la
- * pantalla sólo vuelve a pintar las secciones derivadas: telemetría, lista
- * verificable y permiso de despegue (DM-5, DM-2, DM-11).
+ * The screen keeps no state of its own: the design lives in `shell.state.design`,
+ * so switching language or re-rendering loses no choice (I-2). Each part change
+ * calls `mission/design`, which recomputes the totals, and the screen only
+ * repaints the derived sections: telemetry, the verifiable list and the launch
+ * permit (DM-5, DM-2, DM-11).
  *
- * La composición es un chasis de consola de nave: cabecera de instrumentación,
- * tres columnas densas con scroll propio y franja de autorización al pie. No usa
- * anchos fijos en píxeles: todo va en `rem` para que 100/125/150 % escale junto
- * (I-14, S82).
+ * The composition is a spacecraft console chassis: instrumentation header, three
+ * dense columns with their own scroll and an authorization strip at the foot. It
+ * uses no fixed widths in pixels: everything is in `rem` so that 100/125/150 %
+ * scales along with it (I-14, S82).
  */
 (function (global, factory) {
   'use strict';
@@ -29,8 +29,8 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (catalog, designModule, saves, transfer) {
   'use strict';
 
-  // Iconos de recurso según `resources.ICONS` (C-6). Son símbolos neutros al
-  // idioma: el nombre traducido va al lado, así que nunca dependen sólo del icono.
+  // Resource icons following `resources.ICONS` (C-6). They are language-neutral
+  // symbols: the translated name sits beside them, so they never rely on the icon alone.
   var ICON_GLYPHS = {
     weight: '\u2696',
     bolt: '\u26A1',
@@ -49,8 +49,8 @@
   }
 
   /**
-   * Pantalla completa de diseño. Devuelve `{id, node}` para el router.
-   * @param {Object} ctx ayudantes y estado de `js/ui/shell`
+   * Full design screen. Returns `{id, node}` for the router.
+   * @param {Object} ctx helpers and state from `js/ui/shell`
    */
   function create(ctx) {
     var t = ctx.t;
@@ -72,7 +72,7 @@
       'aria-label': t('design.title')
     });
 
-    /* --- Ayudantes de formato ---------------------------------------- */
+    /* --- Formatting helpers ------------------------------------------ */
 
     function totalsOf() {
       return design.totals && design.totals.mass !== undefined ? design.totals : designModule.refresh(design);
@@ -129,9 +129,9 @@
       return designModule.validateLaunch(design);
     }
 
-    /* --- Chasis y cabecera de estado --------------------------------- */
+    /* --- Chassis and status header ----------------------------------- */
 
-    // Tornillos del marco: decorativos, fuera del flujo de la rejilla.
+    // Frame screws: decorative, outside the grid flow.
     function buildScrews() {
       return ['tl', 'tr', 'bl', 'br'].map(function (corner) {
         return ctx.el('span', {
@@ -163,8 +163,8 @@
           })
         })
       );
-      // La descripción completa y el informe del escenario quedan a un foco o
-      // un hover: la franja de estado muestra lo accionable y no se come el mazo.
+      // The full description and the scenario brief stay one focus or hover
+      // away: the status strip shows what is actionable and does not eat the deck.
       var details = [];
       if (objective) details.push(t(objective.descKey));
       if (scenario.briefKey) details.push(t(scenario.briefKey));
@@ -238,7 +238,7 @@
       return head;
     }
 
-    /* --- Columna izquierda: 12 grupos con palanca simple/avanzada ---- */
+    /* --- Left column: 12 part groups with simple/advanced lever ------ */
 
     function buildParts() {
       var panel = ctx.el('section', {
@@ -310,7 +310,7 @@
       return unit;
     }
 
-    /* --- Columna central: mesa de instrumentos ----------------------- */
+    /* --- Center column: instrument bench ----------------------------- */
 
     function buildInstruments() {
       var panel = ctx.el('section', {
@@ -402,7 +402,7 @@
       return row;
     }
 
-    /* --- Lanzador y órbita: selectores de consola -------------------- */
+    /* --- Launcher and orbit: console pickers -------------------------- */
 
     function buildPicks() {
       return ctx.el('div', { class: 'console-pair' }, [buildLaunchers(), buildOrbits()]);
@@ -518,7 +518,7 @@
       ]);
     }
 
-    /* --- Columna derecha: telemetría -------------------------------- */
+    /* --- Right column: telemetry ------------------------------------- */
 
     function buildTelemetry() {
       var panel = ctx.el('section', {
@@ -720,7 +720,7 @@
       return list;
     }
 
-    /* --- Franja de autorización de lanzamiento ----------------------- */
+    /* --- Launch authorization strip ----------------------------------- */
 
     function buildLaunch() {
       var launch = launchState();
@@ -744,8 +744,8 @@
         ])
       );
       if (launch.blockers.length > 0) {
-        // Varios requisitos científicos pueden fallar por el mismo motivo: la
-        // franja muestra el motivo una sola vez y deja el detalle en la lista.
+        // Several science requirements can fail for the same reason: the
+        // strip shows the reason only once and leaves the detail in the list.
         var seenCodes = {};
         var reasons = launch.blockers.filter(function (blocker) {
           if (seenCodes[blocker.code]) return false;
@@ -823,7 +823,7 @@
       return permit;
     }
 
-    /* --- Panel de diseños guardados ---------------------------------- */
+    /* --- Saved designs panel ------------------------------------------ */
 
     function buildSavedPanel() {
       var box = ctx.el('div', { class: 'saved-list' });
@@ -882,7 +882,7 @@
       host.appendChild(panel);
     }
 
-    /* --- Persistencia y exportación ---------------------------------- */
+    /* --- Persistence and export --------------------------------------- */
 
     function saveDesign() {
       var result = saves.saveDesign(design);
@@ -931,10 +931,10 @@
       ctx.doc.body.removeChild(input);
     }
 
-    /* --- Sincronización de estado visual ----------------------------- */
+    /* --- Visual state synchronization --------------------------------- */
 
-    // Actualiza las palancas y sus cifras sin reconstruir la pantalla, para no
-    // perder la posición de scroll ni el foco dentro de la columna (S5).
+    // Updates the levers and their figures without rebuilding the screen, so the
+    // scroll position and the focus inside the column are not lost (S5).
     function syncSelections() {
       Array.prototype.forEach.call(root.querySelectorAll('[data-group][data-version]'), function (button) {
         var groupId = button.getAttribute('data-group');
@@ -968,8 +968,8 @@
       }
     }
 
-    // Reemplaza solo un panel derivado, conservando su identificador para
-    // `aria-describedby` y sin reconstruir toda la pantalla (DM-5).
+    // Replaces a single derived panel, keeping its identifier for
+    // `aria-describedby` and without rebuilding the whole screen (DM-5).
     function replaceSection(ref, build) {
       var current = root.querySelector('#' + ref);
       if (!current) return;
@@ -982,7 +982,7 @@
       replaceSection('design-launch', buildLaunch);
     }
 
-    /* --- Montaje ----------------------------------------------------- */
+    /* --- Mounting ---------------------------------------------------- */
 
     var deck = ctx.el('main', { class: 'console-deck' }, [
       ctx.el('aside', { class: 'console-col console-col--parts', 'aria-label': t('design.parts') }, [buildParts()]),

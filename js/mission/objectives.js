@@ -1,9 +1,9 @@
 /*
- * Cumplimiento del objetivo de misión (DM-1, DM-2, V-18, P-1).
+ * Mission objective compliance (DM-1, DM-2, V-18, P-1).
  *
- * `runtime()` es el evaluador que `core/game` inyecta para decidir si el objetivo
- * se cumplió: junta los requisitos del diseño con el estado real de la partida
- * (datos transmitidos, instrumentos a bordo, órbita y tripulación viva).
+ * `runtime()` is the evaluator that `core/game` injects to decide whether the
+ * objective was met: it joins the design requirements with the real state of the
+ * run (transmitted data, instruments on board, orbit and living crew).
  */
 (function (global, factory) {
   'use strict';
@@ -27,12 +27,12 @@
     return Math.min(1, Math.max(0, n));
   }
 
-  /** Requisitos de diseño del escenario activo (lista verificable de DM-2). */
+  /** Design requirements of the active scenario (the verifiable list of DM-2). */
   function designChecks(missionDesign) {
     return design.getRequirements(missionDesign);
   }
 
-  /** Suma del valor científico por área de los instrumentos que van a bordo. */
+  /** Sum of the science value per area of the instruments on board. */
   function scienceOnBoard(game) {
     var totals = {};
     (game.design && game.design.instruments ? game.design.instruments : []).forEach(function (instrument) {
@@ -44,7 +44,7 @@
   }
 
   /**
-   * Evalúa el objetivo durante el viaje (contrato C-7: lo inyecta la UI en
+   * Evaluates the objective during the voyage (contract C-7: the UI injects it in
    * `core/game.createGame({evaluateObjective})`).
    * @returns {{met:boolean, coverage:number, checks:Array, required:number,
    *   transmitted:number, tags:Object}}
@@ -58,7 +58,7 @@
     var orbit = (game.design && game.design.orbit) || null;
     var checks = [];
 
-    // 1. Datos suficientes transmitidos a tierra (C-4, P-1).
+    // 1. Enough data transmitted to the ground (C-4, P-1).
     checks.push({
       id: 'data',
       ok: transmitted >= required,
@@ -66,7 +66,7 @@
       params: { have: transmitted, need: required }
     });
 
-    // 2. Cada área científica del objetivo cubierta por un instrumento a bordo.
+    // 2. Every science area of the objective covered by an instrument on board.
     (objective.requires || []).forEach(function (requirement) {
       if (requirement.type === 'science') {
         checks.push({
@@ -86,7 +86,7 @@
       }
     });
 
-    // 3. Tiene que quedar alguien vivo para dar por cumplida la misión.
+    // 3. Someone has to stay alive for the mission to count as accomplished.
     var alive = (game.crew ? game.crew.members : []).filter(function (member) {
       return member.alive;
     }).length;
@@ -104,11 +104,11 @@
     return {
       met:
         checks.every(function (check) {
-          // El chequeo de tripulación viva no es un requisito del objetivo: se
-          // exige por separado (abajo) y no impide cumplir el resto (R3-001).
+          // The living-crew check is not an objective requirement: it is
+          // demanded separately (below) and does not prevent meeting the rest (R3-001).
           return check.id === 'crew' ? true : check.ok;
         }) && alive > 0,
-      // El progreso se mide sobre todo por datos transmitidos.
+      // Progress is measured mainly by transmitted data.
       coverage: round1(clamp01(transmitted / Math.max(1, required))),
       checks: checks,
       required: required,

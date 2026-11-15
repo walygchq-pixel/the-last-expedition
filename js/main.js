@@ -1,12 +1,12 @@
 /*
- * Arranque de la aplicación (T8, S1, I-8).
+ * Application boot (T8, S1, I-8).
  *
- * Orden obligatorio: preferencias → traductor → catálogo de datos → clases de
- * accesibilidad → shell → pantalla de título. No crea partidas ni toca el motor:
- * sólo conecta los módulos que ya están escritos.
+ * Mandatory order: preferences → translator → data catalog → accessibility
+ * classes → shell → title screen. It does not create runs nor touch the engine:
+ * it only wires the modules that are already written.
  *
- * `window.TLE` queda expuesto únicamente como ayuda de depuración (consola del
- * navegador); el juego nunca lee de ahí.
+ * `window.TLE` stays exposed only as a debugging aid (browser console); the
+ * game never reads from there.
  */
 (function (root, factory) {
   'use strict';
@@ -27,18 +27,18 @@
 
     var logger = typeof console !== 'undefined' ? console : null;
 
-    // 1. Traductor con el idioma guardado, el del navegador o inglés (I-8).
+    // 1. Translator with the saved language, the browser one or English (I-8).
     var translator = GS.i18n.createTranslator({
       dicts: GS.i18n.dictsFromRegistry(GS.data),
       locale: GS.storage.prefs.initialLocale(),
       logger: logger
     });
 
-    // 2. Catálogo de datos: `mission/*` lee de `GS.data` (C-2).
+    // 2. Data catalog: `mission/*` reads from `GS.data` (C-2).
     GS.mission.catalog.init(GS.data);
 
-    // 3. Shell montado sobre el contenedor; `start()` aplica accesibilidad y pinta
-    //    la pantalla de título (S1).
+    // 3. Shell mounted on the container; `start()` applies accessibility and paints
+    //    the title screen (S1).
     var shell = GS.ui.shell.mount({
       root: typeof document !== 'undefined' ? document.getElementById('app') : null,
       document: typeof document !== 'undefined' ? document : null,
@@ -48,7 +48,7 @@
     });
     shell.start();
 
-    // 4. Ayuda de depuración (no forma parte del flujo del juego).
+    // 4. Debug aid (not part of the game flow).
     try {
       Object.defineProperty(root, 'TLE', {
         configurable: true,

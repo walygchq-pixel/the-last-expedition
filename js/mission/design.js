@@ -1,9 +1,9 @@
 /*
- * Fase 1: diseño de misión (DM-1 … DM-14).
+ * Phase 1: mission design (DM-1 … DM-14).
  *
- * Mantiene las elecciones del equipo (componentes, instrumentos, lanzador y
- * órbita), calcula los totales al instante (DM-5), arma la lista verificable de
- * requisitos (DM-2, DM-11) y decide si el lanzamiento se puede habilitar.
+ * Holds the team's choices (components, instruments, launcher and orbit),
+ * recomputes the totals instantly (DM-5), builds the verifiable list of
+ * requirements (DM-2, DM-11) and decides whether launch can be enabled.
  */
 (function (global, factory) {
   'use strict';
@@ -38,7 +38,7 @@
   }
 
   /**
-   * Crea un diseño vacío con la versión simple de cada grupo seleccionada.
+   * Creates an empty design with the simple version of every group selected.
    * @param {Object} options `{scenarioId, difficultyId, mode, seed}`
    */
   function createDesign(options) {
@@ -87,7 +87,7 @@
     return catalog.findObjective(scenario.objectiveId);
   }
 
-  /** Piezas resueltas del diseño (con su grupo y sistema). */
+  /** Resolved parts of the design (with their group and system). */
   function designParts(design) {
     return Object.keys(design.groups || {})
       .map(function (groupId) {
@@ -96,7 +96,7 @@
       .filter(Boolean);
   }
 
-  /** Instrumentos resueltos con masa, potencia, coste y valor científico. */
+  /** Resolved instruments with mass, power, cost and science value. */
   function designInstruments(design) {
     return (design.instruments || [])
       .map(function (entry) {
@@ -106,8 +106,8 @@
   }
 
   /**
-   * Recalcula los totales del diseño (masa, potencia, coste, datos, ciencia).
-   * Es la fuente única de verdad que consumen el panel, la validación y la partida.
+   * Recomputes the design totals (mass, power, cost, data, science).
+   * It is the single source of truth consumed by the panel, the validation and the run.
    */
   function totals(design) {
     var parts = designParts(design);
@@ -130,7 +130,7 @@
 
     return {
       mass: round1(sum(parts, 'mass') + sum(instruments, 'mass')),
-      // DM-9: el lanzador también cuesta; se paga del mismo presupuesto (S-11).
+      // DM-9: the launcher also costs money; it is paid out of the same budget (S-11).
       partsCost: round1(sum(parts, 'cost') + sum(instruments, 'cost')),
       launcherCost: launcherCost,
       cost: round1(sum(parts, 'cost') + sum(instruments, 'cost') + launcherCost),
@@ -147,13 +147,13 @@
     };
   }
 
-  /** Recalcula y guarda los totales en el diseño. */
+  /** Recomputes and stores the totals in the design. */
   function refresh(design) {
     design.totals = totals(design);
     return design.totals;
   }
 
-  /** Cambia la versión de un grupo: `simple` o `advanced` (DM-4, DM-8). */
+  /** Changes the version of a group: `simple` or `advanced` (DM-4, DM-8). */
   function setPartVersion(design, groupId, version) {
     var options = catalog.partsForGroup(groupId);
     var chosen = options.find(function (part) {
@@ -164,7 +164,7 @@
     return refresh(design);
   }
 
-  /** Alterna la versión de un grupo (simple ⇄ avanzada). */
+  /** Toggles the version of a group (simple ⇄ advanced). */
   function togglePartVersion(design, groupId) {
     var options = catalog.partsForGroup(groupId);
     var currentId = design.groups[groupId];
@@ -189,7 +189,7 @@
     return refresh(design);
   }
 
-  /** Añade, cambia de versión o quita un instrumento (DM-7, DM-8). */
+  /** Adds, changes the version of, or removes an instrument (DM-7, DM-8). */
   function setInstrument(design, instrumentId, version) {
     var list = design.instruments || (design.instruments = []);
     var index = list.findIndex(function (entry) {
@@ -222,8 +222,8 @@
   }
 
   /**
-   * Lista verificable de requisitos del objetivo (DM-2) más las comprobaciones
-   * técnicas del lanzamiento (DM-11). Cada ítem trae `ok`, su clave y parámetros.
+   * Verifiable list of objective requirements (DM-2) plus the technical launch
+   * checks (DM-11). Every item carries `ok`, its key and its parameters.
    */
   function getRequirements(design) {
     var scenario = scenarioOf(design);
@@ -238,7 +238,7 @@
       return [{ id: 'objective', ok: false, labelKey: 'req.no_objective', params: {} }];
     }
 
-    // 1. Valor científico por área: el instrumento tiene que servir al objetivo.
+    // 1. Science value per area: the instrument has to serve the objective.
     (objective.requires || []).forEach(function (requirement, index) {
       if (requirement.type === 'science') {
         var have = data.science[requirement.tag] || 0;
@@ -281,7 +281,7 @@
       }
     });
 
-    // 2. Compatibilidad de masa con el lanzador (DM-11).
+    // 2. Mass compatibility with the launcher (DM-11).
     var capacity = launcher ? launcher.payloadCapacity : 0;
     checks.push({
       id: 'mass',
@@ -292,7 +292,7 @@
       fixKey: 'fix.mass_over_capacity'
     });
 
-    // 3. La órbita pedida debe estar al alcance del lanzador (DM-11).
+    // 3. The requested orbit must be within reach of the launcher (DM-11).
     checks.push({
       id: 'orbit',
       ok: !!orbit && !!launcher && (launcher.maxOrbitRank || 0) >= (orbit.rank || 0),
@@ -305,7 +305,7 @@
       fixKey: 'fix.orbit_not_supported'
     });
 
-    // 4. Presupuesto (RN-1, S-11).
+    // 4. Budget (RN-1, S-11).
     checks.push({
       id: 'budget',
       ok: data.cost <= design.budget,
@@ -315,7 +315,7 @@
       fixKey: 'fix.budget'
     });
 
-    // 5. Balance de potencia: generación menos consumo no puede ser negativo.
+    // 5. Power balance: generation minus draw cannot be negative.
     checks.push({
       id: 'power',
       ok: data.powerGen - data.powerDraw >= 0,
@@ -325,7 +325,7 @@
       fixKey: 'fix.power_deficit'
     });
 
-    // 6. La duración del objetivo debe caber en la vida útil del escenario.
+    // 6. The objective duration must fit inside the service life of the scenario.
     if (scenario && isFinite(scenario.minDays) && profile.missionDays < scenario.minDays) {
       checks.push({
         id: 'lifetime',
@@ -341,8 +341,8 @@
   }
 
   /**
-   * Validación de lanzamiento (DM-11). Si algo falta, el botón se bloquea y se
-   * explica el motivo con las opciones de corrección.
+   * Launch validation (DM-11). If something is missing, the button is blocked and
+   * the reason is explained together with the correction options.
    */
   function validateLaunch(design) {
     var checks = getRequirements(design);
@@ -359,7 +359,7 @@
       };
     });
 
-    // Los avisos no bloquean: sirven para mostrar riesgos antes de lanzar.
+    // Warnings do not block: they exist to show risks before launching.
     var warnings = [];
     var data = design.totals || totals(design);
     if (isFinite(data.powerGen) && data.powerGen > 0 && (data.powerGen - data.powerDraw) / data.powerGen < 0.1) {
@@ -380,8 +380,8 @@
   }
 
   /**
-   * Impacto inmediato de cada cambio en los recursos (DM-5).
-   * Devuelve el panel ya evaluado más el estado del lanzamiento.
+   * Immediate impact of every change on the resources (DM-5).
+   * Returns the already evaluated panel plus the launch state.
    */
   function liveImpact(design) {
     var data = design.totals && design.totals.mass !== undefined ? design.totals : refresh(design);
@@ -417,8 +417,8 @@
   }
 
   /**
-   * Objeto de diseño listo para `core/game.createGame()`.
-   * Incluye piezas con su sistema (origen), instrumentos e infraestructura.
+   * Design object ready for `core/game.createGame()`.
+   * Includes parts with their system (origin), instruments and infrastructure.
    */
   function toGameDesign(design) {
     var parts = designParts(design);
@@ -470,9 +470,9 @@
   }
 
   /**
-   * Semilla reproducible de una partida derivada del diseño.
-   * Componentes e instrumentos se ordenan antes de hashear: el mismo diseño
-   * elegido en otro orden tiene que dar la misma semilla (R3-002).
+   * Reproducible seed of a run derived from the design.
+   * Components and instruments are sorted before hashing: the same design
+   * chosen in another order has to give the same seed (R3-002).
    */
   function seedFor(design, salt) {
     var groups = Object.keys(design.groups || {})
@@ -492,7 +492,7 @@
     );
   }
 
-  /** Resume el diseño para guardarlo o compararlo (solo claves y valores). */
+  /** Summarises the design so it can be saved or compared (only keys and values). */
   function serialize(design) {
     return {
       scenarioId: design.scenarioId,

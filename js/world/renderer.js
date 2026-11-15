@@ -1,22 +1,22 @@
 /*
- * Render isométrico en Canvas 2D (V-1, V-7, RG-6, S30, S5).
+ * Isometric render in Canvas 2D (V-1, V-7, RG-6, S30, S5).
  *
- * Dirección visual: visor holográfico de cubierta. La nave se dibuja como
- * placas translúcidas con canto, rejilla fina y objetos de tres caras con
- * detalles propios (rejillas, pantallas, perillas, patas y halo si están
- * encendidos). Todo es procedural: no hay imágenes ni fuentes externas (RG-6).
+ * Visual direction: holographic deck viewer. The ship is drawn as translucent
+ * plates with an edge, a fine grid and three-faced objects with their own
+ * details (grilles, screens, knobs, feet and a halo when they are lit).
+ * Everything is procedural: no external images or fonts (RG-6).
  *
- * Reglas de rendimiento (S5, 60 FPS con 4 jugadores):
- *  - la geometría de cada sala se agrupa en pocas rutas y se cachea en el mapa;
- *  - el orden de dibujo de los objetos se precalcula por profundidad y se
- *    mezcla con los jugadores sin ordenar de nuevo;
- *  - no se crean degradados ni patrones por cuadro (las pruebas de Node usan un
- *    contexto simulado que no los devuelve) ni objetos por celda.
+ * Performance rules (S5, 60 FPS with 4 players):
+ *  - the geometry of each room is grouped into few paths and cached on the map;
+ *  - the drawing order of the objects is precomputed by depth and is
+ *    mixed with the players without sorting again;
+ *  - no gradients or patterns are created per frame (the Node tests use a
+ *    mock context that does not return them) nor objects per cell.
  *
- * Iluminación: los multiplicadores salen de `core/systems.effects()`, de modo
- * que la degradación de luz, temperatura y enlace se ve en la nave (V-7).
- * Accesibilidad: `a11y.highContrast` refuerza contornos y añade una forma por
- * sala degradada; `a11y.reduceMotion` apaga el pulso (S66, E-5).
+ * Lighting: the multipliers come from `core/systems.effects()`, so that the
+ * degradation of light, temperature and link is visible on the ship (V-7).
+ * Accessibility: `a11y.highContrast` reinforces outlines and adds one shape per
+ * degraded room; `a11y.reduceMotion` turns the pulse off (S66, E-5).
  */
 (function (global, factory) {
   'use strict';
@@ -36,12 +36,12 @@
   var WALL_H = 18;
   var LIP = 9;
 
-  // Caché de geometría fuera del mapa, para que el estado siga siendo JSON
-  // plano y serializable (C-5).
+  // Geometry cache outside the map, so that the state is still plain and
+  // serializable JSON (C-5).
   var CACHE = typeof WeakMap === 'function' ? new WeakMap() : null;
 
-  // Paleta holográfica derivada de los tokens del tema: acento, texto y fondo
-  // con alfa. Ningún color nuevo, solo el mismo RGB con transparencia.
+  // Holographic palette derived from the theme tokens: accent, text and
+  // background with alpha. No new colour, only the same RGB with transparency.
   var PAL = {
     bg: '#04060b',
     plate: 'rgba(111, 211, 199, 0.045)',
@@ -77,7 +77,7 @@
     bracket: 'rgba(111, 211, 199, 0.5)'
   };
 
-  // Contraste alto: contornos claros y rellenos más opacos (S66).
+  // High contrast: light outlines and more opaque fills (S66).
   var PAL_CONTRAST = {
     bg: '#000000',
     plate: 'rgba(255, 255, 255, 0.07)',
@@ -144,7 +144,7 @@
     return { x: point.x, y: point.y - dy };
   }
 
-  /** Caché de geometría del mapa: salas, puertas, paredes y objetos ordenados. */
+  /** Cache of the map geometry: rooms, doors, walls and objects in order. */
   function prepare(map) {
     if (!map) return { rooms: [], doors: [], walls: [], objects: [] };
     var cached = CACHE ? CACHE.get(map) : map.renderCache;
@@ -202,7 +202,7 @@
     return cache;
   }
 
-  /** Posición isométrica de una casilla, en píxeles sin cámara. */
+  /** Isometric position of a cell, in pixels without the camera. */
   function project(cell) {
     var x = cell && isFinite(cell.x) ? cell.x : 0;
     var y = cell && isFinite(cell.y) ? cell.y : 0;
@@ -222,8 +222,8 @@
   }
 
   /**
-   * Cámara de tercera persona: sigue al jugador cuando está solo y encuadra a
-   * todo el grupo cuando hay varios (V-1).
+   * Third-person camera: it follows the player when they are alone and frames
+   * the whole group when there are several (V-1).
    */
   function computeCamera(map, world, viewport) {
     var view = viewport || { width: 960, height: 540 };
@@ -269,7 +269,7 @@
     return { health: clamp(system.health, 0, 100), color: SYSTEM_COLORS[room.system] || null };
   }
 
-  /* --- Ayudantes de dibujo ------------------------------------------ */
+  /* --- Drawing helpers ---------------------------------------------- */
 
   function polyPath(c, quad) {
     c.beginPath();
@@ -303,7 +303,7 @@
     c.beginPath();
     c.arc(point.x, point.y, Math.max(0.4, radius), 0, Math.PI * 2);
     if (fill) {
-      // Proxy de pruebas: `arc` no devuelve nada, el relleno es una llamada más.
+      // Test proxy: `arc` returns nothing, the fill is one more call.
       c.fillStyle = fill;
       c.fill();
     }
@@ -314,14 +314,14 @@
     }
   }
 
-  /** Rectángulo sobre una cara: `u` a lo ancho, `v` de abajo hacia arriba. */
+  /** Rectangle over one face: `u` across, `v` from bottom to top. */
   function faceRect(c, geo, face, u0, v0, u1, v1, fill, stroke) {
     var at = face === 'left' ? geo.leftAt : face === 'right' ? geo.rightAt : geo.topAt;
     var quad = [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)];
     fillPoly(c, quad, fill, stroke, Math.max(0.6, geo.s));
   }
 
-  /* --- Tipos de objeto ---------------------------------------------- */
+  /* --- Object kinds ------------------------------------------------- */
 
   function detailCabinet(c, g, on, pal) {
     faceRect(c, g, 'left', 0.16, 0.1, 0.84, 0.8, 'rgba(0, 0, 0, 0.2)', pal.objEdgeSoft);
@@ -565,8 +565,8 @@
     bin: { ex: 0.36, ey: 0.3, h: 20, draw: detailBin, lit: true }
   };
 
-  // Un tipo por identificador de `data/objects.json`: la silueta tiene que
-  // parecerse al objeto, no a un icono genérico (V-3, S33).
+  // One kind per identifier of `data/objects.json`: the silhouette has to
+  // resemble the object, not a generic icon (V-3, S33).
   var OBJECT_KIND = {
     fridge: 'cabinet',
     pantry: 'shelf',
@@ -651,8 +651,8 @@
   }
 
   function drawStatusShape(c, x, y, size, health) {
-    // Forma además de color (S29, S66): cuadrado 0–33, triángulo 34–66,
-    // círculo 67–100. Se usa un contorno blanco para que no dependa del tono.
+    // Shape in addition to colour (S29, S66): square 0–33, triangle 34–66,
+    // circle 67–100. A white outline is used so it does not depend on the hue.
     c.strokeStyle = '#f5f7ff';
     c.lineWidth = Math.max(1, size * 0.14);
     c.beginPath();
@@ -684,7 +684,7 @@
   }
 
   /**
-   * Dibuja un cuadro completo.
+   * Draws a full frame.
    * @param {CanvasRenderingContext2D} ctx2d
    * @param {{map:Object, game:Object, world:Object, camera:Object,
    *   a11y:Object, t:Function, viewport:Object, time:number, selected:string,
@@ -695,7 +695,7 @@
     var opts = options || {};
     var map = opts.map || (opts.world && opts.world.map);
     if (!ctx2d || !map) return { rooms: 0, objects: 0, players: 0, zoom: 1 };
-    // C-9 llama `state` al estado de partida; se aceptan ambos nombres.
+    // C-9 calls the match state `state`; both names are accepted.
     var world = opts.world || (opts.state && opts.state.world) || null;
     var game = opts.game || (opts.state && opts.state.systems ? opts.state : null) || (world && world.game) || null;
     var a11y = opts.a11y || {};
@@ -743,11 +743,11 @@
     ctx2d.fillStyle = pal.bg;
     ctx2d.fillRect(0, 0, viewport.width, viewport.height);
 
-    // Contadores de casillas: el HUD y las pruebas los usan como medida de carga.
+    // Cell counters: the HUD and the tests use them as a load measure.
     var tileCount = 0;
 
-    // 1. Suelo: una placa por sala con canto y rejilla fina (no una figura por
-    //    casilla). La rejilla se dibuja cada dos casillas, como el visor.
+    // 1. Floor: one plate per room with an edge and a fine grid (not one figure
+    //    per cell). The grid is drawn every two cells, like the viewer.
     cache.rooms.forEach(function (group) {
       var rect = group.rect;
       if (!rect) return;
@@ -761,7 +761,7 @@
       var cc = { x: screenX(x1, y1), y: screenY(x1, y1) };
       var d = { x: screenX(x0, y1), y: screenY(x0, y1) };
 
-      // Canto de la plataforma: dos caras visibles hacia el frente.
+      // Platform edge: two faces visible towards the front.
       fillPoly(ctx2d, [b, cc, { x: cc.x, y: cc.y + lip }, { x: b.x, y: b.y + lip }], pal.plateSide, null);
       fillPoly(ctx2d, [cc, d, { x: d.x, y: d.y + lip }, { x: cc.x, y: cc.y + lip }], pal.plateSide, null);
       fillPoly(ctx2d, [a, b, cc, d], pal.plate, pal.plateEdge, 1);
@@ -782,7 +782,7 @@
       ctx2d.stroke();
     });
 
-    // 2. Puertas: casilla destacada entre salas.
+    // 2. Doors: highlighted cell between rooms.
     cache.doors.forEach(function (index) {
       tileCount += 1;
       var dx = cellX(index);
@@ -798,7 +798,7 @@
       fillPoly(ctx2d, quad, pal.door, pal.doorEdge, 1);
     });
 
-    // 3. Paredes: tres caras por casilla, agrupadas en tres rutas.
+    // 3. Walls: three faces per cell, grouped into three paths.
     if (cache.walls.length > 0) {
       tileCount += cache.walls.length;
       ctx2d.beginPath();
@@ -846,7 +846,7 @@
       }
     }
 
-    // 4. Degradación visible por sala (V-7): tinte y forma de estado.
+    // 4. Visible degradation per room (V-7): tint and status shape.
     cache.rooms.forEach(function (group) {
       var state = roomHealth(game, group.room);
       if (state.health >= 99 || !state.color || !group.rect) return;
@@ -865,8 +865,8 @@
       drawStatusShape(ctx2d, screenX(cx, cy), screenY(cx, cy) - tileHeight, 5 * zoom, state.health);
     });
 
-    // 5. Objetos y jugadores, mezclados por profundidad para que los cuerpos se
-    //    tapen en el orden correcto (volumen, no iconos planos).
+    // 5. Objects and players, mixed by depth so that the bodies hide
+    //    each other in the right order (volume, not flat icons).
     var items = world && world.objects ? world.objects.items : {};
     var players = world && world.players && world.players.list ? world.players.list : [];
     var selected = opts.selected || null;
@@ -927,7 +927,7 @@
       var instance = items[def.id];
       if (instance && instance.carriedBy) return;
       objectCount += 1;
-      // Fuera del visor no se calcula nada: sólo importa el volumen visible.
+      // Outside the viewer nothing is computed: only the visible volume matters.
       var cullX = screenX(def.x, def.y);
       var cullY = screenY(def.x, def.y);
       var marginX = 130;
@@ -940,7 +940,7 @@
       var kind = geo.kind;
       var powered = !!kind.lit && powerHealth > 0;
 
-      // Sombra proyectada bajo el objeto: lo asienta en la cubierta.
+      // Shadow cast under the object: it settles it on the deck.
       ctx2d.beginPath();
       ctx2d.ellipse(geo.center.x, geo.center.y + 1, (geo.base[1].x - geo.base[3].x) * 0.42, tileHeight * 0.32, 0, 0, Math.PI * 2);
       ctx2d.fillStyle = pal.shadow;
@@ -950,7 +950,7 @@
         circle(ctx2d, geo.topAt(0.5, 0.5), 14 * zoom, pal.glow);
       }
 
-      // Caras: izquierda, derecha y tapa. El resaltado cambia solo la tapa.
+      // Faces: left, right and top. The highlight changes only the top.
       fillPoly(ctx2d, geo.left, pal.objLeft, pal.objEdgeSoft, Math.max(0.5, zoom));
       fillPoly(ctx2d, geo.right, pal.objRight, pal.objEdgeSoft, Math.max(0.5, zoom));
       fillPoly(ctx2d, geo.top, hot ? pal.objTopHot : pal.objTop, pal.objEdge, Math.max(0.7, zoom));
@@ -958,7 +958,7 @@
       if (kind.draw) kind.draw(ctx2d, geo, powered, pal);
 
       if (hot) {
-        // Esquinas de foco alrededor de la caja: mismo lenguaje que el visor.
+        // Focus corners around the box: same language as the viewer.
         var minX = Math.min(geo.top[3].x, geo.base[3].x) - 4 * zoom;
         var maxX = Math.max(geo.top[1].x, geo.base[1].x) + 4 * zoom;
         var minY = Math.min(geo.top[0].y, geo.top[1].y) - 4 * zoom;
@@ -993,8 +993,8 @@
       ctx2d.fillStyle = pal.shadow;
       ctx2d.fill();
 
-      // Anillo de acciones del jugador seleccionado (V-4): discontinuo y con
-      // marcas, para que el radial de la UI quede anclado al personaje.
+      // Action ring of the selected player (V-4): dashed and with tick
+      // marks, so that the radial of the UI stays anchored to the character.
       if (player.id === selected) {
         ctx2d.save();
         ctx2d.setLineDash([3 * s, 5 * s]);
@@ -1029,7 +1029,7 @@
       var fy = py + (facing === 'up' ? -17 * s : facing === 'down' ? -2 * s : 0);
       line(ctx2d, { x: px, y: py - 8 * s }, { x: fx, y: fy }, pal.bg, Math.max(1, 1.4 * s));
 
-      // Ficha P1…P4 sobre la cabeza, con el color del rol.
+      // P1…P4 chip above the head, with the role colour.
       var label = 'P' + (playerIndex[player.id] || 1);
       var chipW = 22 * s;
       var chipH = 12 * s;
@@ -1058,7 +1058,7 @@
       }
     }
 
-    // 6. Etiquetas de sala discretas (solo si la UI pasa `t`).
+    // 6. Discreet room labels (only if the UI passes `t`).
     if (translate && !a11y.hideLabels) {
       ctx2d.textAlign = 'center';
       ctx2d.textBaseline = 'middle';
@@ -1084,8 +1084,8 @@
       });
     }
 
-    // 7. Retícula del visor dentro del propio canvas: una capa menos que
-    //    recomponer sobre el canvas y el mismo lenguaje de consola (S5).
+    // 7. Reticle of the viewer inside the canvas itself: one layer less to
+    //    recompose over the canvas and the same console language (S5).
     var step = 48;
     ctx2d.beginPath();
     for (var rx = step; rx < viewport.width; rx += step) {
@@ -1100,14 +1100,14 @@
     ctx2d.lineWidth = 1;
     ctx2d.stroke();
 
-    // 8. Oscurecimiento global según la potencia y el soporte vital (V-7).
+    // 8. Global darkening according to power and life support (V-7).
     var darkness = clamp(1 - (isFinite(look.lighting) ? look.lighting : 1), 0, 1) * 0.55;
     if (darkness > 0.01) {
       ctx2d.fillStyle = 'rgba(2,4,10,' + darkness.toFixed(3) + ')';
       ctx2d.fillRect(0, 0, viewport.width, viewport.height);
     }
 
-    // 9. Marcas de esquina del visor (mismas medidas que el artboard).
+    // 9. Corner marks of the viewer (same measurements as the artboard).
     var arm = 34;
     var inset = 9;
     var corners = [

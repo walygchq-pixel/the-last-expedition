@@ -1,13 +1,13 @@
 /*
- * Búsqueda de caminos sobre la cuadrícula de la nave (S86, T-2).
+ * Path search over the grid of the ship (S86, T-2).
  *
- * A* determinista con vecinos en cuatro direcciones (sin diagonales). El módulo
- * no conoce el DOM ni el contenido de la nave: solo lee `map.tiles`, que es el
- * arreglo plano de `ancho × alto` que construye `world/shipMap`.
+ * Deterministic A* with neighbours in four directions (no diagonals). The module
+ * knows neither the DOM nor the contents of the ship: it only reads `map.tiles`,
+ * which is the flat `width × height` array that `world/shipMap` builds.
  *
- * Valores de casilla (los mismos que declara `data/shipLayout.json`):
- *   0 = vacío (fuera del casco), 1 = suelo, 2 = pared, 3 = puerta.
- * Solo suelo y puerta son transitables.
+ * Cell values (the same ones declared by `data/shipLayout.json`):
+ *   0 = void (outside the hull), 1 = floor, 2 = wall, 3 = door.
+ * Only floor and door are walkable.
  */
 (function (global, factory) {
   'use strict';
@@ -23,8 +23,8 @@
 
   var TILES = { void: 0, floor: 1, wall: 2, door: 3 };
 
-  // Orden fijo de exploración: hace que dos ejecuciones den exactamente la misma
-  // ruta cuando hay varios caminos de igual longitud (C-4).
+  // Fixed exploration order: it makes two runs give exactly the same
+  // route when there are several paths of equal length (C-4).
   var DIRECTIONS = [
     { x: 0, y: -1 },
     { x: 1, y: 0 },
@@ -37,7 +37,7 @@
     return map.tiles || map.grid || null;
   }
 
-  /** Valor de la casilla; `-1` si está fuera del mapa o no hay mapa. */
+  /** Value of the cell; `-1` if it is out of the map or there is no map. */
   function tileAt(map, x, y) {
     if (!map || !isFinite(x) || !isFinite(y)) return -1;
     var width = map.width | 0;
@@ -51,14 +51,14 @@
     return value === undefined ? -1 : value;
   }
 
-  /** Una casilla es transitable si es suelo o puerta. */
+  /** A cell is walkable if it is floor or door. */
   function walkable(map, cell) {
     if (!cell) return false;
     var value = tileAt(map, cell.x, cell.y);
     return value === TILES.floor || value === TILES.door;
   }
 
-  /** Vecinos transitables en orden fijo (arriba, derecha, abajo, izquierda). */
+  /** Walkable neighbours in fixed order (up, right, down, left). */
   function neighbors(map, cell) {
     var out = [];
     if (!cell) return out;
@@ -73,8 +73,8 @@
     return Math.abs(ax - bx) + Math.abs(ay - by);
   }
 
-  /* Cola de prioridad mínima: ordena por f, luego por h y luego por orden de
-     inserción, para que el desempate sea estable. */
+  /* Minimum priority queue: it sorts by f, then by h and then by insertion
+   * order, so that the tie-break is stable. */
   function heapPush(heap, node) {
     heap.push(node);
     var index = heap.length - 1;
@@ -117,9 +117,9 @@
   }
 
   /**
-   * Calcula la ruta más corta entre dos casillas.
-   * @returns {Array<{x:number,y:number}>|null} casillas desde `from` hasta `to`
-   *   (ambas incluidas), o `null` si no hay camino posible.
+   * Computes the shortest route between two cells.
+   * @returns {Array<{x:number,y:number}>|null} cells from `from` to `to`
+   *   (both included), or `null` if there is no possible path.
    */
   function findPath(map, from, to) {
     if (!map || !walkable(map, from) || !walkable(map, to)) return null;

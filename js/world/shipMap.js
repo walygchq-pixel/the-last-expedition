@@ -1,17 +1,17 @@
 /*
- * Construcción del mapa navegable de la nave (S85, V-2, S31).
+ * Construction of the navigable map of the ship (S85, V-2, S31).
  *
- * Toma la geometría declarativa de `data/shipLayout.json` y los objetos de
- * `data/objects.json` y devuelve una cuadrícula de 40 × 30 casillas con salas,
- * puertas, puntos de aparición y objetos colocados. El mapa es datos planos y
- * serializables: no conoce el DOM ni el idioma (C-3, C-5).
+ * It takes the declarative geometry of `data/shipLayout.json` and the objects of
+ * `data/objects.json` and returns a 40 × 30 cell grid with rooms,
+ * doors, spawn points and placed objects. The map is plain and
+ * serializable data: it knows neither the DOM nor the language (C-3, C-5).
  *
- * Formato del layout (documentado también en el informe de la tarea T6):
- *   - `rooms[].rect` es el **interior** transitable de la sala, sin paredes.
- *   - Las paredes del casco se generan automáticamente alrededor de todo suelo.
- *   - `doors[]` son casillas sueltas que perforan esa pared y unen dos salas.
- *   - `spawns[]` (a nivel de mapa) son las posiciones iniciales de 1–4 jugadores;
- *     cada sala trae además sus propios `spawns` (1–4) para reapariciones.
+ * Layout format (also documented in the report of task T6):
+ *   - `rooms[].rect` is the **interior** walkable area of the room, without walls.
+ *   - The walls of the hull are generated automatically around all floor.
+ *   - `doors[]` are loose cells that pierce that wall and join two rooms.
+ *   - `spawns[]` (at map level) are the initial positions of 1–4 players;
+ *     each room also brings its own `spawns` (1–4) for respawns.
  */
 (function (global, factory) {
   'use strict';
@@ -36,9 +36,9 @@
   }
 
   /**
-   * Lee una fuente de datos con tolerancia a las tres formas que usan las
-   * pruebas y el navegador: catálogo (`catalog.shipLayout()`), registro de datos
-   * (`GS.data['shipLayout']`) o inyección directa (`{layout, objects}`).
+   * Reads a data source with tolerance for the three shapes that the
+   * tests and the browser use: catalog (`catalog.shipLayout()`), data registry
+   * (`GS.data['shipLayout']`) or direct injection (`{layout, objects}`).
    */
   function readSource(source, name, aliases) {
     if (!source) return null;
@@ -58,7 +58,7 @@
     if (direct) return direct;
     var layout = readSource(source, 'shipLayout', ['layout']);
     if (layout && layout.width && layout.rooms) return layout;
-    // Un diseño puede seleccionar variante; por ahora la nave es una sola (S85).
+    // A design may select a variant; for now the ship is a single one (S85).
     if (layout && Array.isArray(layout.layouts)) {
       var wanted = design && design.shipLayoutId;
       return layout.layouts.find(function (item) { return item.id === wanted; }) || layout.layouts[0];
@@ -76,8 +76,8 @@
 
   function paintRect(tiles, width, rect, value, roomIndex, roomIndexValue) {
     if (!rect) return;
-    // El alto sale del propio arreglo: las salas se pintan sobre una cuadrícula ya
-    // dimensionada, así que ninguna puede escribir fuera de rango (R3-004).
+    // The height comes from the array itself: rooms are painted on an already
+    // sized grid, so none of them can write out of range (R3-004).
     var height = width > 0 ? tiles.length / width : 0;
     var x0 = Math.round(rect.x);
     var y0 = Math.round(rect.y);
@@ -85,8 +85,8 @@
     var h = Math.round(rect.h);
     for (var y = y0; y < y0 + h; y += 1) {
       for (var x = x0; x < x0 + w; x += 1) {
-        // Falta el límite inferior: una sala que se pasa del alto escribía fuera
-        // del arreglo y corrompía `tiles` y `roomIndex` (R3-004).
+        // The lower bound was missing: a room that goes past the height wrote out
+        // of the array and corrupted `tiles` and `roomIndex` (R3-004).
         if (x < 0 || y < 0 || x >= width || y >= height) continue;
         tiles[y * width + x] = value;
         if (roomIndex && roomIndexValue !== undefined) roomIndex[y * width + x] = roomIndexValue;
@@ -94,7 +94,7 @@
     }
   }
 
-  /** Añade una pared de una casilla alrededor de todo el suelo pintado. */
+  /** Adds a one-cell wall around all the painted floor. */
   function buildHull(tiles, width, height) {
     for (var y = 0; y < height; y += 1) {
       for (var x = 0; x < width; x += 1) {
@@ -130,9 +130,9 @@
   }
 
   /**
-   * Construye el mapa de la nave.
-   * @param {Object} [design] diseño de misión (selección de variante de layout)
-   * @param {Object} [source] catálogo, registro de datos o `{layout, objects}`
+   * Builds the ship map.
+   * @param {Object} [design] mission design (layout variant selection)
+   * @param {Object} [source] catalog, data registry or `{layout, objects}`
    */
   function build(design, source) {
     var data = source || defaultCatalog();
@@ -229,7 +229,7 @@
       height: height,
       tileSize: layout.tileSize || 48,
       tiles: tiles,
-      // Alias pedido por el contrato C-9 (`{grid, rooms, doors, spawn, objects}`).
+      // Alias required by contract C-9 (`{grid, rooms, doors, spawn, objects}`).
       grid: tiles,
       roomIndex: roomIndex,
       rooms: rooms,
@@ -240,7 +240,7 @@
     return map;
   }
 
-  /** Valor de casilla; `-1` fuera del mapa. */
+  /** Cell value; `-1` outside the map. */
   function tileAt(map, x, y) {
     return pathfinding.tileAt(map, x, y);
   }
@@ -249,7 +249,7 @@
     return pathfinding.walkable(map, { x: x, y: y });
   }
 
-  /** Sala que contiene la casilla, o `null`. */
+  /** Room that contains the cell, or `null`. */
   function roomAt(map, x, y) {
     if (!map || !map.roomIndex) return null;
     var ix = Math.round(x);
@@ -260,7 +260,7 @@
     return map.rooms[index] || null;
   }
 
-  /** Puerta en la casilla, o `null`. */
+  /** Door at the cell, or `null`. */
   function doorAt(map, x, y) {
     if (!map || !map.doors) return null;
     var ix = Math.round(x);
@@ -271,8 +271,8 @@
   }
 
   /**
-   * Punto de aparición de un jugador (0–3). Reparte entre los `spawns` del mapa
-   * y repite en ciclo si se pide un índice mayor que el número de puntos.
+   * Spawn point of a player (0–3). It spreads across the `spawns` of the map
+   * and cycles when an index greater than the number of points is requested.
    */
   function spawnFor(map, playerIndex) {
     if (!map || !map.spawn || map.spawn.length === 0) return { x: 0, y: 0 };
@@ -282,7 +282,7 @@
     return copyCell(map.spawn[index]);
   }
 
-  /** Objetos colocados en una sala concreta. */
+  /** Objects placed in a specific room. */
   function objectsInRoom(map, roomId) {
     if (!map) return [];
     return map.objects.filter(function (object) {

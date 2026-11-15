@@ -196,7 +196,7 @@ que cada clave exista en los dos idiomas.
 | T9 | S68, C-8, C-2: suite completa + cobertura de claves + smoke en Chrome (`tools/smoke.js`) | parent | hecho |
 | T10 | README con §14 documentada | parent | hecho |
 | T13 | S69–S70 (edición bilingüe): `README.md` pasa a inglés como cara del repositorio y el español queda en `README.es.md` con enlaces cruzados | parent | hecho |
-| T14 | S69–S70: `REQUIREMENTS.md` en inglés como espejo de `REQUISITOS.md` (que no se toca) con enlaces cruzados | parent | hecho |
+| T14 | S69–S70: `REQUIREMENTS.md` en inglés como espejo de `REQUISITOS.md`, con enlaces cruzados y con el mismo destino de trazabilidad | parent | hecho |
 | T15 | S69–S70: `tests/docs-parity.test.js` falla si las dos ediciones divergen en esqueleto de secciones o cifras declaradas, y corrige el «83 / 95 pruebas» del README | parent | hecho |
 
 ## Log
@@ -310,7 +310,9 @@ que cada clave exista en los dos idiomas.
   lo que primero se va a leer», pero el lector puede elegir idioma. Por lo tanto la regla
   S69/S70 no se deroga: el español sigue siendo la documentación normativa y el inglés es
   la edición de cara al repositorio, con obligación de estar sincronizada. `REQUISITOS.md`
-  queda intacto por ser la hoja fuente. Los comentarios del código quedan en español por
+  conserva íntegro su contenido normativo (las 150 filas de trazabilidad no cambian); lo único
+  que se le agrega es el banner con el enlace a la edición inglesa, el `T-3` pasa de «95
+  pruebas» a `npm test` y el puntero de §14 apunta a `README.es.md`. Los comentarios del código quedan en español por
   ahora (decisión explícita del humano: «vamos a dejar los comentarios en español puesto
   que son muchos cambios»); su traducción por módulos queda como trabajo posterior.
   Bitácora (`odd/tasks/`) y `design/system.md` se quedan en español por decisión del

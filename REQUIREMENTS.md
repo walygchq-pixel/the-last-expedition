@@ -11,6 +11,8 @@ manual measurement or inspection recorded in `odd/tasks/the-last-expedition.md`.
 
 ## §2 General requirements
 
+<!-- section: general -->
+
 | Requirement | What it asks for | Where | Evidence |
 | --- | --- | --- | --- |
 | RG-1 | Opens with `index.html`, no server | `index.html`, contract D-1 (classic scripts, no ES modules) | H opens over `file://` |
@@ -22,6 +24,8 @@ manual measurement or inspection recorded in `odd/tasks/the-last-expedition.md`.
 
 ## §3 Players and modes
 
+<!-- section: players-and-modes -->
+
 | Requirement | What it asks for | Where | Evidence |
 | --- | --- | --- | --- |
 | RG-7 | 1 to 4 local players | `js/world/players.js`, `js/ui/shell.js` | T world (4 players) |
@@ -32,6 +36,8 @@ manual measurement or inspection recorded in `odd/tasks/the-last-expedition.md`.
 | RG-12 | Opposing priorities | `js/ui/travelScreen.js` (power warning + shutdown proposal), `js/core/game.js` | M screenshot with the warning active |
 
 ## §4 Phase 1: mission design
+
+<!-- section: mission-design -->
 
 | Requirement | What it asks for | Where | Evidence |
 | --- | --- | --- | --- |
@@ -52,6 +58,8 @@ manual measurement or inspection recorded in `odd/tasks/the-last-expedition.md`.
 
 ## §5 Resource management
 
+<!-- section: resources -->
+
 | Requirement | What it asks for | Where | Evidence |
 | --- | --- | --- | --- |
 | Resources | Six resources in a real-time panel | `js/core/resources.js`, `js/ui/*` | T core (full panel) |
@@ -59,6 +67,8 @@ manual measurement or inspection recorded in `odd/tasks/the-last-expedition.md`.
 | RN-2 | Colour **and** shape or icon | `resources.SHAPES` / `ICONS` | T core (shape and icon per resource) |
 
 ## §6 Phase 2: travel and survival
+
+<!-- section: travel-and-survival -->
 
 | Requirement | What it asks for | Where | Evidence |
 | --- | --- | --- | --- |
@@ -83,6 +93,8 @@ manual measurement or inspection recorded in `odd/tasks/the-last-expedition.md`.
 
 ## §7 Communications and data
 
+<!-- section: communications-and-data -->
+
 | Requirement | What it asks for | Where | Evidence |
 | --- | --- | --- | --- |
 | C-1 | Limited data memory | `js/core/datastore.js` | T core (cap and loss) |
@@ -91,6 +103,8 @@ manual measurement or inspection recorded in `odd/tasks/the-last-expedition.md`.
 | C-4 | What is not transmitted is worth less | `datastore.scienceValue` (0.6) | T core |
 
 ## §8 Scoring and evaluation
+
+<!-- section: scoring -->
 
 | Requirement | What it asks for | Where | Evidence |
 | --- | --- | --- | --- |
@@ -101,6 +115,8 @@ manual measurement or inspection recorded in `odd/tasks/the-last-expedition.md`.
 
 ## §9 Game modes
 
+<!-- section: game-modes -->
+
 | Requirement | What it asks for | Where | Evidence |
 | --- | --- | --- | --- |
 | M-1 | Campaign with evaluation | `js/ui/shell.js`, report | H |
@@ -110,6 +126,8 @@ manual measurement or inspection recorded in `odd/tasks/the-last-expedition.md`.
 
 ## §10 Save and load
 
+<!-- section: save-and-load -->
+
 | Requirement | What it asks for | Where | Evidence |
 | --- | --- | --- | --- |
 | G-1 | Save and load in `localStorage` | `js/storage/saves.js`, `js/storage/store.js` | T storage |
@@ -117,6 +135,8 @@ manual measurement or inspection recorded in `odd/tasks/the-last-expedition.md`.
 | G-3 | Comparator for designs or reports | `scoring.compare`, `reportScreen` | T storage |
 
 ## §11 Education and accessibility
+
+<!-- section: education-and-accessibility -->
 
 | Requirement | What it asks for | Where | Evidence |
 | --- | --- | --- | --- |
@@ -128,6 +148,8 @@ manual measurement or inspection recorded in `odd/tasks/the-last-expedition.md`.
 
 ## §12 Technical requirements
 
+<!-- section: technical -->
+
 | Requirement | What it asks for | Where | Evidence |
 | --- | --- | --- | --- |
 | T-1 | HTML5, CSS3, JS ES2020+, Canvas 2D, no frameworks | `index.html`, `js/**` | — |
@@ -136,6 +158,8 @@ manual measurement or inspection recorded in `odd/tasks/the-last-expedition.md`.
 | T-4 | Comments in Spanish, identifiers in English | all `js/**` | M |
 
 ## §13 Internationalisation
+
+<!-- section: i18n -->
 
 | Requirement | What it asks for | Where | Evidence |
 | --- | --- | --- | --- |
@@ -153,11 +177,15 @@ manual measurement or inspection recorded in `odd/tasks/the-last-expedition.md`.
 
 ## §14 Assumptions (S-1 … S-20)
 
+<!-- section: assumptions -->
+
 The twenty assumptions are implemented and documented one by one in the
 **"Design decisions"** section of [README.md](README.md), with the "Where" column
 naming the file that guarantees each one.
 
 ## What is not verified
+
+<!-- section: not-verified -->
 
 Declared explicitly, so nobody reads it as done:
 

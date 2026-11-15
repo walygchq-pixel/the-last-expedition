@@ -11,6 +11,8 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 
 ## §2 Requisitos generales
 
+<!-- section: general -->
+
 | Requisito | Qué pide | Dónde | Evidencia |
 | --- | --- | --- | --- |
 | RG-1 | Se abre con `index.html` sin servidor | `index.html`, contrato D-1 (scripts clásicos, sin módulos ES) | H abre con `file://` |
@@ -22,6 +24,8 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 
 ## §3 Jugadores y modos
 
+<!-- section: players-and-modes -->
+
 | Requisito | Qué pide | Dónde | Evidencia |
 | --- | --- | --- | --- |
 | RG-7 | 1 a 4 jugadores locales | `js/world/players.js`, `js/ui/shell.js` | T world (4 jugadores) |
@@ -32,6 +36,8 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 | RG-12 | Prioridades contrapuestas | `js/ui/travelScreen.js` (aviso de potencia + propuesta de apagado), `js/core/game.js` | M captura con el aviso activo |
 
 ## §4 Fase 1: diseño de misión
+
+<!-- section: mission-design -->
 
 | Requisito | Qué pide | Dónde | Evidencia |
 | --- | --- | --- | --- |
@@ -52,6 +58,8 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 
 ## §5 Gestión de recursos
 
+<!-- section: resources -->
+
 | Requisito | Qué pide | Dónde | Evidencia |
 | --- | --- | --- | --- |
 | Recursos | Seis recursos en panel en tiempo real | `js/core/resources.js`, `js/ui/*` | T core (panel completo) |
@@ -59,6 +67,8 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 | RN-2 | Color **y** forma o icono | `resources.SHAPES` / `ICONS` | T core (forma e icono por recurso) |
 
 ## §6 Fase 2: viaje y supervivencia
+
+<!-- section: travel-and-survival -->
 
 | Requisito | Qué pide | Dónde | Evidencia |
 | --- | --- | --- | --- |
@@ -83,6 +93,8 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 
 ## §7 Comunicaciones y datos
 
+<!-- section: communications-and-data -->
+
 | Requisito | Qué pide | Dónde | Evidencia |
 | --- | --- | --- | --- |
 | C-1 | Memoria de datos limitada | `js/core/datastore.js` | T core (tope y pérdida) |
@@ -91,6 +103,8 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 | C-4 | Lo no transmitido vale menos | `datastore.scienceValue` (0,6) | T core |
 
 ## §8 Puntuación y evaluación
+
+<!-- section: scoring -->
 
 | Requisito | Qué pide | Dónde | Evidencia |
 | --- | --- | --- | --- |
@@ -101,6 +115,8 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 
 ## §9 Modos de juego
 
+<!-- section: game-modes -->
+
 | Requisito | Qué pide | Dónde | Evidencia |
 | --- | --- | --- | --- |
 | M-1 | Campaña con evaluación | `js/ui/shell.js`, informe | H |
@@ -110,6 +126,8 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 
 ## §10 Guardado y carga
 
+<!-- section: save-and-load -->
+
 | Requisito | Qué pide | Dónde | Evidencia |
 | --- | --- | --- | --- |
 | G-1 | Guardar y cargar en `localStorage` | `js/storage/saves.js`, `js/storage/store.js` | T storage |
@@ -117,6 +135,8 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 | G-3 | Comparador de diseños o informes | `scoring.compare`, `reportScreen` | T storage |
 
 ## §11 Educación y accesibilidad
+
+<!-- section: education-and-accessibility -->
 
 | Requisito | Qué pide | Dónde | Evidencia |
 | --- | --- | --- | --- |
@@ -128,6 +148,8 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 
 ## §12 Requisitos técnicos
 
+<!-- section: technical -->
+
 | Requisito | Qué pide | Dónde | Evidencia |
 | --- | --- | --- | --- |
 | T-1 | HTML5, CSS3, JS ES2020+, Canvas 2D, sin frameworks | `index.html`, `js/**` | — |
@@ -136,6 +158,8 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 | T-4 | Comentarios en español, identificadores en inglés | todo `js/**` | M |
 
 ## §13 Internacionalización
+
+<!-- section: i18n -->
 
 | Requisito | Qué pide | Dónde | Evidencia |
 | --- | --- | --- | --- |
@@ -153,11 +177,15 @@ headless · **M** = medición o inspección manual registrada en `odd/tasks/the-
 
 ## §14 Suposiciones (S-1 … S-20)
 
+<!-- section: assumptions -->
+
 Las veinte suposiciones están implementadas y documentadas una por una en la
 sección **«Decisiones de diseño»** de [README.es.md](README.es.md), con la columna
 «Dónde» indicando el archivo que las garantiza.
 
 ## Lo que no está verificado
+
+<!-- section: not-verified -->
 
 Declarado explícitamente, para que nadie lo lea como cumplido:
 

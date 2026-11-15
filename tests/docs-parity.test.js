@@ -49,9 +49,15 @@ function identificadores(texto) {
   return salida;
 }
 
-/** Referencias a las decisiones de diseño: son siglas, no se traducen. */
+/** Referencias a las decisiones de diseño: son siglas, no se traducen, se citen en negrita o
+ * en texto plano (`**D-9**`, `(D-9)`, `contract D-1`). */
 function referencias(texto) {
-  return [...texto.matchAll(/\*\*(D-\d+|S-\d+)/g)].map((m) => m[1]);
+  return [...texto.matchAll(/(?<![A-Za-z0-9-])([DS]-\d+)(?!\d)/g)].map((m) => m[1]);
+}
+
+/** Marca de orden de sección: `<!-- section: id -->`, idéntica en los dos idiomas. */
+function marcas(texto) {
+  return [...texto.matchAll(/<!-- section: ([a-z0-9-]+) -->/g)].map((m) => m[1]);
 }
 
 test('S69/S70: cada edición tiene el mismo esqueleto de secciones y tablas que su par', () => {
@@ -98,10 +104,42 @@ test('S69/S70: ambas ediciones de requisitos listan los mismos identificadores e
 
 test('S69/S70: ambas ediciones citan las mismas decisiones de diseño', () => {
   for (const par of PARES) {
+    const enIngles = referencias(leer(par.ingles));
+    const enEspanol = referencias(leer(par.espanol));
+    // Sin esto, un par que no cita ninguna decisión compararía dos arreglos vacíos y pasaría
+    // sin cubrir nada, que es exactamente el defecto que la revisión nativa marcó en R2-002.
+    assert.ok(
+      enIngles.length > 0,
+      `${par.ingles} no cita ninguna decisión de diseño: la comparación no probaría nada`
+    );
     assert.deepEqual(
-      referencias(leer(par.ingles)),
-      referencias(leer(par.espanol)),
+      enIngles,
+      enEspanol,
       `${par.ingles} y ${par.espanol} no citan las mismas decisiones de diseño`
+    );
+  }
+});
+
+test('S69/S70: las secciones van en el mismo orden en las dos ediciones', () => {
+  for (const par of PARES) {
+    const ingles = leer(par.ingles);
+    const espanol = leer(par.espanol);
+    // La cantidad ya se compara arriba; acá se compara el orden, que el texto no puede dar
+    // porque cada edición traduce los títulos. La marca `<!-- section: id -->` es el contrato.
+    assert.equal(
+      marcas(ingles).length,
+      secciones(ingles).length,
+      `${par.ingles}: alguna sección no tiene su marca \`<!-- section: id -->\``
+    );
+    assert.equal(
+      marcas(espanol).length,
+      secciones(espanol).length,
+      `${par.espanol}: alguna sección no tiene su marca \`<!-- section: id -->\``
+    );
+    assert.deepEqual(
+      marcas(ingles),
+      marcas(espanol),
+      `${par.ingles} y ${par.espanol} ordenan las secciones distinto`
     );
   }
 });

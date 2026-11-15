@@ -30,6 +30,8 @@ that `file://` works (see "Design decisions", D-1).
 
 ## How to play
 
+<!-- section: how-to-play -->
+
 1. **New mission** → choose mode, scenario, difficulty and number of players with their
    roles. Basic enables the tutorial.
 2. **Mission design**: the objective rules. The requirement list on the right turns green as
@@ -43,6 +45,8 @@ that `file://` works (see "Design decisions", D-1).
 
 ## Controls
 
+<!-- section: controls -->
+
 | Player | Move | Interact |
 | --- | --- | --- |
 | 1 | `W` `A` `S` `D` | `E` |
@@ -54,6 +58,8 @@ Bindings are reassigned from **Settings → Controls** and stored in `localStora
 gamepad (Gamepad API) is optional: without one, everything still works.
 
 ## Structure
+
+<!-- section: structure -->
 
 ```
 index.html               entry point (containers and script order only)
@@ -81,6 +87,8 @@ odd/tasks/              operational specification, contracts and project log (Sp
 
 ## Development
 
+<!-- section: development -->
+
 ```bash
 npm test               # full Node suite (core, mission, world, i18n, storage)
 npm run build:data     # regenerates data/data-bundle.js from the canonical JSON
@@ -98,6 +106,8 @@ The golden rule of the repository: **every key used exists in both languages**.
 missing, and `tests/i18n.test.js` demands exact parity between `en.json` and `es.json`.
 
 ## Design decisions
+
+<!-- section: design-decisions -->
 
 Assumptions taken where the requirements sheet was not explicit. The "Where" column names the
 place in the code that guarantees the rule.
@@ -151,6 +161,8 @@ coherent:
 
 ## Verification
 
+<!-- section: verification -->
+
 - **Node suite**: `npm test` covers `core`, `mission`, `world`, `i18n`, key coverage and
   `storage`. It needs no browser and no dependencies.
 - **Headless Chrome smoke** (`npm run smoke`): loads from `file://`, walks title → new mission
@@ -169,6 +181,8 @@ What is **not** verified and deserves human eyes:
 
 ## Documentation language
 
+<!-- section: documentation-language -->
+
 This repository is meant to be reviewed by an international institution, so the
 repository-facing edition of the documentation is **English**. Nothing is discarded: the
 Spanish originals live alongside it and both editions stay in sync, enforced by
@@ -180,11 +194,13 @@ Spanish originals live alongside it and both editions stay in sync, enforced by
 | [REQUIREMENTS.md](REQUIREMENTS.md) | [REQUISITOS.md](REQUISITOS.md) |
 
 Internal process artifacts stay in Spanish by decision of the author and are not normative for
-reviewers: the work log under `odd/tasks/` (contracts, tasks and the L1–L11 log) and the design
+reviewers: the work log under `odd/tasks/` (contracts, tasks and the L1–L12 log) and the design
 system under `design/`. Code comments are in Spanish too, as the original specification
-(§13, I-1) requires; translating them module by module is planned follow-up work, not a
+(§12, T-4) requires; translating them module by module is planned follow-up work, not a
 pending defect.
 
 ## License
+
+<!-- section: license -->
 
 MIT.

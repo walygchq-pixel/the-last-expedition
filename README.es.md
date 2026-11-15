@@ -27,6 +27,8 @@ locales, justamente para que `file://` funcione (ver «Decisiones de diseño», 
 
 ## Cómo jugar
 
+<!-- section: how-to-play -->
+
 1. **Nueva misión** → elegí modo, escenario, dificultad y cantidad de jugadores con
    sus roles. Básico activa el tutorial.
 2. **Diseño de misión**: el objetivo manda. La lista de requisitos de la derecha se
@@ -40,6 +42,8 @@ locales, justamente para que `file://` funcione (ver «Decisiones de diseño», 
 
 ## Controles
 
+<!-- section: controls -->
+
 | Jugador | Mover | Interactuar |
 | --- | --- | --- |
 | 1 | `W` `A` `S` `D` | `E` |
@@ -51,6 +55,8 @@ Se reasignan desde **Configuración → Controles** y se guardan en `localStorag
 mando estándar (Gamepad API) es opcional: si no hay mando, todo funciona igual.
 
 ## Estructura
+
+<!-- section: structure -->
 
 ```
 index.html               punto de entrada (solo contenedores y orden de scripts)
@@ -78,6 +84,8 @@ odd/tasks/              especificación operativa, contratos y bitácora del pro
 
 ## Desarrollo
 
+<!-- section: development -->
+
 ```bash
 npm test               # suite completa en Node (core, mission, world, i18n, storage)
 npm run build:data     # regenera data/data-bundle.js desde los JSON canónicos
@@ -95,6 +103,8 @@ La regla de oro del repositorio: **toda clave usada existe en los dos idiomas**.
 alguna falta, y `tests/i18n.test.js` exige paridad exacta entre `en.json` y `es.json`.
 
 ## Decisiones de diseño
+
+<!-- section: design-decisions -->
 
 Suposiciones tomadas donde la hoja de requerimientos no era explícita. La columna
 «Dónde» indica el lugar del código que garantiza la regla.
@@ -148,6 +158,8 @@ anteriores sean coherentes:
 
 ## Verificación
 
+<!-- section: verification -->
+
 - **Suite de Node**: `npm test` recorre `core`, `mission`, `world`, `i18n`, cobertura de
   claves y `storage`. No necesita navegador ni dependencias.
 - **Humo en Chrome headless** (`npm run smoke`): carga desde `file://`, recorre
@@ -166,6 +178,8 @@ Lo que **no** está verificado y conviene mirar con ojos humanos:
 
 ## Idioma de la documentación
 
+<!-- section: documentation-language -->
+
 Este repositorio está destinado a ser revisado por una institución internacional, así que la
 edición de la documentación que da la cara en el repositorio es el **inglés**. No se descarta
 nada: los originales en español viven al lado y ambas ediciones se mantienen sincronizadas, con
@@ -177,11 +191,13 @@ nada: los originales en español viven al lado y ambas ediciones se mantienen si
 | [REQUIREMENTS.md](REQUIREMENTS.md) | [REQUISITOS.md](REQUISITOS.md) |
 
 Los artefactos internos de proceso se quedan en español por decisión del autor y no son
-normativos para quien revisa: la bitácora bajo `odd/tasks/` (contratos, tareas y log L1–L11) y
+normativos para quien revisa: la bitácora bajo `odd/tasks/` (contratos, tareas y log L1–L12) y
 el sistema de diseño bajo `design/`. Los comentarios del código también están en español, como
-pide la hoja original (§13, I-1); traducirlos módulo a módulo es trabajo planificado, no un
+pide la hoja original (§12, T-4); traducirlos módulo a módulo es trabajo planificado, no un
 defecto pendiente.
 
 ## Licencia
+
+<!-- section: license -->
 
 MIT.

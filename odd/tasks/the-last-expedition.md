@@ -326,3 +326,23 @@ que cada clave exista en los dos idiomas.
   Prueba de que la guarda muerde: al quitar una fila de la tabla S-n y reintroducir una cifra
   de pruebas en la edición española fallan 3 de sus 5 casos; restaurada, los 5 pasan.
   Suite: **100 pruebas** en verde. Sin push ni PR (decisión del humano).
+
+- **L13 (código de los hallazgos de L12).** La revisión de L12 aprobó y dejó seis hallazgos
+  consultivos; el humano autorizó corregirlos antes de subir la rama. Corregidos en
+  `5470283`, con prueba de mutación para cada guarda nueva:
+  *R2-002/R3-002* — el comparador de decisiones solo veía tokens en negrita, así que el par de
+  requisitos comparaba dos arreglos vacíos y pasaba siempre; ahora captura cualquier cita, en
+  negrita o en texto plano, y un par que no cita nada falla de forma explícita.
+  *R3-003* — el archivo prometía verificar el orden de secciones y solo contaba cantidad y
+  filas de tabla; como los títulos están traducidos, el orden viaja ahora en una marca
+  explícita `<!-- section: id -->` presente en las dos ediciones.
+  *R2-001* — la bitácora afirmaba que `REQUISITOS.md` no se había tocado mientras el mismo
+  candidato lo tocaba; ahora dice qué se le agregó.
+  *R3-001/R2-003* — las dos ediciones del README decían que el log llegaba a L1–L11 cuando el
+  mismo candidato agregaba L12; ahora dicen L1–L12.
+  *R2-003* — la regla de comentarios en español citaba §13/I-1 en lugar de §12/T-4.
+  Mutaciones probadas en rojo: intercambiar dos bloques de sección en la edición española,
+  borrar una marca, quitar una cita `D-1` solo del inglés y vaciar todas las citas de un par.
+  Cada una hace fallar su caso y ningún otro; restaurado el archivo, verde.
+  Suite: **101 pruebas** en verde. ASSESS del rebanada: `nativeRisk: medium`,
+  `reviewDue: false` (`under_budget`), así que el proveedor no exige otra revisión.

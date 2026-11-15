@@ -17,13 +17,36 @@ const { spawn } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 
+/**
+ * Lee los argumentos de línea de comandos. Es estricto a propósito: un flag mal
+ * escrito aborta en lugar de ignorarse, porque el humo terminaría corriendo
+ * contra el destino por defecto y aun así informando éxito (R3-001).
+ */
 function parseArgs(argv) {
   const options = { url: 'file://' + path.join(ROOT, 'index.html'), out: path.join(ROOT, 'tools', '.smoke'), port: 9333 };
+  const known = {
+    '--url': (value) => {
+      options.url = value;
+    },
+    '--out': (value) => {
+      options.out = path.resolve(value);
+    },
+    '--port': (value) => {
+      const port = Number(value);
+      if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        throw new Error('--port necesita un puerto válido (1-65535): ' + value);
+      }
+      options.port = port;
+    }
+  };
   for (let i = 2; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === '--url') options.url = argv[++i];
-    else if (arg === '--out') options.out = path.resolve(argv[++i]);
-    else if (arg === '--port') options.port = Number(argv[++i]);
+    const apply = known[arg];
+    if (!apply) throw new Error('argumento desconocido: ' + arg + ' (válidos: --url, --out, --port)');
+    const value = argv[i + 1];
+    if (value === undefined || value.startsWith('--')) throw new Error(arg + ' necesita un valor');
+    apply(value);
+    i += 1;
   }
   return options;
 }
@@ -402,4 +425,6 @@ async function main() {
   }
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = { parseArgs };
